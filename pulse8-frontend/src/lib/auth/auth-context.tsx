@@ -1,0 +1,158 @@
+'use client'
+
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { User } from '@/types/api'
+import { AuthService } from '@/lib/api/auth'
+import { normalizeUser } from '@/lib/utils/user'
+
+interface AuthContextType {
+  user: User | null
+  isLoading: boolean
+  login: (email: string, password: string) => Promise<void>
+  logout: () => void
+  register: (userData: RegisterData) => Promise<void>
+}
+
+interface RegisterData {
+  name: string
+  email: string
+  password: string
+  organizationName: string
+  cnpj: string
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Verificar se há token salvo no localStorage
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('auth-token')
+      if (token) {
+        // Validar token e buscar dados do usuário
+        validateToken(token)
+      } else {
+        setIsLoading(false)
+      }
+    } else {
+      setIsLoading(false)
+    }
+  }, [])
+
+  const validateToken = async (token: string) => {
+    try {
+      if (!AuthService.isTokenValid(token)) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth-token')
+        }
+        setIsLoading(false)
+        return
+      }
+
+      const userData = await AuthService.getMe()
+      const normalizedUser = normalizeUser(userData)
+      
+      // Salvar organizationId no localStorage se disponível
+      if (normalizedUser.organizationId && typeof window !== 'undefined') {
+        localStorage.setItem('organizationId', normalizedUser.organizationId)
+        console.log('🏢 OrganizationId salvo no localStorage:', normalizedUser.organizationId)
+      }
+      
+      setUser(normalizedUser)
+    } catch (error) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth-token')
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const login = async (email: string, password: string) => {
+    try {
+      console.log('🔐 AuthContext: Iniciando login...')
+      console.log('📧 Email:', email)
+      
+      const data = await AuthService.login({ email, password })
+      console.log('✅ AuthContext: Login bem-sucedido!', data)
+      console.log('👤 Estrutura do usuário:', JSON.stringify(data.user, null, 2))
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth-token', data.token)
+        console.log('💾 Token salvo no localStorage')
+      }
+      
+      const normalizedUser = normalizeUser(data.user)
+      console.log('👤 Usuário normalizado:', normalizedUser)
+      
+      // Salvar organizationId no localStorage se disponível
+      if (normalizedUser.organizationId && typeof window !== 'undefined') {
+        localStorage.setItem('organizationId', normalizedUser.organizationId)
+        console.log('🏢 OrganizationId salvo no localStorage:', normalizedUser.organizationId)
+      }
+      
+      setUser(normalizedUser)
+    } catch (error: any) {
+      console.error('❌ AuthContext: Erro no login:', error)
+      throw new Error(error.message || 'Erro ao fazer login')
+    }
+  }
+
+  const logout = () => {
+    console.log('🚪 AuthContext: Fazendo logout...')
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth-token')
+      localStorage.removeItem('organizationId')
+      console.log('🗑️ Token e organizationId removidos do localStorage')
+    }
+    setUser(null)
+    console.log('👤 Usuário removido do estado')
+  }
+
+  const register = async (userData: RegisterData) => {
+    try {
+      console.log('🔐 AuthContext: Iniciando registro...')
+      console.log('📝 Dados do usuário:', userData)
+      
+      const data = await AuthService.register(userData)
+      console.log('✅ AuthContext: Registro bem-sucedido!', data)
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth-token', data.token)
+        console.log('💾 Token salvo no localStorage')
+      }
+      
+      const normalizedUser = normalizeUser(data.user)
+      console.log('👤 Usuário normalizado:', normalizedUser)
+      
+      // Salvar organizationId no localStorage se disponível
+      if (normalizedUser.organizationId && typeof window !== 'undefined') {
+        localStorage.setItem('organizationId', normalizedUser.organizationId)
+        console.log('🏢 OrganizationId salvo no localStorage:', normalizedUser.organizationId)
+      }
+      
+      setUser(normalizedUser)
+    } catch (error: any) {
+      console.error('❌ AuthContext: Erro no registro:', error)
+      throw new Error(error.message || 'Erro ao criar conta')
+    }
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, isLoading, login, logout, register }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth deve ser usado dentro de um AuthProvider')
+  }
+  return context
+}
+

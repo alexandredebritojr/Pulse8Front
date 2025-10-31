@@ -1,0 +1,17 @@
+{
+  "name": "pulse8-screenshots",
+  "version": "1.0.0",
+  "description": "Script para captura automática de screenshots do Pulse8",
+  "main": "capture-screenshots.js",
+  "scripts": {
+    "capture": "node capture-screenshots.js",
+    "install-playwright": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  }
+}
+

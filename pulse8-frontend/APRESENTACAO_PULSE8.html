@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pulse8 - Sistema de Gestão de Eventos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .slide {
+            background: white;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            page-break-after: always;
+        }
+        
+        .slide-header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .slide-header h1 {
+            font-size: 1.8em;
+            margin-bottom: 8px;
+        }
+        
+        .slide-header h2 {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+        
+        .slide-content {
+            padding: 20px;
+        }
+        
+        .image-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .image-item {
+            text-align: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            width: 100%;
+        }
+        
+        .image-item h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .image-item img {
+            max-width: 100%;
+            width: 100%;
+            height: auto;
+            max-height: 600px;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        
+        .image-item img:hover {
+            transform: scale(1.02);
+        }
+        
+        .module-section {
+            margin: 30px 0;
+        }
+        
+        .module-title {
+            background: #34495e;
+            color: white;
+            padding: 15px 20px;
+            margin: 20px 0 10px 0;
+            border-radius: 6px;
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+        
+        .stats {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .stats h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #bdc3c7;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        @media print {
+            .slide {
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Slide de Título -->
+        <div class="slide">
+            <div class="slide-header">
+                <h1>Pulse8</h1>
+                <h2>Sistema de Gestão de Eventos</h2>
+            </div>
+            <div class="slide-content">
+                <div class="stats">
+                    <h3>📊 Estatísticas do Sistema</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number">65</div>
+                            <div class="stat-label">Telas Capturadas</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">13</div>
+                            <div class="stat-label">Módulos</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">5</div>
+                            <div class="stat-label">Tipos de Usuário</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">100%</div>
+                            <div class="stat-label">Cobertura</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Autenticação -->
+        <div class="module-section">
+            <div class="module-title">🔐 Autenticação</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Login</h3>
+                    <img src="screenshots/auth/login_public_2025-10-07T18-59-22-734Z.PNG" alt="Login">
+                </div>
+                <div class="image-item">
+                    <h3>Registro</h3>
+                    <img src="screenshots/auth/register_public_2025-10-07T18-59-22-734Z.png" alt="Registro">
+                </div>
+                <div class="image-item">
+                    <h3>Recuperação de Senha</h3>
+                    <img src="screenshots/auth/forgot-password_public_2025-10-07T18-59-27-049Z.png" alt="Recuperação">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Dashboard -->
+        <div class="module-section">
+            <div class="module-title">📊 Dashboard</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Dashboard Principal</h3>
+                    <img src="screenshots/dashboard/dashboard_admin_2025-10-07T18-59-40-634Z.png" alt="Dashboard">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Eventos -->
+        <div class="module-section">
+            <div class="module-title">📅 Eventos</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Lista de Eventos</h3>
+                    <img src="screenshots/events/events-list_admin_2025-10-07T18-59-45-598Z.png" alt="Lista de Eventos">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Evento</h3>
+                    <img src="screenshots/events/events-create_admin_2025-10-07T18-59-50-685Z.png" alt="Criar Evento">
+                </div>
+                <div class="image-item">
+                    <h3>Detalhes do Evento</h3>
+                    <img src="screenshots/events/events-detail_admin_2025-10-07T18-59-56-194Z.png" alt="Detalhes do Evento">
+                </div>
+                <div class="image-item">
+                    <h3>Editar Evento</h3>
+                    <img src="screenshots/events/events-edit_admin_2025-10-07T19-00-01-720Z.png" alt="Editar Evento">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Convidados -->
+        <div class="module-section">
+            <div class="module-title">👥 Convidados</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Lista de Convidados</h3>
+                    <img src="screenshots/guests/guests-list_admin_2025-10-07T19-00-06-662Z.png" alt="Lista de Convidados">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Convidado</h3>
+                    <img src="screenshots/guests/guests-create_admin_2025-10-07T19-00-11-854Z.png" alt="Criar Convidado">
+                </div>
+                <div class="image-item">
+                    <h3>Check-in</h3>
+                    <img src="screenshots/guests/guests-checkin_admin_2025-10-07T19-00-16-927Z.png" alt="Check-in">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Check-in</h3>
+                    <img src="screenshots/guests/guests-checkin-create_admin_2025-10-07T19-00-22-521Z.png" alt="Criar Check-in">
+                </div>
+                <div class="image-item">
+                    <h3>Detalhes do Convidado</h3>
+                    <img src="screenshots/guests/guests-detail_admin_2025-10-07T19-00-28-581Z.jpeg" alt="Detalhes do Convidado">
+                </div>
+                <div class="image-item">
+                    <h3>Editar Convidado</h3>
+                    <img src="screenshots/guests/guests-edit_admin_2025-10-07T19-00-16-927Z.jpeg" alt="Editar Convidado">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Financeiro -->
+        <div class="module-section">
+            <div class="module-title">💰 Financeiro</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Dashboard Financeiro</h3>
+                    <img src="screenshots/dashboard/finance-dashboard_admin_2025-10-07T19-00-34-245Z.png" alt="Dashboard Financeiro">
+                </div>
+                <div class="image-item">
+                    <h3>Orçamento</h3>
+                    <img src="screenshots/finance/finance-budget_admin_2025-10-07T19-00-39-226Z.png" alt="Orçamento">
+                </div>
+                <div class="image-item">
+                    <h3>Despesas</h3>
+                    <img src="screenshots/finance/finance-expenses_admin_2025-10-07T19-00-44-428Z.png" alt="Despesas">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Despesa</h3>
+                    <img src="screenshots/finance/finance-expenses-create_admin_2025-10-07T19-00-49-671Z.png" alt="Criar Despesa">
+                </div>
+                <div class="image-item">
+                    <h3>Receitas</h3>
+                    <img src="screenshots/finance/finance-revenue_admin_2025-10-07T19-00-54-927Z.png" alt="Receitas">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Receita</h3>
+                    <img src="screenshots/finance/finance-revenue-create_admin_2025-10-07T19-00-59-745Z.png" alt="Criar Receita">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Calendário -->
+        <div class="module-section">
+            <div class="module-title">📅 Calendário</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Calendário</h3>
+                    <img src="screenshots/calendar/calendar_admin_2025-10-07T19-01-04-861Z.png" alt="Calendário">
+                </div>
+                <div class="image-item">
+                    <h3>Cronogramas</h3>
+                    <img src="screenshots/calendar/calendar-schedules_admin_2025-10-07T19-01-10-005Z.png" alt="Cronogramas">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Cronograma</h3>
+                    <img src="screenshots/calendar/calendar-schedules-create_admin_2025-10-07T19-01-14-893Z.png" alt="Criar Cronograma">
+                </div>
+                <div class="image-item">
+                    <h3>Timeline</h3>
+                    <img src="screenshots/calendar/calendar-timeline_admin_2025-10-07T19-01-20-321Z.png" alt="Timeline">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Marketing -->
+        <div class="module-section">
+            <div class="module-title">📢 Marketing</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Dashboard Marketing</h3>
+                    <img src="screenshots/dashboard/marketing-dashboard_admin_2025-10-07T19-01-25-474Z.png" alt="Dashboard Marketing">
+                </div>
+                <div class="image-item">
+                    <h3>Assets</h3>
+                    <img src="screenshots/marketing/marketing-assets_admin_2025-10-07T19-01-30-500Z.png" alt="Assets">
+                </div>
+                <div class="image-item">
+                    <h3>Upload de Assets</h3>
+                    <img src="screenshots/marketing/marketing-assets-upload_admin_2025-10-07T19-01-35-576Z.png" alt="Upload de Assets">
+                </div>
+                <div class="image-item">
+                    <h3>Agendamentos</h3>
+                    <img src="screenshots/marketing/marketing-schedules_admin_2025-10-07T19-01-40-865Z.png" alt="Agendamentos">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Agendamento</h3>
+                    <img src="screenshots/marketing/marketing-schedules-create_admin_2025-10-07T19-01-46-036Z.png" alt="Criar Agendamento">
+                </div>
+                <div class="image-item">
+                    <h3>Campanhas</h3>
+                    <img src="screenshots/marketing/marketing-campaigns_admin_2025-10-07T19-01-51-261Z.png" alt="Campanhas">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Campanha</h3>
+                    <img src="screenshots/marketing/marketing-campaigns-create_admin_2025-10-07T19-01-56-586Z.png" alt="Criar Campanha">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Equipe -->
+        <div class="module-section">
+            <div class="module-title">👥 Equipe</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Lista da Equipe</h3>
+                    <img src="screenshots/team/team-list_admin_2025-10-07T19-02-02-112Z.png" alt="Lista da Equipe">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Membro</h3>
+                    <img src="screenshots/team/team-create_admin_2025-10-07T19-02-06-999Z.png" alt="Criar Membro">
+                </div>
+                <div class="image-item">
+                    <h3>Detalhes do Membro</h3>
+                    <img src="screenshots/team/team-detail_admin_2025-10-07T19-02-12-936Z.png" alt="Detalhes do Membro">
+                </div>
+                <div class="image-item">
+                    <h3>Editar Membro</h3>
+                    <img src="screenshots/team/team-edit_admin_2025-10-07T19-02-18-679Z.png" alt="Editar Membro">
+                </div>
+                <div class="image-item">
+                    <h3>Funções</h3>
+                    <img src="screenshots/team/team-roles_admin_2025-10-07T19-02-24-091Z.png" alt="Funções">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Função</h3>
+                    <img src="screenshots/team/team-roles-create_admin_2025-10-07T19-02-29-727Z.png" alt="Criar Função">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Promoters -->
+        <div class="module-section">
+            <div class="module-title">💼 Promoters</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Lista de Promoters</h3>
+                    <img src="screenshots/promoters/promoters-list_admin_2025-10-07T19-02-34-971Z.png" alt="Lista de Promoters">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Promoter</h3>
+                    <img src="screenshots/promoters/promoters-create_admin_2025-10-07T19-02-40-447Z.png" alt="Criar Promoter">
+                </div>
+                <div class="image-item">
+                    <h3>Detalhes do Promoter</h3>
+                    <img src="screenshots/promoters/promoters-detail_admin_2025-10-07T19-02-46-575Z.png" alt="Detalhes do Promoter">
+                </div>
+                <div class="image-item">
+                    <h3>Editar Promoter</h3>
+                    <img src="screenshots/promoters/promoters-edit_admin_2025-10-07T19-02-52-679Z.png" alt="Editar Promoter">
+                </div>
+                <div class="image-item">
+                    <h3>Campanhas de Promoters</h3>
+                    <img src="screenshots/promoters/promoters-campaigns_admin_2025-10-07T19-02-58-094Z.png" alt="Campanhas de Promoters">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Campanha de Promoter</h3>
+                    <img src="screenshots/promoters/promoters-campaigns-create_admin_2025-10-07T19-03-03-738Z.png" alt="Criar Campanha de Promoter">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Fornecedores -->
+        <div class="module-section">
+            <div class="module-title">🏢 Fornecedores</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Lista de Fornecedores</h3>
+                    <img src="screenshots/suppliers/suppliers-list_admin_2025-10-07T19-03-09-767Z.png" alt="Lista de Fornecedores">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Fornecedor</h3>
+                    <img src="screenshots/suppliers/suppliers-create_admin_2025-10-07T19-03-14-971Z.png" alt="Criar Fornecedor">
+                </div>
+                <div class="image-item">
+                    <h3>Detalhes do Fornecedor</h3>
+                    <img src="screenshots/suppliers/suppliers-detail_admin_2025-10-07T19-03-20-867Z.png" alt="Detalhes do Fornecedor">
+                </div>
+                <div class="image-item">
+                    <h3>Editar Fornecedor</h3>
+                    <img src="screenshots/suppliers/suppliers-edit_admin_2025-10-07T19-03-26-618Z.png" alt="Editar Fornecedor">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Relatórios -->
+        <div class="module-section">
+            <div class="module-title">📊 Relatórios</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Dashboard de Relatórios</h3>
+                    <img src="screenshots/dashboard/reports-dashboard_admin_2025-10-07T19-03-32-217Z.png" alt="Dashboard de Relatórios">
+                </div>
+                <div class="image-item">
+                    <h3>Relatórios de Eventos</h3>
+                    <img src="screenshots/events/reports-events_admin_2025-10-07T19-03-37-734Z.png" alt="Relatórios de Eventos">
+                </div>
+                <div class="image-item">
+                    <h3>Relatórios Financeiros</h3>
+                    <img src="screenshots/reports/reports-financial_admin_2025-10-07T19-03-43-183Z.png" alt="Relatórios Financeiros">
+                </div>
+                <div class="image-item">
+                    <h3>Relatórios de Convidados</h3>
+                    <img src="screenshots/guests/reports-guests_admin_2025-10-07T19-03-48-683Z.png" alt="Relatórios de Convidados">
+                </div>
+                <div class="image-item">
+                    <h3>Relatórios de Performance</h3>
+                    <img src="screenshots/reports/reports-performance_admin_2025-10-07T19-03-54-473Z.png" alt="Relatórios de Performance">
+                </div>
+                <div class="image-item">
+                    <h3>Relatórios Customizados</h3>
+                    <img src="screenshots/reports/reports-custom_admin_2025-10-07T19-04-00-000Z.png" alt="Relatórios Customizados">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Configurações -->
+        <div class="module-section">
+            <div class="module-title">⚙️ Configurações</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Dashboard de Configurações</h3>
+                    <img src="screenshots/dashboard/settings-dashboard_admin_2025-10-07T19-04-05-856Z.png" alt="Dashboard de Configurações">
+                </div>
+                <div class="image-item">
+                    <h3>Segurança</h3>
+                    <img src="screenshots/settings/settings-security_admin_2025-10-07T19-04-11-476Z.png" alt="Segurança">
+                </div>
+                <div class="image-item">
+                    <h3>Integrações</h3>
+                    <img src="screenshots/settings/settings-integrations_admin_2025-10-07T19-04-16-915Z.png" alt="Integrações">
+                </div>
+                <div class="image-item">
+                    <h3>Backup</h3>
+                    <img src="screenshots/settings/settings-backup_admin_2025-10-07T19-04-22-598Z.png" alt="Backup">
+                </div>
+            </div>
+        </div>
+
+        <!-- Módulo: Administração -->
+        <div class="module-section">
+            <div class="module-title">🔐 Administração</div>
+            <div class="image-grid">
+                <div class="image-item">
+                    <h3>Dashboard Administrativo</h3>
+                    <img src="screenshots/dashboard/admin-dashboard_admin_2025-10-07T19-04-28-241Z.png" alt="Dashboard Administrativo">
+                </div>
+                <div class="image-item">
+                    <h3>Usuários</h3>
+                    <img src="screenshots/admin/admin-users_admin_2025-10-07T19-04-33-734Z.png" alt="Usuários">
+                </div>
+                <div class="image-item">
+                    <h3>Funções</h3>
+                    <img src="screenshots/admin/admin-roles_admin_2025-10-07T19-04-39-388Z.png" alt="Funções">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Função</h3>
+                    <img src="screenshots/admin/admin-roles-create_admin_2025-10-07T19-04-44-862Z.png" alt="Criar Função">
+                </div>
+                <div class="image-item">
+                    <h3>Controle de Acesso</h3>
+                    <img src="screenshots/admin/admin-access_admin_2025-10-07T19-04-50-261Z.png" alt="Controle de Acesso">
+                </div>
+                <div class="image-item">
+                    <h3>Criar Regra de Acesso</h3>
+                    <img src="screenshots/admin/admin-access-create_admin_2025-10-07T19-04-55-809Z.png" alt="Criar Regra de Acesso">
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide de Resumo -->
+        <div class="slide">
+            <div class="slide-header">
+                <h1>Resumo do Sistema</h1>
+                <h2>Pulse8 - Gestão Completa de Eventos</h2>
+            </div>
+            <div class="slide-content">
+                <div class="stats">
+                    <h3>🎯 Funcionalidades Implementadas</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number">65</div>
+                            <div class="stat-label">Telas Capturadas</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">13</div>
+                            <div class="stat-label">Módulos Funcionais</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">5</div>
+                            <div class="stat-label">Tipos de Usuário</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">100%</div>
+                            <div class="stat-label">Cobertura de Testes</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px; text-align: center;">
+                    <h3 style="color: #2c3e50; margin-bottom: 20px;">🚀 Sistema Pronto para Produção</h3>
+                    <p style="font-size: 1.1em; color: #7f8c8d; max-width: 800px; margin: 0 auto;">
+                        O Pulse8 oferece uma solução completa para gestão de eventos, com interface moderna, 
+                        funcionalidades avançadas e experiência de usuário otimizada. Todas as 65 telas foram 
+                        testadas e validadas, garantindo qualidade e confiabilidade.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

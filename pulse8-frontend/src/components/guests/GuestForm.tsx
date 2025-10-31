@@ -1,0 +1,306 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Save, User, Phone, Mail, MapPin, Calendar, Heart, ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GuestsService, CreateGuestRequest, GuestDto } from '@/lib/api/guests'
+import { EventsService, EventDto } from '@/lib/api/events'
+
+interface GuestFormProps {
+  mode: 'create' | 'edit'
+  guestId?: string
+}
+
+export default function GuestForm({ mode, guestId }: GuestFormProps) {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [events, setEvents] = useState<EventDto[]>([])
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false)
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    document: '',
+    eventId: '',
+  })
+
+  // Carregar eventos
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setIsLoadingEvents(true)
+        console.log('🔍 GuestForm: Carregando eventos...')
+        const response = await EventsService.getEvents({ pageSize: 100 })
+        console.log('✅ GuestForm: Eventos carregados:', response.events)
+        setEvents(response.events)
+      } catch (err: any) {
+        console.error('❌ GuestForm: Erro ao carregar eventos:', err)
+        setError(err.message || 'Erro ao carregar eventos')
+      } finally {
+        setIsLoadingEvents(false)
+      }
+    }
+    
+    loadEvents()
+  }, [])
+
+  // Carregar dados do guest para edição
+  useEffect(() => {
+    if (mode === 'edit' && guestId) {
+      const loadGuest = async () => {
+        try {
+          console.log('🔍 GuestForm: Carregando guest para edição...')
+          console.log('🔍 GuestForm: guestId =', guestId)
+          const guest = await GuestsService.getGuestById(guestId)
+          console.log('✅ GuestForm: Guest carregado:', guest)
+          console.log('🔍 GuestForm: guest.name =', guest.name)
+          
+          const newFormData = {
+            name: guest.name,
+            email: guest.email,
+            phone: guest.phone,
+            document: guest.document,
+            eventId: guest.eventId,
+          }
+          console.log('🔍 GuestForm: Definindo formData:', newFormData)
+          setFormData(newFormData)
+          
+          // Verificar se o estado foi atualizado após um pequeno delay
+          setTimeout(() => {
+            console.log('🔍 GuestForm: Verificando formData após setState...')
+          }, 100)
+        } catch (err: any) {
+          console.error('❌ GuestForm: Erro ao carregar guest:', err)
+          setError(err.message || 'Erro ao carregar guest')
+        }
+      }
+      
+      loadGuest()
+    }
+  }, [mode, guestId])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target
+    console.log('🔍 GuestForm: handleChange - name:', name, 'value:', value)
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
+
+    try {
+      console.log('🔍 GuestForm: Iniciando operação...')
+      console.log('🔍 GuestForm: mode =', mode)
+      console.log('🔍 GuestForm: formData =', formData)
+      
+      // Preparar dados para a API
+      const guestData: CreateGuestRequest = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        document: formData.document,
+        eventId: formData.eventId,
+      }
+      
+      console.log('🔍 GuestForm: guestData =', guestData)
+      
+      if (mode === 'create') {
+        const guestId = await GuestsService.createGuest(guestData)
+        console.log('✅ GuestForm: Guest criado com ID:', guestId)
+      } else if (mode === 'edit' && guestId) {
+        await GuestsService.updateGuest(guestId, guestData)
+        console.log('✅ GuestForm: Guest atualizado')
+      }
+      
+      router.push('/guests')
+    } catch (err: any) {
+      console.error('❌ GuestForm: Erro na operação:', err)
+      setError(err.message || 'Erro ao salvar guest')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Debug: mostrar estado atual do formData
+  console.log('🔍 GuestForm: Render - formData atual:', formData)
+  console.log('🔍 GuestForm: Render - mode:', mode, 'guestId:', guestId)
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button 
+          variant="outline" 
+          size="icon"
+          onClick={() => router.push('/guests')}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {mode === 'create' ? 'Novo Convidado' : 'Editar Convidado'}
+          </h1>
+          <p className="text-gray-600">
+            {mode === 'create' 
+              ? 'Cadastre um novo convidado no sistema' 
+              : 'Atualize as informações do convidado'
+            }
+          </p>
+        </div>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="text-red-800">{error}</div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
+            {/* Basic Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Informações Pessoais
+                </CardTitle>
+                <CardDescription>
+                  Dados básicos do convidado
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Nome Completo *
+                  </label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Ex: Maria Silva"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="document" className="block text-sm font-medium text-gray-700 mb-1">
+                    CPF *
+                  </label>
+                  <Input
+                    id="document"
+                    name="document"
+                    value={formData.document}
+                    onChange={handleChange}
+                    placeholder="000.000.000-00"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                      Email *
+                    </label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="maria@email.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                      Telefone *
+                    </label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="(11) 99999-9999"
+                      required
+                    />
+                  </div>
+                </div>
+
+              </CardContent>
+            </Card>
+
+            {/* Event Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Evento
+                </CardTitle>
+                <CardDescription>
+                  Selecione o evento para o qual o convidado está sendo cadastrado
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div>
+                  <label htmlFor="eventId" className="block text-sm font-medium text-gray-700 mb-1">
+                    Evento *
+                  </label>
+                  <select
+                    id="eventId"
+                    name="eventId"
+                    value={formData.eventId}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    required
+                    disabled={isLoadingEvents}
+                  >
+                    <option value="">Selecione um evento</option>
+                    {events.map((event) => (
+                      <option key={event.id} value={event.id}>
+                        {event.name} - {new Date(event.startDate).toLocaleDateString('pt-BR')}
+                      </option>
+                    ))}
+                  </select>
+                  {isLoadingEvents && (
+                    <p className="text-sm text-gray-500 mt-1">Carregando eventos...</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-4">
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={() => router.push('/guests')}
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            <Save className="h-4 w-4 mr-2" />
+            {isLoading 
+              ? (mode === 'create' ? 'Criando...' : 'Salvando...') 
+              : (mode === 'create' ? 'Criar Convidado' : 'Salvar Alterações')
+            }
+          </Button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+
