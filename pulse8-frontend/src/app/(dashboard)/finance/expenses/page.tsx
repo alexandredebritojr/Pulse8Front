@@ -19,7 +19,8 @@ import {
   List,
   BarChart3,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Eye
 } from 'lucide-react'
 import ConfirmationModal from '@/components/ui/confirmation-modal'
 import { Button } from '@/components/ui/button'
@@ -193,10 +194,10 @@ export default function ExpensesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="min-w-0">
+        <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Despesas</h1>
           <p className="text-sm sm:text-base text-gray-600">Gerencie as despesas dos eventos</p>
         </div>
@@ -209,58 +210,58 @@ export default function ExpensesPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Receipt className="h-6 w-6 text-blue-600" />
+              <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                <Receipt className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{totalExpenses}</p>
+              <div className="ml-2 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{totalExpenses}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg flex-shrink-0">
+                <CheckCircle className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Aprovadas</p>
-                <p className="text-2xl font-bold text-gray-900">{approvedExpenses}</p>
+              <div className="ml-2 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Aprovadas</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{approvedExpenses}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600" />
+              <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg flex-shrink-0">
+                <Clock className="h-4 w-4 sm:h-6 sm:w-6 text-yellow-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pendentes</p>
-                <p className="text-2xl font-bold text-gray-900">{pendingExpenses}</p>
+              <div className="ml-2 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Pendentes</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{pendingExpenses}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-purple-600" />
+              <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Valor Total</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <div className="ml-2 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Valor Total</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
                   {formatCurrency(totalAmount)}
                 </p>
               </div>
@@ -270,66 +271,64 @@ export default function ExpensesPage() {
       </div>
 
       {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col gap-4">
-            <div className="flex-1 w-full">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar despesas..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[120px]"
-              >
-                <option value="all">Todos</option>
-                <option value="approved">Aprovadas</option>
-                <option value="pending">Pendentes</option>
-                <option value="rejected">Rejeitadas</option>
-              </select>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-1 min-w-[140px]"
-              >
-                <option value="all">Todas as Categorias</option>
-                <option value="Local">Local</option>
-                <option value="Equipamento">Equipamento</option>
-                <option value="Marketing">Marketing</option>
-                <option value="Alimentação">Alimentação</option>
-                <option value="Transporte">Transporte</option>
-                <option value="Outros">Outros</option>
-              </select>
-              <div className="flex border border-gray-300 rounded-md flex-shrink-0">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="rounded-r-none"
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="rounded-l-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Buscar despesas..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[120px]"
+          >
+            <option value="all">Todos</option>
+            <option value="approved">Aprovadas</option>
+            <option value="pending">Pendentes</option>
+            <option value="rejected">Rejeitadas</option>
+          </select>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[140px]"
+          >
+            <option value="all">Todas as Categorias</option>
+            <option value="Local">Local</option>
+            <option value="Equipamento">Equipamento</option>
+            <option value="Marketing">Marketing</option>
+            <option value="Alimentação">Alimentação</option>
+            <option value="Transporte">Transporte</option>
+            <option value="Outros">Outros</option>
+          </select>
+          
+          {/* View Mode Toggle */}
+          <div className="flex gap-2 flex-shrink-0">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              onClick={() => setViewMode('grid')}
+              size="sm"
+            >
+              <Grid className="h-4 w-4 mr-2" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              onClick={() => setViewMode('list')}
+              size="sm"
+            >
+              <List className="h-4 w-4 mr-2" />
+              Lista
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* Expenses List */}
       {viewMode === 'grid' ? (
@@ -398,94 +397,78 @@ export default function ExpensesPage() {
           ))}
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Descrição
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Categoria
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Valor
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Data
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {expenses?.map((expense) => (
-                    <tr key={expense.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                            <Receipt className="h-5 w-5 text-indigo-600" />
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{expense.title}</div>
-                            {expense.supplierName && (
-                              <div className="text-sm text-gray-500">Fornecedor: {expense.supplierName}</div>
-                            )}
-                          </div>
+        <div className="space-y-4">
+          {expenses?.map((expense) => (
+            <Card key={expense.id} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Receipt className="h-6 w-6 text-indigo-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-base sm:text-lg truncate">{expense.title}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-2 break-words">
+                        {expense.categoryName}
+                        {expense.supplierName && ` • Fornecedor: ${expense.supplierName}`}
+                        {expense.description && ` • ${expense.description}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-4 lg:gap-6">
+                    {/* Values Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 lg:gap-6">
+                      <div className="text-center">
+                        <p className="text-xs sm:text-sm text-gray-500">Valor</p>
+                        <p className="font-semibold text-sm sm:text-base truncate">{formatCurrency(expense.amount || 0)}</p>
+                      </div>
+                      {expense.dueDate && (
+                        <div className="text-center">
+                          <p className="text-xs sm:text-sm text-gray-500">Vencimento</p>
+                          <p className="font-semibold text-sm sm:text-base truncate">{formatDate(expense.dueDate)}</p>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-900">{expense.categoryName}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-gray-900">{formatCurrency(expense.amount || 0)}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(expense.status)}`}>
-                          {getStatusIcon(expense.status)}
-                          <span className="ml-1">{getStatusText(expense.status)}</span>
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {expense.dueDate ? formatDate(expense.dueDate) : '-'}
+                      )}
+                      {expense.eventName && (
+                        <div className="text-center">
+                          <p className="text-xs sm:text-sm text-gray-500">Evento</p>
+                          <p className="font-semibold text-sm sm:text-base truncate">{expense.eventName}</p>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex gap-2">
-                          <Link href={`/finance/expenses/${expense.id}`}>
-                            <Button variant="outline" size="icon">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Link href={`/finance/expenses/${expense.id}/edit`}>
-                            <Button variant="outline" size="icon">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </Link>
-                          <Button 
-                            variant="outline" 
-                            size="icon"
-                            onClick={() => handleDeleteClick(expense)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
+                      )}
+                    </div>
+                    {/* Status and Actions */}
+                    <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${getStatusColor(expense.status)}`}>
+                        {getStatusIcon(expense.status)}
+                        <span className="ml-1 hidden sm:inline">{getStatusText(expense.status)}</span>
+                      </span>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Link href={`/finance/expenses/${expense.id}`}>
+                          <Button variant="outline" size="icon" className="h-8 w-8">
+                            <Eye className="h-4 w-4" />
                           </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                        </Link>
+                        <Link href={`/finance/expenses/${expense.id}/edit`}>
+                          <Button variant="outline" size="icon" className="h-8 w-8">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                          onClick={() => handleDeleteClick(expense)}
+                          title="Excluir despesa"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       {(expenses?.length || 0) === 0 && !isLoading && (

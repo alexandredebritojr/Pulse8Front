@@ -26,6 +26,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import ConfirmationModal from '@/components/ui/confirmation-modal'
 import { formatFileSize } from '@/lib/utils'
 import { AssetsService, AssetDto, GetAssetsResponse } from '@/lib/api/assets'
 
@@ -36,6 +37,9 @@ export default function AssetsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [assetToDelete, setAssetToDelete] = useState<AssetDto | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Carregar assets da API
   useEffect(() => {
@@ -97,6 +101,38 @@ export default function AssetsPage() {
     }
   }
 
+  const handleDeleteClick = (asset: AssetDto) => {
+    setAssetToDelete(asset)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!assetToDelete) return
+    
+    setIsDeleting(true)
+    try {
+      console.log('🗑️ Excluindo asset:', assetToDelete.id)
+      await AssetsService.deleteAsset(assetToDelete.id)
+      console.log('✅ Asset excluído com sucesso')
+      
+      const updatedAssets = assets.filter(a => a.id !== assetToDelete.id)
+      setAssets(updatedAssets)
+      
+      setShowDeleteModal(false)
+      setAssetToDelete(null)
+    } catch (err: any) {
+      console.error('❌ Erro ao excluir asset:', err)
+      alert('Erro ao excluir asset: ' + (err.message || 'Erro desconhecido'))
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false)
+    setAssetToDelete(null)
+  }
+
   const totalAssets = assets.length
   const imageAssets = assets.filter(a => a.type === 'Image').length
   const videoAssets = assets.filter(a => a.type === 'Video').length
@@ -136,58 +172,58 @@ export default function AssetsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="h-6 w-6 text-blue-600" />
+              <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                <FileText className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-2xl font-bold text-gray-900">{totalAssets}</p>
+              <div className="ml-2 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{totalAssets}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Image className="h-6 w-6 text-green-600" />
+              <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg flex-shrink-0">
+                <Image className="h-4 w-4 sm:h-6 sm:w-6 text-green-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Imagens</p>
-                <p className="text-2xl font-bold text-gray-900">{imageAssets}</p>
+              <div className="ml-2 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Imagens</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{imageAssets}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Image className="h-6 w-6 text-green-600" />
+              <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                <Video className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Imagens</p>
-                <p className="text-2xl font-bold text-gray-900">{imageAssets}</p>
+              <div className="ml-2 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Vídeos</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{videoAssets}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Video className="h-6 w-6 text-purple-600" />
+              <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg flex-shrink-0">
+                <FileText className="h-4 w-4 sm:h-6 sm:w-6 text-orange-600" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Vídeos</p>
-                <p className="text-2xl font-bold text-gray-900">{videoAssets}</p>
+              <div className="ml-2 sm:ml-4 min-w-0">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Documentos</p>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{documentAssets}</p>
               </div>
             </div>
           </CardContent>
@@ -195,54 +231,50 @@ export default function AssetsPage() {
       </div>
 
       {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar assets..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as 'all' | 'Image' | 'Video' | 'Document' | 'Audio')}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0 text-sm"
-              >
-                <option value="all">Todos os Tipos</option>
-                <option value="Image">Imagem</option>
-                <option value="Video">Vídeo</option>
-                <option value="Document">Documento</option>
-                <option value="Audio">Áudio</option>
-              </select>
-              <div className="flex border border-gray-300 rounded-md flex-shrink-0">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="rounded-r-none"
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="rounded-l-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Buscar assets..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex gap-2">
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value as 'all' | 'Image' | 'Video' | 'Document' | 'Audio')}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[140px]"
+          >
+            <option value="all">Todos os Tipos</option>
+            <option value="Image">Imagem</option>
+            <option value="Video">Vídeo</option>
+            <option value="Document">Documento</option>
+            <option value="Audio">Áudio</option>
+          </select>
+          
+          {/* View Mode Toggle */}
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid className="h-4 w-4 mr-2" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4 mr-2" />
+              Lista
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* Assets List */}
       {viewMode === 'grid' ? (
@@ -292,93 +324,81 @@ export default function AssetsPage() {
                       <Edit className="h-4 w-4" />
                     </Button>
                   </Link>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => handleDeleteClick(asset)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <div className="inline-block min-w-full align-middle sm:px-0">
-                <div className="overflow-hidden sm:rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Asset
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tipo
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Categoria
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tamanho
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Ações
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {assets.map((asset) => (
-                        <tr key={asset.id} className="hover:bg-gray-50">
-                          <td className="px-4 sm:px-6 py-4">
-                            <div className="flex items-center min-w-0">
-                              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                {getTypeIcon(asset.type)}
-                              </div>
-                              <div className="ml-4 min-w-0">
-                                <div className="text-sm font-medium text-gray-900 truncate">{asset.name}</div>
-                                <div className="text-sm text-gray-500 truncate">{asset.description}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(asset.type)}`}>
-                              {asset.type}
-                            </span>
-                          </td>
-                          <td className="px-4 sm:px-6 py-4">
-                            <span className="text-sm text-gray-900 truncate block">{asset.organizationName}</span>
-                          </td>
-                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">N/A</div>
-                          </td>
-                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(asset.type)}`}>
-                              {asset.type}
-                            </span>
-                          </td>
-                          <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex gap-2">
-                              <Link href={`/marketing/assets/${asset.id}`}>
-                                <Button variant="outline" size="icon">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                              </Link>
-                              <Link href={`/marketing/assets/${asset.id}/edit`}>
-                                <Button variant="outline" size="icon">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+        <div className="space-y-4">
+          {assets.map((asset) => (
+            <Card key={asset.id} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      {getTypeIcon(asset.type)}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-base sm:text-lg truncate">{asset.name}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-2 break-words">
+                        {asset.type}
+                        {asset.description && ` • ${asset.description}`}
+                        {asset.organizationName && ` • ${asset.organizationName}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-4 lg:gap-6">
+                    {/* Values Grid */}
+                    {asset.eventName && (
+                      <div className="grid grid-cols-1 gap-2 sm:gap-4 lg:gap-6 sm:flex sm:items-center">
+                        <div className="text-center">
+                          <p className="text-xs sm:text-sm text-gray-500">Evento</p>
+                          <p className="font-semibold text-sm sm:text-base truncate">{asset.eventName}</p>
+                        </div>
+                      </div>
+                    )}
+                    {/* Type Badge and Actions */}
+                    <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${getTypeColor(asset.type)}`}>
+                        {asset.type}
+                      </span>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Link href={`/marketing/assets/${asset.id}`}>
+                          <Button variant="outline" size="icon" className="h-8 w-8">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Link href={`/marketing/assets/${asset.id}/edit`}>
+                          <Button variant="outline" size="icon" className="h-8 w-8">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                          onClick={() => handleDeleteClick(asset)}
+                          title="Excluir asset"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       {assets.length === 0 && !isLoading && (
@@ -405,6 +425,19 @@ export default function AssetsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Excluir Asset"
+        message={`Tem certeza que deseja excluir o asset "${assetToDelete?.name}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={isDeleting}
+        variant="danger"
+      />
     </div>
   )
 }

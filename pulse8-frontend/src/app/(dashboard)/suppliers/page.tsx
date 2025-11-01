@@ -24,6 +24,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import ConfirmationModal from '@/components/ui/confirmation-modal'
 import { formatDate, formatPhone } from '@/lib/utils'
 import { SuppliersService, SupplierDto, GetSuppliersResponse } from '@/lib/api/suppliers'
 
@@ -34,6 +35,9 @@ export default function SuppliersPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [supplierToDelete, setSupplierToDelete] = useState<SupplierDto | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Carregar fornecedores da API
   useEffect(() => {
@@ -111,6 +115,38 @@ export default function SuppliersPage() {
   }
 
   // Calcular estatísticas
+  const handleDeleteClick = (supplier: SupplierDto) => {
+    setSupplierToDelete(supplier)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!supplierToDelete) return
+    
+    setIsDeleting(true)
+    try {
+      console.log('🗑️ Excluindo fornecedor:', supplierToDelete.id)
+      await SuppliersService.deleteSupplier(supplierToDelete.id)
+      console.log('✅ Fornecedor excluído com sucesso')
+      
+      const updatedSuppliers = suppliers.filter(s => s.id !== supplierToDelete.id)
+      setSuppliers(updatedSuppliers)
+      
+      setShowDeleteModal(false)
+      setSupplierToDelete(null)
+    } catch (err: any) {
+      console.error('❌ Erro ao excluir fornecedor:', err)
+      alert('Erro ao excluir fornecedor: ' + (err.message || 'Erro desconhecido'))
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false)
+    setSupplierToDelete(null)
+  }
+
   const totalSuppliers = suppliers.length
   const activeSuppliers = suppliers.filter(s => s.status === 'Active').length
   const inactiveSuppliers = suppliers.filter(s => s.status === 'Inactive').length
@@ -151,28 +187,28 @@ export default function SuppliersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Fornecedores</CardTitle>
-            <Building className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total</CardTitle>
+            <Building className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalSuppliers}</div>
-            <p className="text-xs text-muted-foreground">
-              Fornecedores cadastrados
+            <div className="text-lg sm:text-2xl font-bold truncate">{totalSuppliers}</div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
+              Cadastrados
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fornecedores Ativos</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Ativos</CardTitle>
+            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeSuppliers}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-lg sm:text-2xl font-bold text-green-600 truncate">{activeSuppliers}</div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
               Em funcionamento
             </p>
           </CardContent>
@@ -180,65 +216,61 @@ export default function SuppliersPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Fornecedores Inativos</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Inativos</CardTitle>
+            <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-500 flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{inactiveSuppliers}</div>
-            <p className="text-xs text-muted-foreground">
-              Temporariamente indisponíveis
+            <div className="text-lg sm:text-2xl font-bold text-red-600 truncate">{inactiveSuppliers}</div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
+              Indisponíveis
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar fornecedores..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0 text-sm"
-              >
-                <option value="all">Todos os status</option>
-                <option value="active">Ativos</option>
-                <option value="inactive">Inativos</option>
-              </select>
-              <div className="flex border border-gray-300 rounded-md flex-shrink-0">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="rounded-r-none"
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="rounded-l-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Buscar fornecedores..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex gap-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[140px]"
+          >
+            <option value="all">Todos os status</option>
+            <option value="active">Ativos</option>
+            <option value="inactive">Inativos</option>
+          </select>
+          
+          {/* View Mode Toggle */}
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid className="h-4 w-4 mr-2" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4 mr-2" />
+              Lista
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* Suppliers Grid/List */}
       {viewMode === 'grid' ? (
@@ -288,6 +320,14 @@ export default function SuppliersPage() {
                       <Edit className="h-4 w-4" />
                     </Button>
                   </Link>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => handleDeleteClick(supplier)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -297,48 +337,50 @@ export default function SuppliersPage() {
         <div className="space-y-4">
           {suppliers.map((supplier) => (
             <Card key={supplier.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <span className="text-3xl">{getCategoryIcon(supplier.name)}</span>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg">{supplier.name}</h3>
-                      <p className="text-sm text-gray-500">{getCategoryName(supplier.name)}</p>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500 mt-1">
-                        <span className="flex items-center gap-1 min-w-0">
-                          <Mail className="h-4 w-4 flex-shrink-0" />
-                          <span className="truncate">{supplier.email}</span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-4 w-4 flex-shrink-0" />
-                          <span>{formatPhone(supplier.phone)}</span>
-                        </span>
-                        <span className="flex items-center gap-1 min-w-0">
-                          <MapPin className="h-4 w-4 flex-shrink-0" />
-                          <span className="truncate">{supplier.address}</span>
-                        </span>
-                      </div>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-2xl">{getCategoryIcon(supplier.name)}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-base sm:text-lg truncate">{supplier.name}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-2 break-words">
+                        {getCategoryName(supplier.name)}
+                        {supplier.email && ` • ${supplier.email}`}
+                        {supplier.phone && ` • ${formatPhone(supplier.phone)}`}
+                        {supplier.address && ` • ${supplier.address}`}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(supplier.status)}`}>
-                      {getStatusIcon(supplier.status)}
-                      <span className="ml-1">{getStatusText(supplier.status)}</span>
-                    </span>
-                    <div className="flex gap-2">
-                      <Link href={`/suppliers/${supplier.id}`}>
-                        <Button variant="outline" size="icon">
-                          <Eye className="h-4 w-4" />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-4 lg:gap-6">
+                    {/* Status and Actions */}
+                    <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${getStatusColor(supplier.status)}`}>
+                        {getStatusIcon(supplier.status)}
+                        <span className="ml-1 hidden sm:inline">{getStatusText(supplier.status)}</span>
+                      </span>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Link href={`/suppliers/${supplier.id}`}>
+                          <Button variant="outline" size="icon" className="h-8 w-8">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Link href={`/suppliers/${supplier.id}/edit`}>
+                          <Button variant="outline" size="icon" className="h-8 w-8">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                          onClick={() => handleDeleteClick(supplier)}
+                          title="Excluir fornecedor"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      </Link>
-                      <Link href={`/suppliers/${supplier.id}/edit`}>
-                        <Button variant="outline" size="icon">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                      <Button variant="outline" size="icon" className="text-red-600 hover:text-red-700">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -371,6 +413,19 @@ export default function SuppliersPage() {
           )}
         </div>
       )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Excluir Fornecedor"
+        message={`Tem certeza que deseja excluir o fornecedor "${supplierToDelete?.name}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={isDeleting}
+        variant="danger"
+      />
     </div>
   )
 }

@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { 
   Plus, 
   Search, 
-  Filter, 
   PieChart, 
   DollarSign, 
   Calendar,
@@ -15,7 +14,10 @@ import {
   AlertCircle,
   CheckCircle,
   Edit,
-  Trash2
+  Trash2,
+  Grid,
+  List,
+  Eye
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,6 +33,7 @@ export default function BudgetPage() {
   const [budgetItems, setBudgetItems] = useState<BudgetDto[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -166,31 +169,31 @@ export default function BudgetPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div className="min-w-0">
+        <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orçamento</h1>
           <p className="text-sm sm:text-base text-gray-600">Acompanhe o orçamento planejado vs gastos reais</p>
         </div>
         <Link href="/finance/budget/create" className="flex-shrink-0">
           <Button size="sm" className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Novo Item</span>
+            <span className="hidden sm:inline">Novo Orçamento</span>
           </Button>
         </Link>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Orçamento Planejado</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Planejado</CardTitle>
+            <DollarSign className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalPlanned)}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-lg sm:text-2xl font-bold truncate">{formatCurrency(totalPlanned)}</div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
               Total planejado
             </p>
           </CardContent>
@@ -198,12 +201,12 @@ export default function BudgetPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Gastos Reais</CardTitle>
-            <PieChart className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Gastos</CardTitle>
+            <PieChart className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalActual)}</div>
-            <p className="text-xs text-muted-foreground">
+            <div className="text-lg sm:text-2xl font-bold truncate">{formatCurrency(totalActual)}</div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
               Total gasto
             </p>
           </CardContent>
@@ -211,36 +214,38 @@ export default function BudgetPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Variação</CardTitle>
-            {getVarianceIcon(totalVariance)}
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Variação</CardTitle>
+            <div className="flex-shrink-0">
+              {getVarianceIcon(totalVariance)}
+            </div>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${getVarianceColor(totalVariance)}`}>
+            <div className={`text-lg sm:text-2xl font-bold truncate ${getVarianceColor(totalVariance)}`}>
               {formatCurrency(totalVariance)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {totalVariance > 0 ? 'Acima do orçamento' : totalVariance < 0 ? 'Abaixo do orçamento' : 'No orçamento'}
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
+              {totalVariance > 0 ? 'Acima' : totalVariance < 0 ? 'Abaixo' : 'No orçamento'}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">% Executado</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">% Executado</CardTitle>
+            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overallPercentage.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">
-              Do orçamento total
+            <div className="text-lg sm:text-2xl font-bold">{overallPercentage.toFixed(1)}%</div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
+              Do orçamento
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-4">
-        <div className="flex-1 w-full">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
@@ -251,7 +256,7 @@ export default function BudgetPage() {
             />
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -263,10 +268,24 @@ export default function BudgetPage() {
             <option value="Completed">Concluído</option>
             <option value="Cancelled">Cancelado</option>
           </select>
-          <Button variant="outline" size="sm" className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            <span className="hidden sm:inline">Filtros</span>
-          </Button>
+          
+          {/* View Mode Toggle */}
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid className="h-4 w-4 mr-2" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4 mr-2" />
+              Lista
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -277,74 +296,144 @@ export default function BudgetPage() {
         </div>
       )}
 
-      {/* Budget Items List */}
-      <div className="space-y-4">
+      {/* Budget Items Display */}
+      <div className={viewMode === 'grid' 
+        ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" 
+        : "space-y-4"
+      }>
         {filteredBudgetItems.map((item) => (
           <Card key={item.id} className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <span className="text-2xl sm:text-3xl flex-shrink-0">💰</span>
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-base sm:text-lg truncate">{item.name}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2">{item.description}</p>
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-4 lg:gap-6">
-                  {/* Values Grid */}
-                  <div className="grid grid-cols-4 gap-2 sm:gap-4 lg:gap-6 sm:flex sm:items-center">
-                    <div className="text-center">
-                      <p className="text-xs sm:text-sm text-gray-500">Orçado</p>
-                      <p className="font-semibold text-sm sm:text-base">{formatCurrency(item.amount || 0)}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs sm:text-sm text-gray-500">Gasto</p>
-                      <p className="font-semibold text-sm sm:text-base">{formatCurrency(item.spent || 0)}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs sm:text-sm text-gray-500">Variação</p>
-                      <div className="flex items-center justify-center gap-1">
-                        {getVarianceIcon((item.spent || 0) - (item.amount || 0))}
-                        <p className={`font-semibold text-sm sm:text-base ${getVarianceColor((item.spent || 0) - (item.amount || 0))}`}>
-                          {formatCurrency((item.spent || 0) - (item.amount || 0))}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs sm:text-sm text-gray-500">%</p>
-                      <p className="font-semibold text-sm sm:text-base">{((item.amount || 0) > 0 ? ((item.spent || 0) / (item.amount || 0)) * 100 : 0).toFixed(1)}%</p>
-                    </div>
-                  </div>
-                  {/* Status and Actions */}
-                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
+            {viewMode === 'grid' ? (
+              // Grid Layout
+              <>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-lg truncate">{item.name}</CardTitle>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${getStatusColor(item.status)}`}>
                       {getStatusIcon(item.status)}
                       <span className="ml-1 hidden sm:inline">{item.status}</span>
                     </span>
-                    <div className="flex gap-2 flex-shrink-0">
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => handleEdit(item.id)}
-                        title="Editar item"
-                        className="h-8 w-8"
-                      >
+                  </div>
+                  <CardDescription className="line-clamp-2 break-words">
+                    {item.description || 'Sem descrição'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Orçado</p>
+                      <p className="font-semibold text-base">{formatCurrency(item.amount || 0)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Gasto</p>
+                      <p className="font-semibold text-base">{formatCurrency(item.spent || 0)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Variação</p>
+                      <div className="flex items-center gap-1">
+                        {getVarianceIcon((item.spent || 0) - (item.amount || 0))}
+                        <p className={`font-semibold text-base ${getVarianceColor((item.spent || 0) - (item.amount || 0))}`}>
+                          {formatCurrency((item.spent || 0) - (item.amount || 0))}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">% Executado</p>
+                      <p className="font-semibold text-base">{((item.amount || 0) > 0 ? ((item.spent || 0) / (item.amount || 0)) * 100 : 0).toFixed(1)}%</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 pt-4">
+                    <Link href={`/finance/budget/${item.id}`} className="flex-1">
+                      <Button variant="outline" className="w-full">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalhes
+                      </Button>
+                    </Link>
+                    <Link href={`/finance/budget/edit/${item.id}`}>
+                      <Button variant="outline" size="icon">
                         <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
-                        onClick={() => handleDeleteClick(item)}
-                        title="Excluir item"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    </Button>
+                    </Link>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      onClick={() => handleDeleteClick(item)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </>
+            ) : (
+              // List Layout
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <span className="text-2xl sm:text-3xl flex-shrink-0">💰</span>
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-base sm:text-lg truncate">{item.name}</h3>
+                      <p className="text-sm text-gray-500 line-clamp-2 break-words">{item.description || 'Sem descrição'}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-4 lg:gap-6">
+                    {/* Values Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 lg:gap-6">
+                      <div className="text-center">
+                        <p className="text-xs sm:text-sm text-gray-500">Orçado</p>
+                        <p className="font-semibold text-sm sm:text-base truncate">{formatCurrency(item.amount || 0)}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs sm:text-sm text-gray-500">Gasto</p>
+                        <p className="font-semibold text-sm sm:text-base truncate">{formatCurrency(item.spent || 0)}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs sm:text-sm text-gray-500">Variação</p>
+                        <div className="flex items-center justify-center gap-1">
+                          {getVarianceIcon((item.spent || 0) - (item.amount || 0))}
+                          <p className={`font-semibold text-sm sm:text-base truncate ${getVarianceColor((item.spent || 0) - (item.amount || 0))}`}>
+                            {formatCurrency((item.spent || 0) - (item.amount || 0))}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs sm:text-sm text-gray-500">%</p>
+                        <p className="font-semibold text-sm sm:text-base">{((item.amount || 0) > 0 ? ((item.spent || 0) / (item.amount || 0)) * 100 : 0).toFixed(1)}%</p>
+                      </div>
+                    </div>
+                    {/* Status and Actions */}
+                    <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${getStatusColor(item.status)}`}>
+                        {getStatusIcon(item.status)}
+                        <span className="ml-1 hidden sm:inline">{item.status}</span>
+                      </span>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Link href={`/finance/budget/${item.id}`}>
+                          <Button variant="outline" size="icon" className="h-8 w-8">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Link href={`/finance/budget/edit/${item.id}`}>
+                          <Button variant="outline" size="icon" className="h-8 w-8">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        </Link>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                          onClick={() => handleDeleteClick(item)}
+                          title="Excluir item"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
+              </CardContent>
+            )}
           </Card>
         ))}
       </div>

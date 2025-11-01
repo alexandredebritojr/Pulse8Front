@@ -38,6 +38,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import ConfirmationModal from '@/components/ui/confirmation-modal'
 import { UsersService, UserDto } from '@/lib/api/users'
 
 export default function UsersPage() {
@@ -51,6 +52,9 @@ export default function UsersPage() {
   const [totalCount, setTotalCount] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(10)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<UserDto | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Load users from API
   useEffect(() => {
@@ -102,6 +106,38 @@ export default function UsersPage() {
 
   // API already filters the data, so we use users directly
   const filteredUsers = users
+
+  const handleDeleteClick = (user: UserDto) => {
+    setUserToDelete(user)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return
+    
+    setIsDeleting(true)
+    try {
+      console.log('🗑️ Excluindo usuário:', userToDelete.id)
+      await UsersService.deleteUser(userToDelete.id)
+      console.log('✅ Usuário excluído com sucesso')
+      
+      const updatedUsers = users.filter(u => u.id !== userToDelete.id)
+      setUsers(updatedUsers)
+      
+      setShowDeleteModal(false)
+      setUserToDelete(null)
+    } catch (err: any) {
+      console.error('❌ Erro ao excluir usuário:', err)
+      alert('Erro ao excluir usuário: ' + (err.message || 'Erro desconhecido'))
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false)
+    setUserToDelete(null)
+  }
 
   const getRoleColor = (roleName: string) => {
     switch (roleName.toLowerCase()) {
@@ -207,122 +243,120 @@ export default function UsersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Total</CardTitle>
+            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12%</span> vs mês anterior
+            <div className="text-lg sm:text-2xl font-bold truncate">{users.length}</div>
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
+              <span className="text-green-600">+12%</span> vs anterior
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Ativos</CardTitle>
+            <UserCheck className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-lg sm:text-2xl font-bold text-green-600 truncate">
               {users.filter(u => u.status === 'Active').length}
             </div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+8%</span> vs mês anterior
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
+              <span className="text-green-600">+8%</span> vs anterior
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Administradores</CardTitle>
-            <Crown className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Admins</CardTitle>
+            <Crown className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-lg sm:text-2xl font-bold text-purple-600 truncate">
               {users.filter(u => u.roleName === 'admin').length}
             </div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+2%</span> vs mês anterior
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
+              <span className="text-green-600">+2%</span> vs anterior
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-xs sm:text-sm font-medium truncate">Pendentes</CardTitle>
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
+            <div className="text-lg sm:text-2xl font-bold text-yellow-600 truncate">
               {users.filter(u => u.status === 'Pending').length}
             </div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-yellow-600">+1</span> vs mês anterior
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-clamp-1">
+              <span className="text-yellow-600">+1</span> vs anterior
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Buscar usuários..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <select
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0 text-sm"
-              >
-                {roles.map(role => (
-                  <option key={role.value} value={role.value}>{role.label}</option>
-                ))}
-              </select>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0 text-sm"
-              >
-                {statuses.map(status => (
-                  <option key={status.value} value={status.value}>{status.label}</option>
-                ))}
-              </select>
-              <div className="flex border border-gray-300 rounded-md flex-shrink-0">
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="rounded-r-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="rounded-l-none"
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="Buscar usuários..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[140px]"
+          >
+            {roles.map(role => (
+              <option key={role.value} value={role.value}>{role.label}</option>
+            ))}
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[120px]"
+          >
+            {statuses.map(status => (
+              <option key={status.value} value={status.value}>{status.label}</option>
+            ))}
+          </select>
+          
+          {/* View Mode Toggle */}
+          <div className="flex gap-2 flex-shrink-0">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              onClick={() => setViewMode('grid')}
+              size="sm"
+            >
+              <Grid className="h-4 w-4 mr-2" />
+              Grid
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              onClick={() => setViewMode('list')}
+              size="sm"
+            >
+              <List className="h-4 w-4 mr-2" />
+              Lista
+            </Button>
+          </div>
+        </div>
+      </div>
 
       {/* Error Message */}
       {error && (
@@ -375,22 +409,24 @@ export default function UsersPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0 flex-wrap">
-                    <Button variant="outline" size="sm" className="flex items-center gap-2">
-                      <Eye className="h-4 w-4" />
-                      <span className="hidden sm:inline">Ver</span>
-                    </Button>
-                    <Link href={`/admin/users/edit/${user.id}`}>
-                      <Button variant="outline" size="sm" className="flex items-center gap-2">
-                        <Edit className="h-4 w-4" />
-                        <span className="hidden sm:inline">Editar</span>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Link href={`/admin/users/${user.id}`}>
+                      <Button variant="outline" size="icon" className="h-8 w-8">
+                        <Eye className="h-4 w-4" />
                       </Button>
                     </Link>
-                    <Button variant="outline" size="sm" className="flex items-center gap-2">
-                      <Key className="h-4 w-4" />
-                      <span className="hidden sm:inline">Permissões</span>
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                    <Link href={`/admin/users/edit/${user.id}`}>
+                      <Button variant="outline" size="icon" className="h-8 w-8">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                      onClick={() => handleDeleteClick(user)}
+                      title="Excluir usuário"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -443,16 +479,25 @@ export default function UsersPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Link href={`/admin/users/${user.id}`} className="flex-1">
+                    <Button variant="outline" className="w-full">
                     <Eye className="h-4 w-4 mr-2" />
-                    Ver
+                      Ver Detalhes
                   </Button>
+                  </Link>
                   <Link href={`/admin/users/edit/${user.id}`}>
-                    <Button variant="outline" size="sm" className="flex-1">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar
+                    <Button variant="outline" size="icon">
+                      <Edit className="h-4 w-4" />
                     </Button>
                   </Link>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => handleDeleteClick(user)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -473,6 +518,19 @@ export default function UsersPage() {
           </p>
         </div>
       )}
+
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        title="Excluir Usuário"
+        message={`Tem certeza que deseja excluir o usuário "${userToDelete?.firstName} ${userToDelete?.lastName}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={isDeleting}
+        variant="danger"
+      />
     </div>
   )
 }
