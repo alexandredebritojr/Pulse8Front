@@ -95,16 +95,16 @@ export default function PromotersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Promoters</h1>
-          <p className="text-gray-600">Gerencie promoters de eventos</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Promoters</h1>
+          <p className="text-sm sm:text-base text-gray-600">Gerencie promoters de eventos</p>
         </div>
-        <Button onClick={() => router.push('/promoters/create')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Atribuir Promoter
+        <Button onClick={() => router.push('/promoters/create')} size="sm" className="flex items-center gap-2 flex-shrink-0">
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Atribuir Promoter</span>
         </Button>
       </div>
 
@@ -194,14 +194,14 @@ export default function PromotersPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4 sm:gap-6">
           {promoters.map((promoter) => (
             <Card key={promoter.id}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <h3 className="text-lg font-semibold text-gray-900 truncate">
                         {promoter.userName}
                       </h3>
                       <Badge className={getStatusColor(promoter.status)}>
@@ -210,32 +210,32 @@ export default function PromotersPage() {
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Users className="h-4 w-4" />
-                        <span>{promoter.userEmail}</span>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 min-w-0">
+                        <Users className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{promoter.userEmail}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <DollarSign className="h-4 w-4" />
+                        <DollarSign className="h-4 w-4 flex-shrink-0" />
                         <span>Comissão: {formatPercentage(promoter.commissionRate)}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Target className="h-4 w-4" />
+                        <Target className="h-4 w-4 flex-shrink-0" />
                         <span>Vendas: {formatCurrency(promoter.totalSales)}</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>Evento: {promoter.eventName}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500">
+                      <span className="break-words">Evento: {promoter.eventName}</span>
                       {promoter.promoterCode && (
-                        <span>Código: {promoter.promoterCode}</span>
+                        <span className="break-words">Código: {promoter.promoterCode}</span>
                       )}
                       {promoter.campaignName && (
-                        <span>Campanha: {promoter.campaignName}</span>
+                        <span className="break-words">Campanha: {promoter.campaignName}</span>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     <Button
                       variant="outline"
                       size="sm"

@@ -147,34 +147,36 @@ export default function MarketingDetailsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <Button 
             variant="outline" 
             size="icon"
             onClick={() => router.push('/marketing')}
+            className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{campaign.name}</h1>
-            <p className="text-gray-600">{campaign.type}</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{campaign.name}</h1>
+            <p className="text-sm sm:text-base text-gray-600">{campaign.type}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Link href={`/marketing/${campaign.id}/edit`}>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              <span className="hidden sm:inline">Editar</span>
             </Button>
           </Link>
           <Button 
             variant="outline"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            size="sm"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-2"
             onClick={handleDeleteClick}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Excluir</span>
           </Button>
         </div>
       </div>

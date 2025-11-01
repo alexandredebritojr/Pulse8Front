@@ -198,35 +198,35 @@ export default function EventDetailsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <Link href="/events">
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="flex-shrink-0">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{event.name}</h1>
-            <div className="flex items-center gap-4 mt-2">
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(event.status)}`}>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{event.name}</h1>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${getStatusColor(event.status)}`}>
                 {getStatusText(event.status)}
               </span>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm text-gray-500 whitespace-nowrap">
                 Criado em {formatDate(event.createdAt)}
               </span>
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Link href={`/events/${event.id}/edit`}>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              <span className="hidden sm:inline">Editar</span>
             </Button>
           </Link>
-          <Button variant="outline" onClick={handleDeleteClick} className="text-red-600 hover:text-red-700">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir
+          <Button variant="outline" size="sm" onClick={handleDeleteClick} className="text-red-600 hover:text-red-700 flex items-center gap-2">
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Excluir</span>
           </Button>
         </div>
       </div>

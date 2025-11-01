@@ -28,6 +28,7 @@ import {
   UserPlus,
   CheckSquare,
   ClipboardList,
+  X,
 } from 'lucide-react'
 
 interface NavigationItem {
@@ -160,7 +161,11 @@ const navigation: NavigationItem[] = [
   },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void
+}
+
+export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
@@ -171,6 +176,13 @@ export function Sidebar() {
     logout()
     console.log('🔄 Sidebar: Redirecionando para login...')
     router.push('/login')
+  }
+
+  const handleLinkClick = () => {
+    // Fechar menu mobile quando um link for clicado
+    if (onClose) {
+      onClose()
+    }
   }
 
   const toggleExpanded = (itemName: string) => {
@@ -242,6 +254,7 @@ export function Sidebar() {
           ) : (
             <Link
               href={item.href}
+              onClick={handleLinkClick}
               className={cn(
                 isActive ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:text-indigo-700 hover:bg-indigo-50',
                 'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
@@ -265,6 +278,7 @@ export function Sidebar() {
               <li key={child.name}>
                 <Link
                   href={child.href}
+                  onClick={handleLinkClick}
                   className={cn(
                     pathname === child.href
                       ? 'bg-indigo-50 text-indigo-700'
@@ -291,14 +305,24 @@ export function Sidebar() {
 
   return (
     <div className="flex h-full flex-col bg-white shadow-lg">
-      {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center px-6">
+      {/* Logo and Close button */}
+      <div className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-gray-200">
         <h1 className="text-xl font-bold text-gray-900">Pulse8</h1>
+        {/* Close button - only visible on mobile */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+            aria-label="Fechar menu"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex flex-1 flex-col px-6 py-4">
-        <ul role="list" className="flex flex-1 flex-col gap-y-7">
+      {/* Navigation - with scroll */}
+      <nav className="flex-1 overflow-y-auto px-6 py-4">
+        <ul role="list" className="flex flex-col gap-y-7">
           <li>
             <ul role="list" className="-mx-2 space-y-1">
               {navigation.map((item) => renderNavigationItem(item))}
@@ -307,8 +331,8 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* User menu */}
-      <div className="border-t border-gray-200 p-6">
+      {/* User menu - fixed at bottom */}
+      <div className="shrink-0 border-t border-gray-200 p-6 bg-white">
         <div className="flex items-center">
           <div className="flex-shrink-0">
             <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">

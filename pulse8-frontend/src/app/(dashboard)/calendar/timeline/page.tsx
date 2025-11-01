@@ -224,22 +224,22 @@ export default function TimelinePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Timeline</h1>
-          <p className="text-gray-600">Visualização cronológica dos cronogramas</p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Timeline</h1>
+          <p className="text-sm sm:text-base text-gray-600">Visualização cronológica dos cronogramas</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon">
+        <div className="flex gap-2 flex-shrink-0">
+          <Button variant="outline" size="icon" className="flex-shrink-0">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" className="flex-shrink-0">
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Link href="/calendar/schedules/create">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Cronograma
+          <Link href="/calendar/schedules/create" className="flex-shrink-0">
+            <Button size="sm" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Novo Cronograma</span>
             </Button>
           </Link>
         </div>
@@ -300,36 +300,34 @@ export default function TimelinePage() {
                         </div>
                       </div>
                       
-                      <Card className="flex-1 hover:shadow-lg transition-shadow">
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-lg">{schedule.title}</h3>
-                              <p className="text-sm text-gray-500 mt-1">{schedule.description}</p>
+                      <Card className="flex-1 hover:shadow-lg transition-shadow min-w-0">
+                        <CardContent className="p-4 sm:p-6">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-base sm:text-lg truncate">{schedule.title}</h3>
+                              <p className="text-sm text-gray-500 mt-1 line-clamp-2">{schedule.description}</p>
                               
-                              <div className="flex items-center gap-4 text-sm text-gray-500 mt-2">
-                                <span className="flex items-center gap-1">
-                                  <Clock className="h-4 w-4" />
-                                  {formatDateTime(schedule.startTime)} - {formatDateTime(schedule.endTime)}
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500 mt-2">
+                                <span className="flex items-center gap-1 whitespace-nowrap">
+                                  <Clock className="h-4 w-4 flex-shrink-0" />
+                                  <span className="truncate">{formatDateTime(schedule.startTime)} - {formatDateTime(schedule.endTime)}</span>
                                 </span>
-                                <span className="flex items-center gap-1">
-                                  <Users className="h-4 w-4" />
-                                  {getEventName(schedule.eventId)}
+                                <span className="flex items-center gap-1 whitespace-nowrap">
+                                  <Users className="h-4 w-4 flex-shrink-0" />
+                                  <span className="truncate">{getEventName(schedule.eventId)}</span>
                                 </span>
                               </div>
                             </div>
                             
-                            <div className="flex items-center gap-4">
-                              <div className="text-right">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                  {getTypeText(schedule.type)}
+                            <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-2 flex-shrink-0">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 whitespace-nowrap">
+                                {getTypeText(schedule.type)}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {getStatusIcon(schedule.status)}
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(schedule.status)}`}>
+                                  {getStatusText(schedule.status)}
                                 </span>
-                                <div className="flex items-center gap-2 mt-2">
-                                  {getStatusIcon(schedule.status)}
-                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(schedule.status)}`}>
-                                    {getStatusText(schedule.status)}
-                                  </span>
-                                </div>
                               </div>
                             </div>
                           </div>

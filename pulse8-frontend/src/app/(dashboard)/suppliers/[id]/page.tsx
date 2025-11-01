@@ -105,9 +105,7 @@ export default function SupplierDetailsPage() {
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">❌ {error}</div>
-        <Link href="/suppliers" className="mt-4 inline-block">
-          <Button>Voltar para Fornecedores</Button>
-        </Link>
+        <Button onClick={() => router.push('/suppliers')}>Voltar</Button>
       </div>
     )
   }
@@ -115,48 +113,45 @@ export default function SupplierDetailsPage() {
   if (!supplier) {
     return (
       <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900">Fornecedor não encontrado</h3>
-        <p className="text-gray-500">O fornecedor que você está procurando não existe.</p>
-        <Link href="/suppliers" className="mt-4 inline-block">
-          <Button>Voltar para Fornecedores</Button>
-        </Link>
+        <div className="text-gray-600 mb-4">Fornecedor não encontrado</div>
+        <Button onClick={() => router.push('/suppliers')}>Voltar</Button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/suppliers">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{supplier.name}</h1>
-            <div className="flex items-center gap-4 mt-2">
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(supplier.status)}`}>
-                {getStatusIcon(supplier.status)}
-                <span className="ml-1">{getStatusText(supplier.status)}</span>
-              </span>
-              <span className="text-sm text-gray-500">
-                Cadastrado em {formatDate(supplier.createdAt)}
-              </span>
-            </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => router.push('/suppliers')}
+            className="flex-shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{supplier.name}</h1>
+            <p className="text-sm sm:text-base text-gray-600">{getStatusText(supplier.status)}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Link href={`/suppliers/${supplier.id}/edit`}>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              <span className="hidden sm:inline">Editar</span>
             </Button>
           </Link>
-          <Button variant="outline" onClick={handleDelete} className="text-red-600 hover:text-red-700">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir
+          <Button 
+            variant="outline"
+            size="sm"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-2"
+            onClick={handleDelete}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Excluir</span>
           </Button>
         </div>
       </div>
@@ -178,21 +173,21 @@ export default function SupplierDetailsPage() {
                   <Mail className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm text-gray-600">{supplier.email}</p>
+                    <p className="text-sm text-gray-600 break-words">{supplier.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium">Telefone</p>
-                    <p className="text-sm text-gray-600">{formatPhone(supplier.phone)}</p>
+                    <p className="text-sm text-gray-600 break-words">{formatPhone(supplier.phone)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 md:col-span-2">
                   <MapPin className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium">Endereço</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 break-words">
                       {supplier.address}
                       {supplier.city && `, ${supplier.city}`}
                       {supplier.state && ` - ${supplier.state}`}

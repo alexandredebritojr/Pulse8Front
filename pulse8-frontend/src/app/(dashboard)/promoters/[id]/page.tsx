@@ -100,68 +100,58 @@ export default function PromoterDetailsPage() {
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.push('/promoters')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Erro</h1>
-          </div>
-        </div>
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="text-red-800">{error}</div>
-        </div>
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">❌ {error}</div>
+        <Button onClick={() => router.push('/promoters')}>Voltar</Button>
       </div>
     )
   }
 
   if (!promoter) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.push('/promoters')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Promoter não encontrado</h1>
-          </div>
-        </div>
+      <div className="text-center py-12">
+        <div className="text-gray-600 mb-4">Promoter não encontrado</div>
+        <Button onClick={() => router.push('/promoters')}>Voltar</Button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => router.push('/promoters')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => router.push('/promoters')}
+            className="flex-shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{promoter.userName}</h1>
-            <p className="text-gray-600">Detalhes do promoter</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{promoter.userName}</h1>
+            <p className="text-sm sm:text-base text-gray-600">{getStatusText(promoter.status)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Button
             variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
             onClick={() => router.push(`/promoters/${promoter.id}/edit`)}
           >
-            <Edit className="h-4 w-4 mr-2" />
-            Editar
+            <Edit className="h-4 w-4" />
+            <span className="hidden sm:inline">Editar</span>
           </Button>
           <Button
             variant="outline"
+            size="sm"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-2"
             onClick={() => setShowDeleteModal(true)}
-            className="text-red-600 hover:text-red-700"
           >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Excluir</span>
           </Button>
         </div>
       </div>
@@ -183,7 +173,7 @@ export default function PromoterDetailsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Nome
                   </label>
-                  <p className="text-gray-900">{promoter.userName}</p>
+                  <p className="text-gray-900 break-words">{promoter.userName}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -197,18 +187,18 @@ export default function PromoterDetailsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email
                   </label>
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <p className="text-gray-900">{promoter.userEmail}</p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    <p className="text-gray-900 break-words">{promoter.userEmail}</p>
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Telefone
                   </label>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <p className="text-gray-900">{promoter.userPhone}</p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    <p className="text-gray-900 break-words">{promoter.userPhone}</p>
                   </div>
                 </div>
               </div>

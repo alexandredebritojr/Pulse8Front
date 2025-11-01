@@ -200,15 +200,15 @@ export default function SchedulesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Agenda</h1>
-          <p className="text-gray-600">Gerencie sua agenda e cronograma</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Agenda</h1>
+          <p className="text-sm sm:text-base text-gray-600">Gerencie sua agenda e cronograma</p>
         </div>
-        <Link href="/calendar/schedules/create">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Agendamento
+        <Link href="/calendar/schedules/create" className="flex-shrink-0">
+          <Button size="sm" className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Novo Agendamento</span>
           </Button>
         </Link>
       </div>
@@ -275,8 +275,8 @@ export default function SchedulesPage() {
       {/* Filters and Search */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+          <div className="flex flex-col gap-4">
+            <div className="flex-1 w-full">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -287,11 +287,11 @@ export default function SchedulesPage() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[140px]"
               >
                 <option value="all">Todos os Tipos</option>
                 <option value="Setup">Setup</option>
@@ -305,7 +305,7 @@ export default function SchedulesPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[120px]"
               >
                 <option value="all">Todos</option>
                 <option value="Pending">Pendentes</option>
@@ -313,7 +313,7 @@ export default function SchedulesPage() {
                 <option value="Completed">Concluídos</option>
                 <option value="Cancelled">Cancelados</option>
               </select>
-              <div className="flex border border-gray-300 rounded-md">
+              <div className="flex border border-gray-300 rounded-md flex-shrink-0">
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   size="sm"

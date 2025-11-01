@@ -161,23 +161,23 @@ export default function MarketingPostsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Posts de Marketing</h1>
-          <p className="text-gray-600">Gerencie seus posts de marketing</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Posts de Marketing</h1>
+          <p className="text-sm sm:text-base text-gray-600">Gerencie seus posts de marketing</p>
         </div>
-        <Link href="/marketing/posts/create">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Post
+        <Link href="/marketing/posts/create" className="flex-shrink-0">
+          <Button size="sm" className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Novo Post</span>
           </Button>
         </Link>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
@@ -243,20 +243,20 @@ export default function MarketingPostsPage() {
 
       {/* Search and Filters */}
       <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 min-w-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Buscar posts..."
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 w-full"
                 />
               </div>
             </div>
-            <Button variant="outline">
+            <Button variant="outline" className="flex-shrink-0 w-full sm:w-auto">
               <Filter className="h-4 w-4 mr-2" />
               Filtros
             </Button>
@@ -265,34 +265,34 @@ export default function MarketingPostsPage() {
       </Card>
 
       {/* Posts List */}
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6">
         {posts.map((post) => (
           <Card key={post.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <span className="text-2xl">{getPlatformIcon(post.platform)}</span>
-                    <h3 className="text-lg font-semibold text-gray-900">{post.platform}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 truncate">{post.platform}</h3>
                     <Badge className={getStatusColor(post.status)}>
                       {getStatusText(post.status)}
                     </Badge>
                   </div>
                   
-                  <p className="text-gray-700 mb-3 line-clamp-2">{post.content}</p>
+                  <p className="text-gray-700 mb-3 line-clamp-2 break-words">{post.content}</p>
                   
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500">
                     <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {formatDate(post.scheduledDate)}
+                      <Calendar className="h-4 w-4 flex-shrink-0" />
+                      <span className="break-words">{formatDate(post.scheduledDate)}</span>
                     </span>
                     {post.marketingCampaignName && (
-                      <span>Campanha: {post.marketingCampaignName}</span>
+                      <span className="break-words">Campanha: {post.marketingCampaignName}</span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Link href={`/marketing/posts/${post.id}`}>
                     <Button variant="outline" size="icon">
                       <Eye className="h-4 w-4" />

@@ -31,7 +31,9 @@ import {
   Lock,
   Unlock,
   Settings,
-  MoreHorizontal
+  MoreHorizontal,
+  Grid,
+  List
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -172,33 +174,33 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/admin">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <Link href="/admin" className="flex-shrink-0">
             <Button variant="outline" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gerenciar Usuários</h1>
-            <p className="text-gray-600">Gerencie usuários e suas permissões</p>
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Gerenciar Usuários</h1>
+            <p className="text-sm sm:text-base text-gray-600">Gerencie usuários e suas permissões</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Exportar</span>
           </Button>
-          <Button variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" />
+            <span className="hidden sm:inline">Atualizar</span>
           </Button>
-          <Link href="/admin/users/create">
-            <Button>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Novo Usuário
+          <Link href="/admin/users/create" className="flex-shrink-0">
+            <Button size="sm" className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              <span className="hidden sm:inline">Novo Usuário</span>
             </Button>
           </Link>
         </div>
@@ -266,66 +268,61 @@ export default function UsersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Buscar usuários..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Buscar usuários..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <select
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0 text-sm"
+              >
+                {roles.map(role => (
+                  <option key={role.value} value={role.value}>{role.label}</option>
+                ))}
+              </select>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0 text-sm"
+              >
+                {statuses.map(status => (
+                  <option key={status.value} value={status.value}>{status.label}</option>
+                ))}
+              </select>
+              <div className="flex border border-gray-300 rounded-md flex-shrink-0">
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="rounded-r-none"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="rounded-l-none"
+                >
+                  <Grid className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <select
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {roles.map(role => (
-              <option key={role.value} value={role.value}>{role.label}</option>
-            ))}
-          </select>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {statuses.map(status => (
-              <option key={status.value} value={status.value}>{status.label}</option>
-            ))}
-          </select>
-          <Button variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtros
-          </Button>
-        </div>
-      </div>
-
-      {/* View Mode Toggle */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2">
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            onClick={() => setViewMode('list')}
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Lista
-          </Button>
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            onClick={() => setViewMode('grid')}
-          >
-            <Award className="h-4 w-4 mr-2" />
-            Grid
-          </Button>
-        </div>
-        <div className="text-sm text-gray-500">
-          {filteredUsers.length} usuário{filteredUsers.length !== 1 ? 's' : ''} encontrado{filteredUsers.length !== 1 ? 's' : ''}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Error Message */}
       {error && (
@@ -336,18 +333,18 @@ export default function UsersPage() {
 
       {/* Users List/Grid */}
       {viewMode === 'list' ? (
-        <div className="space-y-4">
+        <div className="space-y-4 sm:gap-6">
           {filteredUsers.map((user) => (
             <Card key={user.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-indigo-600 font-semibold">{user.firstName.charAt(0)}</span>
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <h4 className="font-medium text-lg">{user.firstName} {user.lastName}</h4>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 flex-wrap mb-1">
+                        <h4 className="font-medium text-lg truncate">{user.firstName} {user.lastName}</h4>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getRoleColor(user.roleName)}`}>
                           {user.roleName}
                         </span>
@@ -356,47 +353,42 @@ export default function UsersPage() {
                           <span className="ml-1">{getStatusText(user.status)}</span>
                         </span>
                       </div>
-                      <div className="flex gap-4 text-sm text-gray-500 mt-1">
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-4 w-4" />
-                          {user.email}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500 mt-1">
+                        <span className="flex items-center gap-1 min-w-0">
+                          <Mail className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{user.email}</span>
                         </span>
                         <span className="flex items-center gap-1">
-                          <Phone className="h-4 w-4" />
-                          {user.phone}
+                          <Phone className="h-4 w-4 flex-shrink-0" />
+                          <span className="break-words">{user.phone}</span>
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Award className="h-4 w-4" />
-                          {user.organizationName}
+                        <span className="flex items-center gap-1 min-w-0">
+                          <Award className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{user.organizationName}</span>
                         </span>
                         {user.lastLoginAt && (
                           <span className="flex items-center gap-1">
-                            <Clock className="h-4 w-4" />
-                            Último login: {new Date(user.lastLoginAt).toLocaleString('pt-BR')}
+                            <Clock className="h-4 w-4 flex-shrink-0" />
+                            <span className="break-words">Último login: {new Date(user.lastLoginAt).toLocaleString('pt-BR')}</span>
                           </span>
                         )}
                       </div>
-                      <div className="flex gap-2 mt-2">
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
-                          {user.roleName}
-                        </span>
-                      </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver
+                  <div className="flex gap-2 flex-shrink-0 flex-wrap">
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <Eye className="h-4 w-4" />
+                      <span className="hidden sm:inline">Ver</span>
                     </Button>
                     <Link href={`/admin/users/edit/${user.id}`}>
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
+                      <Button variant="outline" size="sm" className="flex items-center gap-2">
+                        <Edit className="h-4 w-4" />
+                        <span className="hidden sm:inline">Editar</span>
                       </Button>
                     </Link>
-                    <Button variant="outline" size="sm">
-                      <Key className="h-4 w-4 mr-2" />
-                      Permissões
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <Key className="h-4 w-4" />
+                      <span className="hidden sm:inline">Permissões</span>
                     </Button>
                     <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
                       <Trash2 className="h-4 w-4" />

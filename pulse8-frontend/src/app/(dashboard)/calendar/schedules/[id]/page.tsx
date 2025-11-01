@@ -218,41 +218,47 @@ export default function ScheduleDetailsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <Button
             variant="outline"
             size="icon"
             onClick={() => router.push('/calendar/schedules')}
+            className="flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{schedule.title}</h1>
-            <p className="text-gray-600">Detalhes do agendamento</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{schedule.title}</h1>
+            <p className="text-sm sm:text-base text-gray-600">Detalhes do agendamento</p>
           </div>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Link href={`/calendar/schedules/${schedule.id}/edit`}>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              <span className="hidden sm:inline">Editar</span>
             </Button>
           </Link>
-          <Button variant="outline" onClick={handleDeleteClick} className="text-red-600 hover:text-red-700">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleDeleteClick} 
+            className="text-red-600 hover:text-red-700 flex items-center gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Excluir</span>
           </Button>
         </div>
       </div>
 
       {/* Status */}
-      <div className="flex items-center space-x-4">
-        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(schedule.status)}`}>
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium flex-shrink-0 ${getStatusColor(schedule.status)}`}>
           {getStatusIcon(schedule.status)}
           <span className="ml-2">{getStatusText(schedule.status)}</span>
         </span>
-        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getTypeColor(schedule.type)}`}>
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium flex-shrink-0 ${getTypeColor(schedule.type)}`}>
           {getTypeIcon(schedule.type)}
           <span className="ml-2">{getTypeText(schedule.type)}</span>
         </span>

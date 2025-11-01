@@ -1,17 +1,30 @@
 'use client'
 
 import { User } from '@/types/api'
-import { Bell, User as UserIcon } from 'lucide-react'
+import { Bell, User as UserIcon, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface HeaderProps {
   user: User
+  onMenuClick?: () => void
 }
 
-export function Header({ user }: HeaderProps) {
+export function Header({ user, onMenuClick }: HeaderProps) {
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="flex h-16 items-center justify-end px-4 sm:px-6 lg:px-8">
+      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+        {/* Left side - Mobile menu button */}
+        <div className="lg:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMenuClick}
+            className="text-gray-700"
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+        </div>
+        
         {/* Right side */}
         <div className="flex items-center gap-4">
           {/* Notifications */}

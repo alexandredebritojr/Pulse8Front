@@ -277,22 +277,22 @@ export default function FinancePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Orçamento & Financeiro</h1>
-          <p className="text-gray-600">Controle financeiro completo dos seus eventos</p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orçamento & Financeiro</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Controle financeiro completo dos seus eventos</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Link href="/finance/expenses/create">
-            <Button variant="outline">
-              <Receipt className="h-4 w-4 mr-2" />
-              Nova Despesa
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Receipt className="h-4 w-4" />
+              <span className="hidden sm:inline">Nova Despesa</span>
             </Button>
           </Link>
           <Link href="/finance/revenue/create">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Receita
+            <Button size="sm" className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Nova Receita</span>
             </Button>
           </Link>
         </div>

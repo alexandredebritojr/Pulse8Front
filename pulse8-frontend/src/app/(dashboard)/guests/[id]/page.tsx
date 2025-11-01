@@ -137,11 +137,8 @@ export default function GuestDetailsPage() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900">Erro ao carregar convidado</h3>
-        <p className="text-gray-500">{error}</p>
-        <Link href="/guests" className="mt-4 inline-block">
-          <Button>Voltar para Convidados</Button>
-        </Link>
+        <div className="text-red-600 mb-4">❌ {error}</div>
+        <Button onClick={() => router.push('/guests')}>Voltar</Button>
       </div>
     )
   }
@@ -149,11 +146,8 @@ export default function GuestDetailsPage() {
   if (!guest) {
     return (
       <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900">Convidado não encontrado</h3>
-        <p className="text-gray-500">O convidado que você está procurando não existe.</p>
-        <Link href="/guests" className="mt-4 inline-block">
-          <Button>Voltar para Convidados</Button>
-        </Link>
+        <div className="text-gray-600 mb-4">Convidado não encontrado</div>
+        <Button onClick={() => router.push('/guests')}>Voltar</Button>
       </div>
     )
   }
@@ -162,49 +156,38 @@ export default function GuestDetailsPage() {
   const checkInStatus = getCheckInStatus(guest)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/guests">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
-              <span className="text-indigo-600 font-semibold text-xl">
-                {(guest.name || 'U')[0]}{(guest.name || 'U')[1] || 'U'}
-              </span>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{guest.name || 'Nome não informado'}</h1>
-              <div className="flex items-center gap-4 mt-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  <CheckCircle className="h-4 w-4" />
-                  <span className="ml-1">Confirmado</span>
-                </span>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${guestType.color}`}>
-                  <span className="mr-1">{guestType.icon}</span>
-                  {guestType.type}
-                </span>
-                <span className="text-sm text-gray-500">
-                  Cadastrado em {formatDate(guest.createdAt)}
-                </span>
-              </div>
-            </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => router.push('/guests')}
+            className="flex-shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{guest.name || 'Nome não informado'}</h1>
+            <p className="text-sm sm:text-base text-gray-600">{getStatusText(guest.status)}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Link href={`/guests/${guest.id}/edit`}>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              <span className="hidden sm:inline">Editar</span>
             </Button>
           </Link>
-          <Button variant="outline" onClick={() => setShowDeleteModal(true)} className="text-red-600 hover:text-red-700">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir
+          <Button 
+            variant="outline"
+            size="sm"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-2"
+            onClick={() => setShowDeleteModal(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Excluir</span>
           </Button>
         </div>
       </div>
@@ -226,14 +209,14 @@ export default function GuestDetailsPage() {
                   <Mail className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm text-gray-600">{guest.email}</p>
+                    <p className="text-sm text-gray-600 break-words">{guest.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium">Telefone</p>
-                    <p className="text-sm text-gray-600">{formatPhone(guest.phone)}</p>
+                    <p className="text-sm text-gray-600 break-words">{formatPhone(guest.phone)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 md:col-span-2">

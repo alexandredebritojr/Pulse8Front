@@ -168,15 +168,15 @@ export default function BudgetPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Orçamento</h1>
-          <p className="text-gray-600">Acompanhe o orçamento planejado vs gastos reais</p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Orçamento</h1>
+          <p className="text-sm sm:text-base text-gray-600">Acompanhe o orçamento planejado vs gastos reais</p>
         </div>
-        <Link href="/finance/budget/create">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Item
+        <Link href="/finance/budget/create" className="flex-shrink-0">
+          <Button size="sm" className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Novo Item</span>
           </Button>
         </Link>
       </div>
@@ -239,8 +239,8 @@ export default function BudgetPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
+      <div className="flex flex-col gap-4">
+        <div className="flex-1 w-full">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
@@ -251,11 +251,11 @@ export default function BudgetPage() {
             />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[140px]"
           >
             <option value="all">Todos os status</option>
             <option value="Active">Ativo</option>
@@ -263,9 +263,9 @@ export default function BudgetPage() {
             <option value="Completed">Concluído</option>
             <option value="Cancelled">Cancelado</option>
           </select>
-          <Button variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtros
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            <span className="hidden sm:inline">Filtros</span>
           </Button>
         </div>
       </div>
@@ -281,61 +281,66 @@ export default function BudgetPage() {
       <div className="space-y-4">
         {filteredBudgetItems.map((item) => (
           <Card key={item.id} className="hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-3xl">💰</span>
-                  <div>
-                    <h3 className="font-semibold text-lg">{item.name}</h3>
-                    <p className="text-sm text-gray-500">{item.description}</p>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <span className="text-2xl sm:text-3xl flex-shrink-0">💰</span>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-base sm:text-lg truncate">{item.name}</h3>
+                    <p className="text-sm text-gray-500 line-clamp-2">{item.description}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500">Orçado</p>
-                    <p className="font-semibold">{formatCurrency(item.amount || 0)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500">Gasto</p>
-                    <p className="font-semibold">{formatCurrency(item.spent || 0)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500">Variação</p>
-                    <div className="flex items-center gap-1">
-                      {getVarianceIcon((item.spent || 0) - (item.amount || 0))}
-                      <p className={`font-semibold ${getVarianceColor((item.spent || 0) - (item.amount || 0))}`}>
-                        {formatCurrency((item.spent || 0) - (item.amount || 0))}
-                      </p>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-4 lg:gap-6">
+                  {/* Values Grid */}
+                  <div className="grid grid-cols-4 gap-2 sm:gap-4 lg:gap-6 sm:flex sm:items-center">
+                    <div className="text-center">
+                      <p className="text-xs sm:text-sm text-gray-500">Orçado</p>
+                      <p className="font-semibold text-sm sm:text-base">{formatCurrency(item.amount || 0)}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs sm:text-sm text-gray-500">Gasto</p>
+                      <p className="font-semibold text-sm sm:text-base">{formatCurrency(item.spent || 0)}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs sm:text-sm text-gray-500">Variação</p>
+                      <div className="flex items-center justify-center gap-1">
+                        {getVarianceIcon((item.spent || 0) - (item.amount || 0))}
+                        <p className={`font-semibold text-sm sm:text-base ${getVarianceColor((item.spent || 0) - (item.amount || 0))}`}>
+                          {formatCurrency((item.spent || 0) - (item.amount || 0))}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs sm:text-sm text-gray-500">%</p>
+                      <p className="font-semibold text-sm sm:text-base">{((item.amount || 0) > 0 ? ((item.spent || 0) / (item.amount || 0)) * 100 : 0).toFixed(1)}%</p>
                     </div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm text-gray-500">%</p>
-                    <p className="font-semibold">{((item.amount || 0) > 0 ? ((item.spent || 0) / (item.amount || 0)) * 100 : 0).toFixed(1)}%</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                  {/* Status and Actions */}
+                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${getStatusColor(item.status)}`}>
                       {getStatusIcon(item.status)}
-                      <span className="ml-1">{item.status}</span>
+                      <span className="ml-1 hidden sm:inline">{item.status}</span>
                     </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => handleEdit(item.id)}
-                      title="Editar item"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => handleDeleteClick(item)}
-                      title="Excluir item"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => handleEdit(item.id)}
+                        title="Editar item"
+                        className="h-8 w-8"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                        onClick={() => handleDeleteClick(item)}
+                        title="Excluir item"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

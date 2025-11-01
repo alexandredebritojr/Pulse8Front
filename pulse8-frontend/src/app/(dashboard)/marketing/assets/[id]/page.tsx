@@ -129,28 +129,38 @@ export default function AssetDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/marketing/assets">
-          <Button variant="outline" size="icon">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => router.push('/marketing/assets')}
+            className="flex-shrink-0"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">{asset.name}</h1>
-          <p className="text-gray-600">Detalhes do asset de marketing</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{asset.name}</h1>
+            <p className="text-sm sm:text-base text-gray-600">{asset.type}</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Link href={`/marketing/assets/${asset.id}/edit`}>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              <span className="hidden sm:inline">Editar</span>
             </Button>
           </Link>
-          <Button variant="outline" onClick={handleDeleteClick} className="text-red-600 hover:text-red-700">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir
+          <Button 
+            variant="outline"
+            size="sm"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-2"
+            onClick={handleDeleteClick}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Excluir</span>
           </Button>
         </div>
       </div>
@@ -167,21 +177,21 @@ export default function AssetDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg">
+              <div className="flex items-center justify-center h-64 bg-gray-100 rounded-lg overflow-hidden">
                 {asset.type === 'Image' ? (
                   <img 
                     src={asset.filePath} 
                     alt={asset.name}
-                    className="max-h-full max-w-full object-contain rounded-lg"
+                    className="max-h-full max-w-full w-full h-full object-contain rounded-lg"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'
                       e.currentTarget.nextElementSibling?.classList.remove('hidden')
                     }}
                   />
                 ) : (
-                  <div className="text-center">
+                  <div className="text-center px-4">
                     {getTypeIcon(asset.type)}
-                    <p className="mt-2 text-gray-600">{asset.name}</p>
+                    <p className="mt-2 text-gray-600 truncate">{asset.name}</p>
                     <p className="text-sm text-gray-500">{asset.type}</p>
                   </div>
                 )}
@@ -203,14 +213,14 @@ export default function AssetDetailPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nome
                 </label>
-                <p className="text-gray-900">{asset.name}</p>
+                <p className="text-gray-900 break-words">{asset.name}</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Descrição
                 </label>
-                <p className="text-gray-900">{asset.description || 'Sem descrição'}</p>
+                <p className="text-gray-900 break-words">{asset.description || 'Sem descrição'}</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -236,7 +246,7 @@ export default function AssetDetailPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Caminho do Arquivo
                 </label>
-                <p className="text-gray-900 font-mono text-sm bg-gray-100 p-2 rounded">
+                <p className="text-gray-900 font-mono text-sm bg-gray-100 p-2 rounded break-all overflow-wrap-anywhere">
                   {asset.filePath}
                 </p>
               </div>
@@ -266,14 +276,14 @@ export default function AssetDetailPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Organização
                 </label>
-                <p className="text-gray-900">{asset.organizationName}</p>
+                <p className="text-gray-900 break-words">{asset.organizationName}</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Evento
                 </label>
-                <p className="text-gray-900">{asset.eventName}</p>
+                <p className="text-gray-900 break-words">{asset.eventName}</p>
               </div>
             </CardContent>
           </Card>
@@ -313,9 +323,9 @@ export default function AssetDetailPage() {
               <CardTitle>Informações Rápidas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">ID:</span>
-                <span className="font-mono text-sm">{asset.id}</span>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-600 flex-shrink-0">ID:</span>
+                <span className="font-mono text-sm break-all text-right">{asset.id}</span>
               </div>
               
               <div className="flex justify-between">

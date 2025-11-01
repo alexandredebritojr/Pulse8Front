@@ -146,15 +146,15 @@ export default function MarketingPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Marketing</h1>
-          <p className="text-gray-600">Gerencie suas campanhas de marketing e acompanhe resultados</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Marketing</h1>
+          <p className="text-sm sm:text-base text-gray-600">Gerencie suas campanhas de marketing e acompanhe resultados</p>
         </div>
-        <Link href="/marketing/create">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Campanha
+        <Link href="/marketing/create" className="flex-shrink-0">
+          <Button size="sm" className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nova Campanha</span>
           </Button>
         </Link>
       </div>
@@ -223,8 +223,8 @@ export default function MarketingPage() {
       {/* Filters and Search */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+          <div className="flex flex-col gap-4">
+            <div className="flex-1 w-full">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -235,11 +235,11 @@ export default function MarketingPage() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive' | 'completed')}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[120px]"
               >
                 <option value="all">Todos</option>
                 <option value="active">Ativas</option>
@@ -249,14 +249,14 @@ export default function MarketingPage() {
               <select
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value as 'all' | 'Campaign' | 'Event' | 'Social Media')}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-1 min-w-[140px]"
               >
                 <option value="all">Todos os Tipos</option>
                 <option value="Campaign">Campanha</option>
                 <option value="Event">Evento</option>
                 <option value="Social Media">Redes Sociais</option>
               </select>
-              <div className="flex border border-gray-300 rounded-md">
+              <div className="flex border border-gray-300 rounded-md flex-shrink-0">
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   size="sm"
@@ -438,7 +438,7 @@ export default function MarketingPage() {
         </Card>
       )}
 
-      {campaigns?.length || 0 === 0 && !isLoading && (
+      {(!campaigns || campaigns.length === 0) && !isLoading && (
         <Card>
           <CardContent className="text-center py-12">
             <Megaphone className="mx-auto h-12 w-12 text-gray-400" />

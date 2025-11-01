@@ -129,62 +129,63 @@ export default function MarketingPostDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando dados do post...</p>
-        </div>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="text-red-600 mb-4">❌ {error}</div>
-          <Button onClick={() => window.location.reload()}>Tentar Novamente</Button>
-        </div>
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">❌ {error}</div>
+        <Button onClick={() => router.push('/marketing/posts')}>Voltar</Button>
       </div>
     )
   }
 
   if (!post) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="text-gray-600 mb-4">Post não encontrado</div>
-          <Link href="/marketing/posts">
-            <Button>Voltar para Posts</Button>
-          </Link>
-        </div>
+      <div className="text-center py-12">
+        <div className="text-gray-600 mb-4">Post não encontrado</div>
+        <Button onClick={() => router.push('/marketing/posts')}>Voltar</Button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/marketing/posts">
-          <Button variant="outline" size="icon">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => router.push('/marketing/posts')}
+            className="flex-shrink-0"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Detalhes do Post</h1>
-          <p className="text-gray-600">Informações completas do post de marketing</p>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{post.platform}</h1>
+            <p className="text-sm sm:text-base text-gray-600">{getStatusText(post.status)}</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Link href={`/marketing/posts/${post.id}/edit`}>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              <span className="hidden sm:inline">Editar</span>
             </Button>
           </Link>
-          <Button variant="outline" onClick={handleDeleteClick} className="text-red-600 hover:text-red-700">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir
+          <Button 
+            variant="outline"
+            size="sm"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-2"
+            onClick={handleDeleteClick}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Excluir</span>
           </Button>
         </div>
       </div>
@@ -202,7 +203,7 @@ export default function MarketingPostDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="bg-gray-50 p-4 rounded-lg">
-                <p className="text-gray-900 whitespace-pre-wrap">{post.content}</p>
+                <p className="text-gray-900 whitespace-pre-wrap break-words">{post.content}</p>
               </div>
             </CardContent>
           </Card>
@@ -218,9 +219,9 @@ export default function MarketingPostDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Plataforma
                   </label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">{getPlatformIcon(post.platform)}</span>
-                    <span className="text-gray-900">{post.platform}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-2xl flex-shrink-0">{getPlatformIcon(post.platform)}</span>
+                    <span className="text-gray-900 break-words">{post.platform}</span>
                   </div>
                 </div>
 
@@ -245,7 +246,7 @@ export default function MarketingPostDetailPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   ID da Campanha
                 </label>
-                <p className="text-gray-900 font-mono text-sm bg-gray-100 p-2 rounded">
+                <p className="text-gray-900 font-mono text-sm bg-gray-100 p-2 rounded break-all overflow-wrap-anywhere">
                   {post.marketingCampaignId}
                 </p>
               </div>
@@ -268,9 +269,9 @@ export default function MarketingPostDetailPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Plataforma
                 </label>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{getPlatformIcon(post.platform)}</span>
-                  <span className="text-gray-900">{post.platform}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-2xl flex-shrink-0">{getPlatformIcon(post.platform)}</span>
+                  <span className="text-gray-900 break-words">{post.platform}</span>
                 </div>
               </div>
 
@@ -298,7 +299,7 @@ export default function MarketingPostDetailPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   ID da Campanha
                 </label>
-                <p className="text-gray-900 font-mono text-sm">{post.marketingCampaignId}</p>
+                <p className="text-gray-900 font-mono text-sm break-all">{post.marketingCampaignId}</p>
               </div>
               
               {post.marketingCampaignName && (
@@ -306,7 +307,7 @@ export default function MarketingPostDetailPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Nome da Campanha
                   </label>
-                  <p className="text-gray-900">{post.marketingCampaignName}</p>
+                  <p className="text-gray-900 break-words">{post.marketingCampaignName}</p>
                 </div>
               )}
             </CardContent>
@@ -342,19 +343,19 @@ export default function MarketingPostDetailPage() {
               <CardTitle>Informações Rápidas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">ID:</span>
-                <span className="font-mono text-sm">{post.id}</span>
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-600 flex-shrink-0">ID:</span>
+                <span className="font-mono text-sm break-all text-right">{post.id}</span>
               </div>
               
               <div className="flex justify-between">
                 <span className="text-gray-600">Plataforma:</span>
-                <span>{post.platform}</span>
+                <span className="break-words text-right">{post.platform}</span>
               </div>
               
               <div className="flex justify-between">
                 <span className="text-gray-600">Status:</span>
-                <span>{getStatusText(post.status)}</span>
+                <span className="text-right">{getStatusText(post.status)}</span>
               </div>
             </CardContent>
           </Card>

@@ -125,11 +125,8 @@ export default function TeamMemberDetailsPage() {
   if (error) {
     return (
       <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900">Erro ao carregar membro da equipe</h3>
-        <p className="text-gray-500">{error}</p>
-        <Link href="/team" className="mt-4 inline-block">
-          <Button>Voltar para Equipe</Button>
-        </Link>
+        <div className="text-red-600 mb-4">❌ {error}</div>
+        <Button onClick={() => router.push('/team')}>Voltar</Button>
       </div>
     )
   }
@@ -137,11 +134,8 @@ export default function TeamMemberDetailsPage() {
   if (!teamMember) {
     return (
       <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900">Membro da equipe não encontrado</h3>
-        <p className="text-gray-500">O membro da equipe que você está procurando não existe.</p>
-        <Link href="/team" className="mt-4 inline-block">
-          <Button>Voltar para Equipe</Button>
-        </Link>
+        <div className="text-gray-600 mb-4">Membro da equipe não encontrado</div>
+        <Button onClick={() => router.push('/team')}>Voltar</Button>
       </div>
     )
   }
@@ -150,49 +144,38 @@ export default function TeamMemberDetailsPage() {
   const department = getDepartmentInfo(`${teamMember.firstName} ${teamMember.lastName}`)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/team">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
-              <span className="text-indigo-600 font-semibold text-xl">
-                {`${teamMember.firstName} ${teamMember.lastName}`.split(' ').map(n => n[0]).join('')}
-              </span>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{`${teamMember.firstName} ${teamMember.lastName}`}</h1>
-              <div className="flex items-center gap-4 mt-2">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(teamMember.status)}`}>
-                  {getStatusIcon(teamMember.status)}
-                  <span className="ml-1">{getStatusText(teamMember.status)}</span>
-                </span>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${roleInfo.color}`}>
-                  <span className="mr-1">{roleInfo.icon}</span>
-                  {roleInfo.role}
-                </span>
-                <span className="text-sm text-gray-500">
-                  Cadastrado em {formatDate(teamMember.createdAt)}
-                </span>
-              </div>
-            </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={() => router.push('/team')}
+            className="flex-shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{`${teamMember.firstName} ${teamMember.lastName}`}</h1>
+            <p className="text-sm sm:text-base text-gray-600">{getStatusText(teamMember.status)}</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Link href={`/team/${teamMember.id}/edit`}>
-            <Button variant="outline">
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Edit className="h-4 w-4" />
+              <span className="hidden sm:inline">Editar</span>
             </Button>
           </Link>
-          <Button variant="outline" onClick={() => setShowDeleteModal(true)} className="text-red-600 hover:text-red-700">
-            <Trash2 className="h-4 w-4 mr-2" />
-            Excluir
+          <Button 
+            variant="outline"
+            size="sm"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-2"
+            onClick={() => setShowDeleteModal(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Excluir</span>
           </Button>
         </div>
       </div>
@@ -214,14 +197,14 @@ export default function TeamMemberDetailsPage() {
                   <Mail className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm text-gray-600">{teamMember.email}</p>
+                    <p className="text-sm text-gray-600 break-words">{teamMember.email}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Phone className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium">Telefone</p>
-                    <p className="text-sm text-gray-600">{formatPhone(teamMember.phone)}</p>
+                    <p className="text-sm text-gray-600 break-words">{formatPhone(teamMember.phone)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 md:col-span-2">

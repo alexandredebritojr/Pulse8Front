@@ -195,15 +195,15 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Despesas</h1>
-          <p className="text-gray-600">Gerencie as despesas dos eventos</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Despesas</h1>
+          <p className="text-sm sm:text-base text-gray-600">Gerencie as despesas dos eventos</p>
         </div>
-        <Link href="/finance/expenses/create">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Despesa
+        <Link href="/finance/expenses/create" className="flex-shrink-0">
+          <Button size="sm" className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nova Despesa</span>
           </Button>
         </Link>
       </div>
@@ -272,8 +272,8 @@ export default function ExpensesPage() {
       {/* Filters and Search */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+          <div className="flex flex-col gap-4">
+            <div className="flex-1 w-full">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -284,11 +284,11 @@ export default function ExpensesPage() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[120px]"
               >
                 <option value="all">Todos</option>
                 <option value="approved">Aprovadas</option>
@@ -298,7 +298,7 @@ export default function ExpensesPage() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-1 min-w-[140px]"
               >
                 <option value="all">Todas as Categorias</option>
                 <option value="Local">Local</option>
@@ -308,7 +308,7 @@ export default function ExpensesPage() {
                 <option value="Transporte">Transporte</option>
                 <option value="Outros">Outros</option>
               </select>
-              <div className="flex border border-gray-300 rounded-md">
+              <div className="flex border border-gray-300 rounded-md flex-shrink-0">
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   size="sm"

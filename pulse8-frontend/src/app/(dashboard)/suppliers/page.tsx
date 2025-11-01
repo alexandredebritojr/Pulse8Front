@@ -135,17 +135,17 @@ export default function SuppliersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Fornecedores</h1>
-          <p className="text-gray-600">Gerencie todos os fornecedores e parceiros</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Fornecedores</h1>
+          <p className="text-sm sm:text-base text-gray-600">Gerencie todos os fornecedores e parceiros</p>
         </div>
-        <Link href="/suppliers/create">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Fornecedor
+        <Link href="/suppliers/create" className="flex-shrink-0">
+          <Button size="sm" className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Novo Fornecedor</span>
           </Button>
         </Link>
       </div>
@@ -193,53 +193,52 @@ export default function SuppliersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Buscar fornecedores..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Buscar fornecedores..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 flex-shrink-0 text-sm"
+              >
+                <option value="all">Todos os status</option>
+                <option value="active">Ativos</option>
+                <option value="inactive">Inativos</option>
+              </select>
+              <div className="flex border border-gray-300 rounded-md flex-shrink-0">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="rounded-r-none"
+                >
+                  <Grid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="rounded-l-none"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="all">Todos os status</option>
-            <option value="active">Ativos</option>
-            <option value="inactive">Inativos</option>
-          </select>
-        </div>
-      </div>
-
-      {/* View Mode Toggle */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            onClick={() => setViewMode('grid')}
-          >
-            <Grid className="h-4 w-4 mr-2" />
-            Grid
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            onClick={() => setViewMode('list')}
-          >
-            <List className="h-4 w-4 mr-2" />
-            Lista
-          </Button>
-        </div>
-        <div className="text-sm text-gray-500">
-          {suppliers.length} fornecedor{suppliers.length !== 1 ? 'es' : ''} encontrado{suppliers.length !== 1 ? 's' : ''}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Suppliers Grid/List */}
       {viewMode === 'grid' ? (
@@ -305,18 +304,18 @@ export default function SuppliersPage() {
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg">{supplier.name}</h3>
                       <p className="text-sm text-gray-500">{getCategoryName(supplier.name)}</p>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-4 w-4" />
-                          {supplier.email}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500 mt-1">
+                        <span className="flex items-center gap-1 min-w-0">
+                          <Mail className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{supplier.email}</span>
                         </span>
                         <span className="flex items-center gap-1">
-                          <Phone className="h-4 w-4" />
-                          {formatPhone(supplier.phone)}
+                          <Phone className="h-4 w-4 flex-shrink-0" />
+                          <span>{formatPhone(supplier.phone)}</span>
                         </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {supplier.address}
+                        <span className="flex items-center gap-1 min-w-0">
+                          <MapPin className="h-4 w-4 flex-shrink-0" />
+                          <span className="truncate">{supplier.address}</span>
                         </span>
                       </div>
                     </div>
