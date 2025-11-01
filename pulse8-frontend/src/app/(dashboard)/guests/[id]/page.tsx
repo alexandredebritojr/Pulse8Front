@@ -62,41 +62,6 @@ export default function GuestDetailsPage() {
     }
   }, [params.id])
 
-  const getStatusColor = (status: number) => {
-    switch (status) {
-      case 1: return 'bg-green-100 text-green-800' // Confirmed
-      case 2: return 'bg-blue-100 text-blue-800' // CheckedIn
-      case 3: return 'bg-purple-100 text-purple-800' // CheckedOut
-      case 0: return 'bg-yellow-100 text-yellow-800' // Pending
-      case 4: return 'bg-red-100 text-red-800' // NoShow
-      case 5: return 'bg-gray-100 text-gray-800' // Cancelled
-      default: return 'bg-yellow-100 text-yellow-800'
-    }
-  }
-
-  const getStatusText = (status: number) => {
-    switch (status) {
-      case 1: return 'Confirmado' // Confirmed
-      case 2: return 'Check-in Realizado' // CheckedIn
-      case 3: return 'Check-out Realizado' // CheckedOut
-      case 0: return 'Pendente' // Pending
-      case 4: return 'Não Compareceu' // NoShow
-      case 5: return 'Cancelado' // Cancelled
-      default: return 'Pendente'
-    }
-  }
-
-  const getStatusIcon = (status: number) => {
-    switch (status) {
-      case 1: return <CheckCircle className="h-4 w-4" /> // Confirmed
-      case 2: return <LogIn className="h-4 w-4" /> // CheckedIn
-      case 3: return <LogOut className="h-4 w-4" /> // CheckedOut
-      case 0: return <AlertCircle className="h-4 w-4" /> // Pending
-      case 4: return <AlertCircle className="h-4 w-4" /> // NoShow
-      case 5: return <AlertCircle className="h-4 w-4" /> // Cancelled
-      default: return <AlertCircle className="h-4 w-4" />
-    }
-  }
 
   const handleDelete = async () => {
     if (!guest) return
@@ -170,7 +135,7 @@ export default function GuestDetailsPage() {
           </Button>
           <div className="min-w-0 flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{guest.name || 'Nome não informado'}</h1>
-            <p className="text-sm sm:text-base text-gray-600">{getStatusText(guest.status)}</p>
+            <p className="text-sm sm:text-base text-gray-600">{checkInStatus.status}</p>
           </div>
         </div>
         <div className="flex gap-2 flex-shrink-0">

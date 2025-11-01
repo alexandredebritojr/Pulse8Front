@@ -433,7 +433,7 @@ export default function TeamPage() {
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
         title="Excluir Membro da Equipe"
-        message={`Tem certeza que deseja excluir o membro "${memberToDelete?.name}"? Esta ação não pode ser desfeita.`}
+        message={`Tem certeza que deseja excluir o membro "${memberToDelete?.firstName} ${memberToDelete?.lastName}"? Esta ação não pode ser desfeita.`}
         confirmText="Excluir"
         cancelText="Cancelar"
         isLoading={isDeleting}
