@@ -75,7 +75,7 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
               })
-            : formatCurrencyInput(expense.amount.toString())
+            : formatCurrencyInput(String(expense.amount || 0))
           
           setFormData({
             eventId: expense.eventId,
