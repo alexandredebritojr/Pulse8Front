@@ -155,13 +155,13 @@ export default function RevenuePage() {
 
         <Card>
           <CardContent className="p-3 sm:p-6">
-            <div className="flex items-center">
+            <div className="flex items-start sm:items-center gap-2 sm:gap-0">
               <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg flex-shrink-0">
                 <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600" />
               </div>
-              <div className="ml-2 sm:ml-4 min-w-0">
+              <div className="ml-0 sm:ml-4 flex-1 min-w-0">
                 <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Valor Total</p>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
+                <p className="text-sm sm:text-2xl font-bold text-gray-900 whitespace-normal break-words">
                   {formatCurrency(totalAmount)}
                 </p>
               </div>

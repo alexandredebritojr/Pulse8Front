@@ -75,11 +75,10 @@ export default function TeamForm({ mode, teamMemberId, eventId }: TeamFormProps)
 
   // Função auxiliar para redirecionamento baseado no contexto
   const handleGoBack = () => {
-    // Usar eventId da prop ou do formData (que pode ter vindo do membro carregado)
-    const currentEventId = eventId || formData.eventId
-    
-    if (currentEventId) {
-      router.push(`/events/${currentEventId}/edit?tab=team`)
+    // Se eventId foi passado como prop, significa que veio da edição de eventos
+    // Se não foi passado como prop, significa que veio da lista de equipe
+    if (eventId) {
+      router.push(`/events/${eventId}/edit?tab=team`)
     } else {
       router.push('/team')
     }

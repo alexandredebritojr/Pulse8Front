@@ -42,7 +42,6 @@ interface RecentExpense {
 
 interface ChartData {
   month: string
-  budget: number
   expenses: number
   revenue: number
 }
@@ -193,24 +192,8 @@ export default function FinancePage() {
             })
             .reduce((sum: number, rev: RevenueDto) => sum + (rev.amount || 0), 0)
 
-          // Calcular orçamento do mês (soma dos budgets ativos no mês)
-          const monthBudget = budgetsResponse.budgets
-            .filter((budget: BudgetDto) => {
-              const budgetStartDate = new Date(budget.startDate)
-              const budgetEndDate = new Date(budget.endDate)
-              return date >= budgetStartDate && date <= budgetEndDate
-            })
-            .reduce((sum: number, budget: BudgetDto) => {
-              // Dividir o budget proporcionalmente pelos meses
-              const budgetStartDate = new Date(budget.startDate)
-              const budgetEndDate = new Date(budget.endDate)
-              const budgetMonths = Math.max(1, Math.ceil((budgetEndDate.getTime() - budgetStartDate.getTime()) / (1000 * 60 * 60 * 24 * 30)))
-              return sum + (budget.amount / budgetMonths)
-            }, 0)
-
           monthlyData.push({
             month: monthName.charAt(0).toUpperCase() + monthName.slice(1),
-            budget: monthBudget,
             expenses: monthExpenses,
             revenue: monthRevenue
           })
@@ -263,7 +246,7 @@ export default function FinancePage() {
   const renderLineChart = () => {
     if (!chartData.length) return null
 
-    const maxValue = Math.max(...chartData.map(d => Math.max(d.budget, d.expenses, d.revenue)))
+    const maxValue = Math.max(...chartData.map(d => Math.max(d.expenses, d.revenue)))
     const chartWidth = 600
     const chartHeight = 300
     const padding = 40
@@ -273,7 +256,6 @@ export default function FinancePage() {
     const getX = (index: number) => padding + (index * innerWidth / (chartData.length - 1))
     const getY = (value: number) => padding + innerHeight - (value / maxValue * innerHeight)
 
-    const budgetPoints = chartData.map((d, i) => `${getX(i)},${getY(d.budget)}`).join(' ')
     const expensePoints = chartData.map((d, i) => `${getX(i)},${getY(d.expenses)}`).join(' ')
     const revenuePoints = chartData.map((d, i) => `${getX(i)},${getY(d.revenue)}`).join(' ')
 
@@ -317,16 +299,6 @@ export default function FinancePage() {
             </text>
           ))}
 
-          {/* Budget line */}
-          <polyline
-            points={budgetPoints}
-            fill="none"
-            stroke="#3b82f6"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-
           {/* Expenses line */}
           <polyline
             points={expensePoints}
@@ -352,14 +324,6 @@ export default function FinancePage() {
             <g key={i}>
               <circle
                 cx={getX(i)}
-                cy={getY(d.budget)}
-                r="4"
-                fill="#3b82f6"
-                stroke="white"
-                strokeWidth="2"
-              />
-              <circle
-                cx={getX(i)}
                 cy={getY(d.expenses)}
                 r="4"
                 fill="#ef4444"
@@ -381,16 +345,12 @@ export default function FinancePage() {
         {/* Legend */}
         <div className="flex justify-center gap-6 mt-4">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-blue-500"></div>
-            <span className="text-sm text-gray-600">Orçamento</span>
+            <div className="w-4 h-0.5 bg-green-500"></div>
+            <span className="text-sm text-gray-600">Receitas</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-0.5 bg-red-500"></div>
             <span className="text-sm text-gray-600">Despesas</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-green-500"></div>
-            <span className="text-sm text-gray-600">Receitas</span>
           </div>
         </div>
       </div>
@@ -591,15 +551,15 @@ export default function FinancePage() {
         </Card>
       </div>
 
-      {/* Budget vs Expenses vs Revenue Chart */}
+      {/* Revenue vs Expenses Chart */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Orçamento vs Despesas vs Receitas
+            Receitas vs Despesas
           </CardTitle>
           <CardDescription>
-            Comparação entre orçamento planejado, gastos reais e receitas ao longo do ano
+            Comparação entre receitas e despesas ao longo do ano
           </CardDescription>
         </CardHeader>
         <CardContent>

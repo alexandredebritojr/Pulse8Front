@@ -58,6 +58,44 @@ const formatDateForAPI = (dateString: string): string => {
   return date.toISOString()
 }
 
+// Função para normalizar e obter o texto do status
+const getStatusText = (status: string | number | null | undefined): string => {
+  if (status === null || status === undefined) return 'Inativo'
+  
+  const statusStr = String(status).toLowerCase()
+  
+  // Verificar valores numéricos (enum)
+  if (statusStr === '0') return 'Ativo'
+  if (statusStr === '1') return 'Inativo'
+  if (statusStr === '2') return 'Suspenso'
+  
+  // Verificar strings (do backend que retorna "Active", "Inactive", "Suspended")
+  if (statusStr === 'active') return 'Ativo'
+  if (statusStr === 'inactive') return 'Inativo'
+  if (statusStr === 'suspended') return 'Suspenso'
+  
+  return 'Inativo' // Default
+}
+
+// Função para obter a cor do status
+const getStatusColor = (status: string | number | null | undefined): string => {
+  if (status === null || status === undefined) return 'bg-gray-100 text-gray-800'
+  
+  const statusStr = String(status).toLowerCase()
+  
+  // Verificar valores numéricos (enum)
+  if (statusStr === '0') return 'bg-green-100 text-green-800'
+  if (statusStr === '1') return 'bg-yellow-100 text-yellow-800'
+  if (statusStr === '2') return 'bg-red-100 text-red-800'
+  
+  // Verificar strings (do backend que retorna "Active", "Inactive", "Suspended")
+  if (statusStr === 'active') return 'bg-green-100 text-green-800'
+  if (statusStr === 'inactive') return 'bg-yellow-100 text-yellow-800'
+  if (statusStr === 'suspended') return 'bg-red-100 text-red-800'
+  
+  return 'bg-gray-100 text-gray-800' // Default
+}
+
 export default function EventForm({ eventId, mode, initialTab }: EventFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(mode === 'edit')
@@ -1844,11 +1882,8 @@ export default function EventForm({ eventId, mode, initialTab }: EventFormProps)
                           {member.role || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            member.status === 'active' ? 'bg-green-100 text-green-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {member.status === 'active' ? 'Ativo' : 'Inativo'}
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(member.status)}`}>
+                            {getStatusText(member.status)}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

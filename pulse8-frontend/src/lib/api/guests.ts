@@ -95,6 +95,37 @@ export class GuestsService {
     return apiClient.get<GuestDto>(`/guests/${id}`)
   }
 
+  /**
+   * Obtém lista de convidados de um evento específico
+   */
+  static async getGuestsByEvent(eventId: string, query: Omit<GetGuestsQuery, 'eventId'> = {}): Promise<GetGuestsResponse> {
+    if (!apiClient) {
+      throw new Error('ApiClient não foi inicializado corretamente')
+    }
+    
+    const params = new URLSearchParams()
+    
+    if (query.pageNumber) params.append('pageNumber', query.pageNumber.toString())
+    if (query.pageSize) params.append('pageSize', query.pageSize.toString())
+    if (query.searchTerm) params.append('searchTerm', query.searchTerm)
+    if (query.status) params.append('status', query.status)
+    if (query.city) params.append('city', query.city)
+    if (query.state) params.append('state', query.state)
+    if (query.sortBy) params.append('sortBy', query.sortBy)
+    if (query.sortDescending !== undefined) params.append('sortDescending', query.sortDescending.toString())
+    if (query.organizationId) params.append('organizationId', query.organizationId)
+
+    const queryString = params.toString()
+    const url = queryString ? `/guests/event/${eventId}?${queryString}` : `/guests/event/${eventId}`
+    
+    console.log('🔍 GuestsService.getGuestsByEvent: Iniciando...')
+    console.log('🔍 GuestsService.getGuestsByEvent: eventId =', eventId)
+    console.log('🔍 GuestsService.getGuestsByEvent: query =', query)
+    console.log('🔍 GuestsService.getGuestsByEvent: url =', url)
+    
+    return apiClient.get<GetGuestsResponse>(url)
+  }
+
   static async createGuest(guestData: CreateGuestRequest): Promise<string> {
     console.log('🔍 GuestsService.createGuest: Iniciando...')
     console.log('🔍 GuestsService.createGuest: guestData =', guestData)

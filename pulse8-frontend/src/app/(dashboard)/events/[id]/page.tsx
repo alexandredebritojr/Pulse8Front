@@ -56,8 +56,9 @@ export default function EventDetailsPage() {
         setEvent(eventData)
         
         // Carregar dados relacionados em paralelo
+        // Usar getGuestsByEvent para garantir que apenas convidados deste evento sejam retornados
         const [guestsResponse, revenueResponse, expensesResponse] = await Promise.all([
-          GuestsService.getGuests({ eventId, pageSize: 1, organizationId }).catch(() => ({ guests: [], totalCount: 0 } as GetGuestsResponse)),
+          GuestsService.getGuestsByEvent(eventId, { pageSize: 1, organizationId }).catch(() => ({ guests: [], totalCount: 0, pageNumber: 1, pageSize: 1, totalPages: 0 } as GetGuestsResponse)),
           RevenueService.getRevenue({ eventId, pageSize: 1, organizationId }).catch(() => ({ revenues: [], totalCount: 0, totalAmount: 0 } as GetRevenueResponse)),
           ExpensesService.getExpenses({ eventId, pageSize: 1, organizationId }).catch(() => ({ expenses: [], totalCount: 0, totalAmount: 0 } as GetExpensesResponse))
         ])
