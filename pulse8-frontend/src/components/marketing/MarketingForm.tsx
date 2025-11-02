@@ -39,15 +39,15 @@ export default function MarketingForm({ mode, marketingId }: MarketingFormProps)
           console.log('✅ MarketingForm: Marketing carregado:', marketing)
           
           setFormData({
-            name: marketing.name,
-            description: marketing.description,
-            type: marketing.type,
-            status: marketing.status,
-            startDate: marketing.startDate.split('T')[0],
+            name: marketing.name || '',
+            description: marketing.description || '',
+            type: marketing.type || '',
+            status: marketing.status || 'Active',
+            startDate: marketing.startDate ? marketing.startDate.split('T')[0] : '',
             endDate: marketing.endDate ? marketing.endDate.split('T')[0] : '',
             budget: marketing.budget?.toString() || '',
             targetAudience: marketing.targetAudience || '',
-            channels: marketing.channels,
+            channels: Array.isArray(marketing.channels) ? marketing.channels : [],
           })
         } catch (err: any) {
           console.error('❌ MarketingForm: Erro ao carregar marketing:', err)
@@ -68,12 +68,15 @@ export default function MarketingForm({ mode, marketingId }: MarketingFormProps)
   }
 
   const handleChannelChange = (channel: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      channels: checked 
-        ? [...prev.channels, channel]
-        : prev.channels.filter(c => c !== channel)
-    }))
+    setFormData(prev => {
+      const currentChannels = Array.isArray(prev.channels) ? prev.channels : []
+      return {
+        ...prev,
+        channels: checked 
+          ? [...currentChannels, channel]
+          : currentChannels.filter(c => c !== channel)
+      }
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,14 +89,49 @@ export default function MarketingForm({ mode, marketingId }: MarketingFormProps)
       console.log('🔍 MarketingForm: mode =', mode)
       console.log('🔍 MarketingForm: formData =', formData)
       
+      // Validação de datas antes de enviar
+      if (!formData.startDate) {
+        setError('Data de início é obrigatória')
+        setIsLoading(false)
+        return
+      }
+
+      // Validar formato de data (yyyy-MM-dd)
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+      if (!dateRegex.test(formData.startDate)) {
+        setError('Formato de data inválido. Use o formato YYYY-MM-DD')
+        setIsLoading(false)
+        return
+      }
+
+      if (formData.endDate && !dateRegex.test(formData.endDate)) {
+        setError('Formato de data de fim inválido. Use o formato YYYY-MM-DD')
+        setIsLoading(false)
+        return
+      }
+
+      // Validar que endDate é posterior a startDate
+      if (formData.endDate) {
+        const start = new Date(formData.startDate)
+        const end = new Date(formData.endDate)
+        if (end < start) {
+          setError('Data de fim deve ser posterior à data de início')
+          setIsLoading(false)
+          return
+        }
+      }
+
       // Preparar dados para a API
+      // Garantir que o tipo está no formato correto (sem espaços, primeira letra maiúscula)
+      const normalizedType = formData.type.trim()
+      
       const marketingData: CreateMarketingRequest = {
         name: formData.name,
         description: formData.description,
-        type: formData.type,
+        type: normalizedType,
         status: formData.status,
-        startDate: new Date(formData.startDate).toISOString(),
-        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
+        startDate: new Date(formData.startDate + 'T00:00:00').toISOString(),
+        endDate: formData.endDate ? new Date(formData.endDate + 'T23:59:59').toISOString() : undefined,
         budget: formData.budget ? parseFloat(formData.budget) : undefined,
         targetAudience: formData.targetAudience,
         channels: formData.channels,
@@ -118,15 +156,17 @@ export default function MarketingForm({ mode, marketingId }: MarketingFormProps)
     }
   }
 
+  // Tipos de marketing mapeados para valores aceitos pelo backend
+  // O backend espera enum específico, então mapeamos os valores
   const marketingTypes = [
-    'Campaign',
-    'Event',
-    'Social Media',
-    'Email Marketing',
-    'Content Marketing',
-    'Influencer',
-    'Advertising',
-    'PR'
+    { label: 'Campanha', value: 'Campaign' },
+    { label: 'Evento', value: 'Event' },
+    { label: 'Redes Sociais', value: 'SocialMedia' },
+    { label: 'Email Marketing', value: 'EmailMarketing' },
+    { label: 'Marketing de Conteúdo', value: 'ContentMarketing' },
+    { label: 'Influencer', value: 'Influencer' },
+    { label: 'Publicidade', value: 'Advertising' },
+    { label: 'Relações Públicas', value: 'PR' }
   ]
 
   const channelOptions = [
@@ -230,7 +270,7 @@ export default function MarketingForm({ mode, marketingId }: MarketingFormProps)
                     >
                       <option value="">Selecione o tipo</option>
                       {marketingTypes.map(type => (
-                        <option key={type} value={type}>{type}</option>
+                        <option key={type.value} value={type.value}>{type.label}</option>
                       ))}
                     </select>
                   </div>
@@ -345,7 +385,7 @@ export default function MarketingForm({ mode, marketingId }: MarketingFormProps)
                       <label key={channel} className="flex items-center">
                         <input
                           type="checkbox"
-                          checked={formData.channels.includes(channel)}
+                          checked={Array.isArray(formData.channels) && formData.channels.includes(channel)}
                           onChange={(e) => handleChannelChange(channel, e.target.checked)}
                           className="mr-2"
                         />

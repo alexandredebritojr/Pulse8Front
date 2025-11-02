@@ -4,8 +4,12 @@ interface EditExpensePageProps {
   params: {
     id: string
   }
+  searchParams: {
+    eventId?: string
+    tab?: string
+  }
 }
 
-export default function EditExpensePage({ params }: EditExpensePageProps) {
-  return <ExpenseForm mode="edit" expenseId={params.id} />
+export default function EditExpensePage({ params, searchParams }: EditExpensePageProps) {
+  return <ExpenseForm mode="edit" expenseId={params.id} eventId={searchParams.eventId} />
 }

@@ -15,6 +15,19 @@ export default function ForgotPasswordPage() {
     setError('')
     setMessage('')
 
+    // Validação básica
+    if (!email) {
+      setError('Por favor, insira seu email')
+      setIsLoading(false)
+      return
+    }
+
+    if (!email.includes('@') || !email.includes('.')) {
+      setError('Por favor, insira um email válido')
+      setIsLoading(false)
+      return
+    }
+
     try {
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
@@ -24,13 +37,18 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       })
 
+      const data = await response.json().catch(() => ({}))
+
       if (response.ok) {
-        setMessage('Instruções de recuperação enviadas para seu email')
+        setMessage('Se o email fornecido estiver cadastrado, você receberá instruções de recuperação de senha.')
+        setEmail('') // Limpar campo após envio bem-sucedido
       } else {
-        setError('Erro ao enviar email de recuperação')
+        // Exibir mensagem de erro específica se disponível
+        setError(data.error || data.message || 'Erro ao enviar email de recuperação. Verifique se o email está correto e tente novamente.')
       }
     } catch (err) {
-      setError('Erro ao processar solicitação. Tente novamente.')
+      console.error('Erro ao processar recuperação de senha:', err)
+      setError('Erro ao processar solicitação. Verifique sua conexão e tente novamente.')
     } finally {
       setIsLoading(false)
     }

@@ -14,6 +14,7 @@ export interface UserDto {
   organizationName: string
   roleId: string
   roleName: string
+  userOrganizationStatus: number // Status do UserOrganization (0=Active, 1=Inactive, 2=Suspended, 3=Pending)
   createdAt: string
   updatedAt?: string
 }
@@ -31,10 +32,11 @@ export interface CreateUserRequest {
   lastName: string
   email: string
   phone?: string
-  document?: string
+  document: string
   password: string
   organizationId: string
-  roleId: string
+  roleId: number
+  status: number
 }
 
 export interface UpdateUserRequest {
@@ -42,11 +44,13 @@ export interface UpdateUserRequest {
   firstName: string
   lastName: string
   email: string
-  phone?: string
-  document?: string
-  status: 'Active' | 'Inactive' | 'Pending' | 'Suspended'
+  phone: string
+  document: string
   organizationId: string
-  roleId: string
+  roleId: number
+  statusUserOrganization: number
+  status?: 'Active' | 'Inactive' | 'Pending' | 'Suspended'
+  profilePicture?: string
 }
 
 export const UsersService = {
@@ -73,6 +77,11 @@ export const UsersService = {
     if (sortDescending !== undefined) params.append('sortDescending', sortDescending.toString())
 
     const response = await apiClient.get<GetUsersResponse>(`/users?${params.toString()}`)
+    return response
+  },
+
+  async getUserById(id: string): Promise<UserDto> {
+    const response = await apiClient.get<UserDto>(`/users/${id}`)
     return response
   },
 

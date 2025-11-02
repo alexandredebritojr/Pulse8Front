@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { Users, DollarSign, Target } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,9 @@ import { MarketingService } from '@/lib/api/marketing'
 export default function EditPromoterPage() {
   const router = useRouter()
   const params = useParams()
+  const searchParams = useSearchParams()
   const promoterId = params.id as string
+  const eventId = searchParams.get('eventId') || undefined
   
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -49,7 +51,7 @@ export default function EditPromoterPage() {
           userId: promoterData.userId,
           promoterCode: promoterData.promoterCode || '',
           utmCode: promoterData.utmCode || '',
-          commissionRate: promoterData.commissionRate.toString(),
+          commissionRate: promoterData.commissionRate?.toString() || '',
           campaignId: promoterData.campaignId || ''
         })
 
@@ -97,11 +99,17 @@ export default function EditPromoterPage() {
         userId: formData.userId,
         promoterCode: formData.promoterCode || undefined,
         utmCode: formData.utmCode || undefined,
-        commissionRate: parseFloat(formData.commissionRate),
+        commissionRate: formData.commissionRate ? parseFloat(formData.commissionRate) : undefined,
         campaignId: formData.campaignId || undefined
       })
 
-      router.push('/promoters')
+      // Redirecionar baseado no contexto
+      const currentEventId = eventId || formData.eventId
+      if (currentEventId) {
+        router.push(`/events/${currentEventId}/edit?tab=promoter`)
+      } else {
+        router.push('/promoters')
+      }
     } catch (err: any) {
       console.error('❌ Erro ao atualizar promoter:', err)
       setError(err.message || 'Erro ao atualizar promoter')
@@ -121,13 +129,22 @@ export default function EditPromoterPage() {
     )
   }
 
+  // Determinar URL de retorno baseada no contexto
+  const getBackUrl = () => {
+    const currentEventId = eventId || formData.eventId
+    if (currentEventId) {
+      return `/events/${currentEventId}/edit?tab=promoter`
+    }
+    return '/promoters'
+  }
+
   if (!promoter) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <p className="text-red-600">Promoter não encontrado</p>
           <button 
-            onClick={() => router.push('/promoters')}
+            onClick={() => router.push(getBackUrl())}
             className="mt-2 text-blue-600 hover:text-blue-800"
           >
             Voltar para a listagem
@@ -142,7 +159,7 @@ export default function EditPromoterPage() {
       mode="edit"
       title="Editar Promoter"
       subtitle={`Editando promoter: ${promoter.userName}`}
-      backUrl="/promoters"
+      backUrl={getBackUrl()}
       isSaving={isSaving}
       error={error}
       onSubmit={handleSubmit}
@@ -248,7 +265,7 @@ export default function EditPromoterPage() {
 
             <div>
               <label htmlFor="commissionRate" className="block text-sm font-medium text-gray-700 mb-1">
-                Taxa de Comissão (%) *
+                Taxa de Comissão (%)
               </label>
               <Input
                 id="commissionRate"
@@ -260,7 +277,6 @@ export default function EditPromoterPage() {
                 value={formData.commissionRate}
                 onChange={handleChange}
                 placeholder="Ex: 5.00"
-                required
               />
             </div>
           </CardContent>

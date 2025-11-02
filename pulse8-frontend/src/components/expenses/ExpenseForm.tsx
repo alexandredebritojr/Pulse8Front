@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { EventsService, EventDto } from '@/lib/api/events'
 import { SuppliersService, SupplierDto } from '@/lib/api/suppliers'
 import { ExpensesService, CreateExpenseRequest, UpdateExpenseRequest, ExpenseDto, ExpenseType, ExpenseStatus } from '@/lib/api/expenses'
+import { formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 
 interface ExpenseFormProps {
   expenseId?: string
@@ -24,6 +25,15 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
   const [events, setEvents] = useState<EventDto[]>([])
   const [suppliers, setSuppliers] = useState<SupplierDto[]>([])
   const [error, setError] = useState('')
+
+  // Função auxiliar para redirecionamento baseado no contexto
+  const handleGoBack = () => {
+    if (eventId) {
+      router.push(`/events/${eventId}/edit?tab=expense`)
+    } else {
+      router.push('/finance/expenses')
+    }
+  }
   const [formData, setFormData] = useState({
     eventId: eventId || '',
     title: '',
@@ -63,7 +73,7 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
             eventId: expense.eventId,
             title: expense.title,
             description: expense.description,
-            amount: expense.amount.toString(),
+            amount: formatCurrencyInput(expense.amount.toString()),
             type: expense.type,
             status: expense.status,
             supplierId: expense.supplierId || '',
@@ -91,10 +101,20 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: (name === 'type' || name === 'status') ? parseInt(value) : value
-    }))
+    
+    // Aplica máscara decimal para o campo amount
+    if (name === 'amount') {
+      const formatted = formatCurrencyInput(value)
+      setFormData(prev => ({
+        ...prev,
+        [name]: formatted
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: (name === 'type' || name === 'status') ? parseInt(value) : value
+      }))
+    }
   }
 
   // Função helper para converter data para UTC
@@ -118,7 +138,7 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
           eventId: formData.eventId,
           title: formData.title,
           description: formData.description,
-          amount: parseFloat(formData.amount),
+          amount: parseCurrencyInput(formData.amount),
           dueDate: formData.dueDate ? toUTCString(formData.dueDate) : new Date().toISOString(),
           type: formData.type,
           status: formData.status,
@@ -132,13 +152,17 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
         console.log('🔍 Payload completo:', JSON.stringify(expenseData, null, 2))
         await ExpensesService.updateExpense(expenseId, expenseData)
         console.log('✅ Despesa atualizada com sucesso')
+        
+        // Redirecionar usando a função auxiliar
+        handleGoBack()
+        return
       } else {
         // Para criação, usar CreateExpenseRequest
         const expenseData: CreateExpenseRequest = {
           eventId: formData.eventId,
           title: formData.title,
           description: formData.description,
-          amount: parseFloat(formData.amount),
+          amount: parseCurrencyInput(formData.amount),
           dueDate: formData.dueDate ? toUTCString(formData.dueDate) : new Date().toISOString(),
           type: formData.type,
           status: formData.status,
@@ -152,7 +176,8 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
         console.log('✅ Despesa criada com sucesso:', newExpenseId)
       }
 
-      router.push('/finance/expenses')
+      // Redirecionar usando a função auxiliar
+      handleGoBack()
     } catch (err: any) {
       console.error(`❌ Erro ao ${mode === 'edit' ? 'atualizar' : 'criar'} despesa:`, err)
       setError(err.message || `Erro ao ${mode === 'edit' ? 'atualizar' : 'criar'} despesa`)
@@ -173,7 +198,7 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
     return (
       <div className="text-center py-12">
         <div className="text-red-600 mb-4">❌ {error}</div>
-        <Button onClick={() => router.push('/finance/expenses')}>
+        <Button onClick={handleGoBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar
         </Button>
@@ -184,12 +209,12 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
             variant="outline"
             size="icon"
-            onClick={() => router.push('/finance/expenses')}
+            onClick={handleGoBack}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -246,14 +271,12 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
                   Valor *
                 </label>
                 <Input
-                  type="number"
+                  type="text"
                   id="amount"
                   name="amount"
                   value={formData.amount}
                   onChange={handleChange}
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0"
+                  placeholder="0,00"
                   required
                 />
               </div>
@@ -457,7 +480,7 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push('/finance/expenses')}
+            onClick={handleGoBack}
             disabled={isLoading}
           >
             Cancelar

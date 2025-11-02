@@ -42,6 +42,19 @@ export default function LoginPage() {
     setError('')
 
     try {
+      // Validação básica no frontend
+      if (!email || !password) {
+        setError('Por favor, preencha todos os campos')
+        setIsLoading(false)
+        return
+      }
+
+      if (!email.includes('@')) {
+        setError('Por favor, insira um email válido')
+        setIsLoading(false)
+        return
+      }
+
       console.log('🔍 Tentando fazer login...')
       await login(email, password)
       console.log('✅ Login realizado com sucesso!')
@@ -66,7 +79,11 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error('❌ Erro no login:', err)
       // Exibir a mensagem de erro retornada pela API
-      setError(err.message || 'Erro ao fazer login. Tente novamente.')
+      const errorMessage = err.message || 'Erro ao fazer login. Verifique suas credenciais e tente novamente.'
+      setError(errorMessage)
+      
+      // Não redirecionar se houver erro - garantir que usuário veja a mensagem
+      // O router.push só acontece se o login for bem-sucedido
     } finally {
       setIsLoading(false)
     }

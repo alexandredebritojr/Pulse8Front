@@ -1,18 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Save, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EventsService, EventDto } from '@/lib/api/events'
 import { RevenueService, RevenueDto, CreateRevenueRequest, UpdateRevenueRequest } from '@/lib/api/revenue'
+import { formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 
 export default function EditRevenuePage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const eventId = searchParams.get('eventId') || ''
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingEvents, setIsLoadingEvents] = useState(true)
   const [isLoadingRevenue, setIsLoadingRevenue] = useState(true)
@@ -67,7 +69,7 @@ export default function EditRevenuePage() {
         setFormData({
           eventId: revenueData.eventId || '',
           source: revenueData.source || '',
-          amount: revenueData.amount?.toString() || '',
+          amount: revenueData.amount ? formatCurrencyInput(revenueData.amount.toString()) : '',
           date: revenueData.date ? new Date(revenueData.date).toISOString().split('T')[0] : '',
           reference: revenueData.reference || '',
           notes: revenueData.notes || '',
@@ -85,12 +87,31 @@ export default function EditRevenuePage() {
     }
   }, [params.id])
 
+  // Função auxiliar para redirecionamento baseado no contexto
+  const handleGoBack = () => {
+    if (eventId) {
+      router.push(`/events/${eventId}/edit?tab=revenue`)
+    } else {
+      router.push(`/finance/revenue/${params.id}`)
+    }
+  }
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    
+    // Aplica máscara decimal para o campo amount
+    if (name === 'amount') {
+      const formatted = formatCurrencyInput(value)
+      setFormData(prev => ({
+        ...prev,
+        [name]: formatted
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,7 +134,7 @@ export default function EditRevenuePage() {
       const revenueData: UpdateRevenueRequest = {
         id: params.id as string,
         source: formData.source,
-        amount: parseFloat(formData.amount),
+        amount: parseCurrencyInput(formData.amount),
         date: toUTCString(formData.date),
         reference: formData.reference || undefined,
         notes: formData.notes || undefined,
@@ -125,7 +146,8 @@ export default function EditRevenuePage() {
       await RevenueService.updateRevenue(params.id as string, revenueData)
       console.log('✅ Receita atualizada com sucesso')
 
-      router.push(`/finance/revenue/${params.id}`)
+      // Redirecionar usando a função auxiliar
+      handleGoBack()
     } catch (err: any) {
       console.error('❌ Erro ao atualizar receita:', err)
       setError(err.message || 'Erro ao atualizar receita')
@@ -156,14 +178,13 @@ export default function EditRevenuePage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href={`/finance/revenue/${params.id}`}>
-          <Button
-            variant="outline"
-            size="icon"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleGoBack}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Editar Receita</h1>
           <p className="text-gray-600">Atualize as informações da receita</p>
@@ -235,11 +256,10 @@ export default function EditRevenuePage() {
                     <Input
                       id="amount"
                       name="amount"
-                      type="number"
+                      type="text"
                       value={formData.amount}
                       onChange={handleChange}
-                      placeholder="0.00"
-                      step="0.01"
+                      placeholder="0,00"
                       required
                     />
                   </div>
@@ -291,11 +311,14 @@ export default function EditRevenuePage() {
 
         {/* Actions */}
         <div className="flex justify-end gap-4">
-          <Link href={`/finance/revenue/${params.id}`}>
-            <Button variant="outline">
-              Cancelar
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={handleGoBack}
+            disabled={isLoading}
+          >
+            Cancelar
+          </Button>
           <Button type="submit" disabled={isLoading}>
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? 'Salvando...' : 'Salvar Alterações'}

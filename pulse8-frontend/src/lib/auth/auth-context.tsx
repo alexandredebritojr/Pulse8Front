@@ -76,7 +76,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🔐 AuthContext: Iniciando login...')
       console.log('📧 Email:', email)
       
+      // Validação básica antes de chamar a API
+      if (!email || !password) {
+        throw new Error('Email e senha são obrigatórios')
+      }
+
+      if (!email.includes('@') || !email.includes('.')) {
+        throw new Error('Por favor, insira um email válido')
+      }
+
+      if (password.length < 3) {
+        throw new Error('Senha inválida')
+      }
+      
       const data = await AuthService.login({ email, password })
+      
+      // Verificar se recebemos uma resposta válida
+      if (!data || !data.token) {
+        throw new Error('Resposta inválida do servidor. Credenciais podem estar incorretas.')
+      }
+
+      if (!data.user) {
+        throw new Error('Dados do usuário não recebidos. Credenciais podem estar incorretas.')
+      }
+      
       console.log('✅ AuthContext: Login bem-sucedido!', data)
       console.log('👤 Estrutura do usuário:', JSON.stringify(data.user, null, 2))
       
@@ -97,7 +120,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(normalizedUser)
     } catch (error: any) {
       console.error('❌ AuthContext: Erro no login:', error)
-      throw new Error(error.message || 'Erro ao fazer login')
+      // Preservar mensagem de erro original ou fornecer uma genérica mas útil
+      const errorMessage = error.message || 'Credenciais inválidas. Verifique seu email e senha e tente novamente.'
+      throw new Error(errorMessage)
     }
   }
 

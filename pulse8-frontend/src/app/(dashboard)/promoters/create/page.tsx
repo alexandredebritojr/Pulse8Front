@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Users, DollarSign, Target } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,19 +15,28 @@ import { MarketingService } from '@/lib/api/marketing'
 
 export default function CreatePromoterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const eventId = searchParams.get('eventId') || ''
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
   const [events, setEvents] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [formData, setFormData] = useState({
-    eventId: '',
+    eventId: eventId,
     userId: '',
     promoterCode: '',
     utmCode: '',
     commissionRate: '',
     campaignId: ''
   })
+
+  // Atualizar eventId quando searchParams mudar
+  useEffect(() => {
+    if (eventId) {
+      setFormData(prev => ({ ...prev, eventId: eventId }))
+    }
+  }, [eventId])
 
   useEffect(() => {
     const loadData = async () => {
@@ -72,11 +81,16 @@ export default function CreatePromoterPage() {
         userId: formData.userId,
         promoterCode: formData.promoterCode || undefined,
         utmCode: formData.utmCode || undefined,
-        commissionRate: parseFloat(formData.commissionRate),
+        commissionRate: formData.commissionRate ? parseFloat(formData.commissionRate) : undefined,
         campaignId: formData.campaignId || undefined
       })
 
-      router.push('/promoters')
+      // Se o promoter foi criado a partir de uma tela de evento, voltar para a edição do evento
+      if (eventId) {
+        router.push(`/events/${eventId}/edit?tab=promoter`)
+      } else {
+        router.push('/promoters')
+      }
     } catch (err: any) {
       console.error('❌ Erro ao criar promoter:', err)
       setError(err.message || 'Erro ao criar promoter')
@@ -85,12 +99,21 @@ export default function CreatePromoterPage() {
     }
   }
 
+  // Função auxiliar para redirecionamento baseado no contexto
+  const handleGoBack = () => {
+    if (eventId) {
+      router.push(`/events/${eventId}/edit?tab=promoter`)
+    } else {
+      router.push('/promoters')
+    }
+  }
+
   return (
     <BaseForm
       mode="create"
       title="Atribuir Promoter"
       subtitle="Atribua uma pessoa como promoter de um evento específico"
-      backUrl="/promoters"
+      backUrl={eventId ? `/events/${eventId}/edit?tab=promoter` : '/promoters'}
       isSaving={isSaving}
       error={error}
       onSubmit={handleSubmit}
@@ -196,7 +219,7 @@ export default function CreatePromoterPage() {
 
             <div>
               <label htmlFor="commissionRate" className="block text-sm font-medium text-gray-700 mb-1">
-                Taxa de Comissão (%) *
+                Taxa de Comissão (%)
               </label>
               <Input
                 id="commissionRate"
@@ -208,7 +231,6 @@ export default function CreatePromoterPage() {
                 value={formData.commissionRate}
                 onChange={handleChange}
                 placeholder="Ex: 5.00"
-                required
               />
             </div>
           </CardContent>

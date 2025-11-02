@@ -14,16 +14,17 @@ import { UsersService } from '@/lib/api/users'
 interface PromoterFormProps {
   mode: 'create' | 'edit'
   promoterId?: string
+  eventId?: string
 }
 
-export default function PromoterForm({ mode, promoterId }: PromoterFormProps) {
+export default function PromoterForm({ mode, promoterId, eventId }: PromoterFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [events, setEvents] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
   const [formData, setFormData] = useState({
-    eventId: '',
+    eventId: eventId || '',
     userId: '',
     promoterCode: '',
     utmCode: '',
@@ -31,6 +32,22 @@ export default function PromoterForm({ mode, promoterId }: PromoterFormProps) {
     campaignId: '',
     isActive: true,
   })
+
+  // Função auxiliar para redirecionamento baseado no contexto
+  const handleGoBack = () => {
+    if (eventId && mode === 'create') {
+      router.push(`/events/${eventId}/edit?tab=promoter`)
+    } else {
+      router.push('/promoters')
+    }
+  }
+
+  // Atualizar eventId quando prop mudar
+  useEffect(() => {
+    if (eventId) {
+      setFormData(prev => ({ ...prev, eventId: eventId }))
+    }
+  }, [eventId])
 
   // Carregar eventos e pessoas
   useEffect(() => {
@@ -66,7 +83,7 @@ export default function PromoterForm({ mode, promoterId }: PromoterFormProps) {
             userId: promoter.userId,
             promoterCode: promoter.promoterCode || '',
             utmCode: promoter.utmCode || '',
-            commissionRate: promoter.commissionRate.toString(),
+            commissionRate: promoter.commissionRate?.toString() || '',
             campaignId: promoter.campaignId || '',
             isActive: promoter.status === 'Active',
           })
@@ -110,7 +127,7 @@ export default function PromoterForm({ mode, promoterId }: PromoterFormProps) {
         userId: formData.userId,
         promoterCode: formData.promoterCode || undefined,
         utmCode: formData.utmCode || undefined,
-        commissionRate: parseFloat(formData.commissionRate) || 0,
+        commissionRate: formData.commissionRate ? parseFloat(formData.commissionRate) : undefined,
         campaignId: formData.campaignId || undefined
       }
       
@@ -119,12 +136,13 @@ export default function PromoterForm({ mode, promoterId }: PromoterFormProps) {
       if (mode === 'create') {
         const promoterId = await PromotersService.createPromoter(promoterData)
         console.log('✅ PromoterForm: Promoter criado com ID:', promoterId)
+        // Redirecionar usando a função auxiliar
+        handleGoBack()
       } else if (mode === 'edit' && promoterId) {
         await PromotersService.updatePromoter(promoterId, promoterData)
         console.log('✅ PromoterForm: Promoter atualizado')
+        router.push('/promoters')
       }
-      
-      router.push('/promoters')
     } catch (err: any) {
       console.error('❌ PromoterForm: Erro na operação:', err)
       setError(err.message || 'Erro ao salvar promoter')
@@ -140,7 +158,7 @@ export default function PromoterForm({ mode, promoterId }: PromoterFormProps) {
         <Button 
           variant="outline" 
           size="icon"
-          onClick={() => router.push('/promoters')}
+          onClick={handleGoBack}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -251,7 +269,7 @@ export default function PromoterForm({ mode, promoterId }: PromoterFormProps) {
 
                 <div>
                   <label htmlFor="commissionRate" className="block text-sm font-medium text-gray-700 mb-1">
-                    Taxa de Comissão (%) *
+                    Taxa de Comissão (%)
                   </label>
                   <Input
                     id="commissionRate"
@@ -263,7 +281,6 @@ export default function PromoterForm({ mode, promoterId }: PromoterFormProps) {
                     value={formData.commissionRate}
                     onChange={handleChange}
                     placeholder="Ex: 5.00"
-                    required
                   />
                 </div>
 
@@ -328,7 +345,8 @@ export default function PromoterForm({ mode, promoterId }: PromoterFormProps) {
           <Button 
             type="button" 
             variant="outline"
-            onClick={() => router.push('/promoters')}
+            onClick={handleGoBack}
+            disabled={isLoading}
           >
             Cancelar
           </Button>

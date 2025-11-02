@@ -11,7 +11,6 @@ import {
   Users,
   DollarSign,
   BarChart3,
-  Settings,
   Shield,
   FileText,
   Megaphone,
@@ -92,7 +91,6 @@ const navigation: NavigationItem[] = [
     icon: Users,
     children: [
       { name: 'Membros', href: '/team', icon: Users },
-      { name: 'Cargos', href: '/team/roles', icon: Shield },
       { name: 'Adicionar Membro', href: '/team/create', icon: UserPlus },
     ]
   },
@@ -102,7 +100,6 @@ const navigation: NavigationItem[] = [
     icon: UserCheck,
     children: [
       { name: 'Todos os Promoters', href: '/promoters', icon: UserCheck },
-      { name: 'Campanhas', href: '/promoters/campaigns', icon: Target },
       { name: 'Adicionar Promoter', href: '/promoters/create', icon: UserPlus },
     ]
   },
@@ -136,17 +133,6 @@ const navigation: NavigationItem[] = [
       { name: 'Convidados', href: '/reports/guests', icon: Users },
       { name: 'Performance', href: '/reports/performance', icon: BarChart3 },
       { name: 'Personalizado', href: '/reports/custom', icon: FileText },
-    ]
-  },
-  {
-    name: 'Configurações',
-    href: '/settings',
-    icon: Settings,
-    children: [
-      { name: 'Geral', href: '/settings', icon: Settings },
-      { name: 'Backup', href: '/settings/backup', icon: FileText },
-      { name: 'Integrações', href: '/settings/integrations', icon: Building },
-      { name: 'Segurança', href: '/settings/security', icon: Shield },
     ]
   },
   {

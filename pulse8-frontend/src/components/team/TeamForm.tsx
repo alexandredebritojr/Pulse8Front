@@ -8,14 +8,48 @@ import { Button } from '@/components/ui/button'
 import { TeamService, CreateTeamMemberRequest } from '@/lib/api/team'
 import { EventsService, EventDto } from '@/lib/api/events'
 import { User, Mail, Phone, MapPin, Calendar, Save, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
 
 interface TeamFormProps {
   mode: 'create' | 'edit'
   teamMemberId?: string
+  eventId?: string
 }
 
-export default function TeamForm({ mode, teamMemberId }: TeamFormProps) {
+// Função para mascarar telefone: (00) 00000-0000 ou (00) 0000-0000
+const maskPhone = (value: string): string => {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '')
+  
+  // Aplica máscara: (00) 00000-0000 ou (00) 0000-0000
+  if (numbers.length <= 2) {
+    return numbers
+  } else if (numbers.length <= 6) {
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`
+  } else if (numbers.length <= 10) {
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`
+  } else {
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
+  }
+}
+
+// Função para mascarar CPF: 000.000.000-00
+const maskCPF = (value: string): string => {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '')
+  
+  // Aplica máscara: 000.000.000-00 (11 dígitos)
+  if (numbers.length <= 3) {
+    return numbers
+  } else if (numbers.length <= 6) {
+    return `${numbers.slice(0, 3)}.${numbers.slice(3)}`
+  } else if (numbers.length <= 9) {
+    return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`
+  } else {
+    return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9, 11)}`
+  }
+}
+
+export default function TeamForm({ mode, teamMemberId, eventId }: TeamFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -36,8 +70,27 @@ export default function TeamForm({ mode, teamMemberId }: TeamFormProps) {
     profilePicture: '',
     role: '',
     status: 'Active',
-    eventId: '',
+    eventId: eventId || '',
   })
+
+  // Função auxiliar para redirecionamento baseado no contexto
+  const handleGoBack = () => {
+    // Usar eventId da prop ou do formData (que pode ter vindo do membro carregado)
+    const currentEventId = eventId || formData.eventId
+    
+    if (currentEventId) {
+      router.push(`/events/${currentEventId}/edit?tab=team`)
+    } else {
+      router.push('/team')
+    }
+  }
+
+  // Atualizar eventId quando prop mudar
+  useEffect(() => {
+    if (eventId) {
+      setFormData(prev => ({ ...prev, eventId: eventId }))
+    }
+  }, [eventId])
 
   // Carregar eventos da API
   useEffect(() => {
@@ -72,8 +125,8 @@ export default function TeamForm({ mode, teamMemberId }: TeamFormProps) {
             firstName: teamMember.firstName,
             lastName: teamMember.lastName,
             email: teamMember.email,
-            phone: teamMember.phone,
-            document: teamMember.document,
+            phone: teamMember.phone ? maskPhone(teamMember.phone) : '',
+            document: teamMember.document ? maskCPF(teamMember.document) : '',
             pixKey: teamMember.pixKey || '',
             address: teamMember.address || '',
             city: teamMember.city || '',
@@ -97,9 +150,21 @@ export default function TeamForm({ mode, teamMemberId }: TeamFormProps) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
+    
+    let maskedValue = value
+    
+    // Aplica máscara para campos específicos
+    if (type !== 'checkbox') {
+      if (name === 'phone') {
+        maskedValue = maskPhone(value)
+      } else if (name === 'document') {
+        maskedValue = maskCPF(value)
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : maskedValue
     }))
   }
 
@@ -113,13 +178,13 @@ export default function TeamForm({ mode, teamMemberId }: TeamFormProps) {
       console.log('🔍 TeamForm: mode =', mode)
       console.log('🔍 TeamForm: formData =', formData)
       
-      // Preparar dados para a API
+      // Preparar dados para a API (remover máscaras)
       const teamMemberData: CreateTeamMemberRequest = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
-        phone: formData.phone,
-        document: formData.document,
+        phone: formData.phone.replace(/\D/g, ''), // Remove tudo que não é número
+        document: formData.document.replace(/\D/g, ''), // Remove tudo que não é número
         pixKey: formData.pixKey,
         address: formData.address,
         city: formData.city,
@@ -136,12 +201,14 @@ export default function TeamForm({ mode, teamMemberId }: TeamFormProps) {
         console.log('🔍 TeamForm: Criando novo membro da equipe...')
         const newId = await TeamService.createTeamMember(teamMemberData)
         console.log('✅ TeamForm: Membro da equipe criado com ID:', newId)
-        router.push('/team')
+        // Redirecionar usando a função auxiliar
+        handleGoBack()
       } else if (mode === 'edit' && teamMemberId) {
         console.log('🔍 TeamForm: Atualizando membro da equipe...')
         await TeamService.updateTeamMember(teamMemberId, teamMemberData)
         console.log('✅ TeamForm: Membro da equipe atualizado')
-        router.push('/team')
+        // Redirecionar usando a função auxiliar (verifica eventId)
+        handleGoBack()
       }
     } catch (err: any) {
       console.error('❌ TeamForm: Erro na operação:', err)
@@ -182,11 +249,13 @@ export default function TeamForm({ mode, teamMemberId }: TeamFormProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/team">
-          <Button variant="outline" size="icon">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleGoBack}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        </Link>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
             {mode === 'create' ? 'Adicionar Membro da Equipe' : 'Editar Membro da Equipe'}
@@ -462,11 +531,14 @@ export default function TeamForm({ mode, teamMemberId }: TeamFormProps) {
 
             {/* Actions */}
         <div className="flex justify-end gap-4">
-          <Link href="/team">
-            <Button variant="outline" type="button">
-                  Cancelar
-                </Button>
-          </Link>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={handleGoBack}
+            disabled={isLoading}
+          >
+            Cancelar
+          </Button>
           <Button type="submit" disabled={isLoading}>
             {isLoading ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

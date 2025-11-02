@@ -63,3 +63,67 @@ export function formatFileSize(bytes: number): string {
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
+
+// Funções para máscara de valor decimal (moeda)
+export function formatCurrencyInput(value: string | number): string {
+  if (!value) return ''
+  
+  // Se for número, converte para string formatada
+  if (typeof value === 'number') {
+    return value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+  }
+  
+  // Remove tudo exceto números
+  const numericValue = value.replace(/\D/g, '')
+  
+  if (!numericValue) return ''
+  
+  // Converte para número e divide por 100 para ter os centavos
+  const numberValue = parseFloat(numericValue) / 100
+  
+  // Formata no padrão brasileiro
+  return numberValue.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
+
+export function parseCurrencyInput(value: string): number {
+  if (!value) return 0
+  
+  // Remove tudo exceto números
+  const cleaned = value.replace(/\D/g, '')
+  
+  if (!cleaned) return 0
+  
+  // Converte para número e divide por 100 (já que o input armazena como centavos)
+  const numberValue = parseFloat(cleaned) / 100
+  
+  return isNaN(numberValue) ? 0 : numberValue
+}
+
+// Função para formatar data preservando dia/mês/ano sem conversão de timezone
+export function formatDateOnly(dateString: string): string {
+  if (!dateString) return ''
+  
+  // Se a data está no formato ISO (YYYY-MM-DD ou YYYY-MM-DDTHH:mm:ss)
+  // Extrair apenas a parte da data (YYYY-MM-DD)
+  const datePart = dateString.split('T')[0]
+  const [year, month, day] = datePart.split('-')
+  
+  if (year && month && day) {
+    return `${day}/${month}/${year}`
+  }
+  
+  // Fallback para formatação normal
+  const date = new Date(dateString)
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC'
+  })
+}

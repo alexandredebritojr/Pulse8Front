@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { 
   ArrowLeft,
   Save,
@@ -10,19 +11,105 @@ import {
   UserPlus,
   Mail,
   Phone,
-  MapPin,
-  Calendar,
   Shield,
   CheckCircle,
   AlertCircle,
-  Eye,
   EyeOff,
-  Trash2,
-  Edit
+  Building2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { UsersService, UserDto } from '@/lib/api/users'
+import { OrganizationsService } from '@/lib/api/organizations'
+import { OrganizationDto } from '@/lib/api/organizations'
+
+// UserOrganizationType enum values
+enum UserOrganizationType {
+  Admin = 0,
+  Manager = 1,
+  Employee = 2,
+  Promoter = 3
+}
+
+// UserOrganizationStatus enum values
+enum UserOrganizationStatus {
+  Active = 0,
+  Inactive = 1,
+  Suspended = 2,
+  Pending = 3
+}
+
+const roles = [
+  { id: UserOrganizationType.Admin, name: 'Administrador', description: 'Acesso total ao sistema' },
+  { id: UserOrganizationType.Manager, name: 'Gerente', description: 'Gerenciamento de eventos e equipe' },
+  { id: UserOrganizationType.Employee, name: 'Funcionário', description: 'Operações básicas do sistema' },
+  { id: UserOrganizationType.Promoter, name: 'Promoter', description: 'Acesso específico para promoters' }
+]
+
+const statusOptions = [
+  { id: UserOrganizationStatus.Active, name: 'Ativo', description: 'Usuário ativo na organização' },
+  { id: UserOrganizationStatus.Inactive, name: 'Inativo', description: 'Usuário inativo na organização' },
+  { id: UserOrganizationStatus.Suspended, name: 'Suspenso', description: 'Usuário suspenso na organização' },
+  { id: UserOrganizationStatus.Pending, name: 'Pendente', description: 'Aguardando aprovação' }
+]
+
+// Funções de máscara
+const maskPhone = (value: string): string => {
+  const numbers = value.replace(/\D/g, '')
+  if (numbers.length <= 2) {
+    return numbers
+  } else if (numbers.length <= 6) {
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`
+  } else if (numbers.length <= 10) {
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`
+  } else {
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
+  }
+}
+
+const maskCPFCNPJ = (value: string): string => {
+  const numbers = value.replace(/\D/g, '')
+  if (numbers.length <= 11) {
+    if (numbers.length <= 3) {
+      return numbers
+    } else if (numbers.length <= 6) {
+      return `${numbers.slice(0, 3)}.${numbers.slice(3)}`
+    } else if (numbers.length <= 9) {
+      return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`
+    } else {
+      return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9, 11)}`
+    }
+  } else {
+    if (numbers.length <= 2) {
+      return numbers
+    } else if (numbers.length <= 5) {
+      return `${numbers.slice(0, 2)}.${numbers.slice(2)}`
+    } else if (numbers.length <= 8) {
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5)}`
+    } else if (numbers.length <= 12) {
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8)}`
+    } else {
+      return `${numbers.slice(0, 2)}.${numbers.slice(2, 5)}.${numbers.slice(5, 8)}/${numbers.slice(8, 12)}-${numbers.slice(12, 14)}`
+    }
+  }
+}
+
+// Mapear status string para enum number
+const mapStatusToEnum = (status: string): number => {
+  switch (status) {
+    case 'Active':
+      return UserOrganizationStatus.Active
+    case 'Inactive':
+      return UserOrganizationStatus.Inactive
+    case 'Suspended':
+      return UserOrganizationStatus.Suspended
+    case 'Pending':
+      return UserOrganizationStatus.Pending
+    default:
+      return UserOrganizationStatus.Active
+  }
+}
 
 export default function EditUserPage() {
   const router = useRouter()
@@ -31,181 +118,172 @@ export default function EditUserPage() {
   
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
+  const [isLoadingOrganizations, setIsLoadingOrganizations] = useState(true)
+  const [organizations, setOrganizations] = useState<OrganizationDto[]>([])
+  const [currentUser, setCurrentUser] = useState<UserDto | null>(null)
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
-    password: '',
-    confirmPassword: '',
-    role: 'operator',
-    status: 'active',
-    department: '',
-    position: '',
-    permissions: [] as string[]
+    document: '',
+    organizationId: '',
+    roleId: UserOrganizationType.Employee.toString(),
+    status: UserOrganizationStatus.Active.toString()
   })
   const [errors, setErrors] = useState<{[key: string]: string}>({})
 
-  // Mock data - em produção viria da API
-  const mockUsers = [
-    {
-      id: '1',
-      name: 'Ana Silva',
-      email: 'ana@email.com',
-      phone: '11999887766',
-      role: 'admin',
-      status: 'active',
-      department: 'Administração',
-      position: 'Diretora',
-      permissions: ['all'],
-      lastLogin: '2024-01-15T14:30:00Z',
-      createdAt: '2024-01-01T00:00:00Z'
-    },
-    {
-      id: '2',
-      name: 'Carlos Santos',
-      email: 'carlos@email.com',
-      phone: '11888776655',
-      role: 'manager',
-      status: 'active',
-      department: 'Operações',
-      position: 'Gerente',
-      permissions: ['events', 'guests', 'reports'],
-      lastLogin: '2024-01-15T12:15:00Z',
-      createdAt: '2024-01-05T00:00:00Z'
-    },
-    {
-      id: '3',
-      name: 'Maria Costa',
-      email: 'maria@email.com',
-      phone: '11777665544',
-      role: 'coordinator',
-      status: 'active',
-      department: 'Marketing',
-      position: 'Coordenadora',
-      permissions: ['events', 'guests', 'marketing'],
-      lastLogin: '2024-01-15T10:45:00Z',
-      createdAt: '2024-01-10T00:00:00Z'
-    },
-    {
-      id: '4',
-      name: 'João Oliveira',
-      email: 'joao@email.com',
-      phone: '11666554433',
-      role: 'operator',
-      status: 'inactive',
-      department: 'Operações',
-      position: 'Operador',
-      permissions: ['guests', 'checkin'],
-      lastLogin: '2024-01-14T16:20:00Z',
-      createdAt: '2024-01-12T00:00:00Z'
-    },
-    {
-      id: '5',
-      name: 'Fernanda Lima',
-      email: 'fernanda@email.com',
-      phone: '11555443322',
-      role: 'viewer',
-      status: 'pending',
-      department: 'Financeiro',
-      position: 'Analista',
-      permissions: ['reports'],
-      lastLogin: null,
-      createdAt: '2024-01-14T00:00:00Z'
-    }
-  ]
-
-  const roles = [
-    { id: 'admin', name: 'Administrador', description: 'Acesso total ao sistema' },
-    { id: 'manager', name: 'Gerente', description: 'Gerenciamento de eventos e equipe' },
-    { id: 'coordinator', name: 'Coordenador', description: 'Coordenação de eventos e convidados' },
-    { id: 'operator', name: 'Operador', description: 'Operações básicas do sistema' },
-    { id: 'viewer', name: 'Visualizador', description: 'Apenas visualização de relatórios' }
-  ]
-
-  const departments = [
-    'Administração',
-    'Operações',
-    'Marketing',
-    'Financeiro',
-    'Recursos Humanos',
-    'Tecnologia',
-    'Atendimento'
-  ]
-
-  const permissions = [
-    { id: 'all', name: 'Todas as permissões', description: 'Acesso total ao sistema' },
-    { id: 'events', name: 'Eventos', description: 'Gerenciar eventos' },
-    { id: 'guests', name: 'Convidados', description: 'Gerenciar convidados' },
-    { id: 'checkin', name: 'Check-in', description: 'Realizar check-in' },
-    { id: 'reports', name: 'Relatórios', description: 'Visualizar relatórios' },
-    { id: 'team', name: 'Equipe', description: 'Gerenciar equipe' },
-    { id: 'marketing', name: 'Marketing', description: 'Gerenciar marketing' },
-    { id: 'finance', name: 'Financeiro', description: 'Gerenciar finanças' },
-    { id: 'suppliers', name: 'Fornecedores', description: 'Gerenciar fornecedores' },
-    { id: 'admin', name: 'Administração', description: 'Acesso administrativo' }
-  ]
-
+  // Carregar organizações (apenas a organização do usuário logado)
   useEffect(() => {
-    // Simular carregamento dos dados do usuário
-    const loadUser = async () => {
-      setIsLoading(true)
-      
+    const loadOrganizations = async () => {
       try {
-        // Simular chamada à API
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        setIsLoadingOrganizations(true)
+        const organizationId = localStorage.getItem('organizationId')
+        const response = await OrganizationsService.getOrganizations(1, 1000)
         
-        const user = mockUsers.find(u => u.id === userId)
-        if (user) {
-          setFormData({
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            password: '', // Não carregar senha por segurança
-            confirmPassword: '',
-            role: user.role,
-            status: user.status,
-            department: user.department,
-            position: user.position,
-            permissions: user.permissions
-          })
+        if (organizationId) {
+          // Buscar a organização do usuário logado
+          const userOrg = response.organizations.find(org => org.id === organizationId)
+          if (userOrg) {
+            setOrganizations([userOrg])
+          } else {
+            // Se não encontrar a organização específica, usar a primeira disponível
+            console.warn('Organização do usuário logado não encontrada, usando primeira disponível')
+            if (response.organizations.length > 0) {
+              setOrganizations([response.organizations[0]])
+            } else {
+              setOrganizations([])
+            }
+          }
         } else {
-          // Usuário não encontrado
-          router.push('/admin/users')
+          // Se não houver organizationId, usar a primeira disponível
+          if (response.organizations.length > 0) {
+            setOrganizations([response.organizations[0]])
+          } else {
+            setOrganizations([])
+          }
         }
-      } catch (error) {
+      } catch (error: any) {
+        console.error('Erro ao carregar organizações:', error)
+        toast.error(error.message || 'Erro ao carregar organizações')
+        setOrganizations([])
+      } finally {
+        setIsLoadingOrganizations(false)
+      }
+    }
+
+    loadOrganizations()
+  }, [])
+
+  // Carregar dados do usuário (depois que as organizações foram carregadas)
+  useEffect(() => {
+    const loadUser = async () => {
+      if (!userId || isLoadingOrganizations) return
+
+      try {
+        setIsLoading(true)
+        
+        // Buscar usuário da lista (não há endpoint específico por ID)
+        const organizationId = localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
+        const response = await UsersService.getUsers(1, 1000, undefined, undefined, organizationId)
+        
+        const user = response.users.find(u => u.id === userId)
+        
+        if (!user) {
+          toast.error('Usuário não encontrado')
+          router.push('/admin/users')
+          return
+        }
+
+        setCurrentUser(user)
+        
+        // Usar sempre a organização do usuário logado (localStorage) e os dados do UserDto
+        // O UserDto já vem com os dados filtrados pela organização correta
+        // Garantir que a organização esteja na lista antes de setar
+        // Se a lista de organizações estiver vazia, usar o organizationId do localStorage
+        const finalOrgId = organizations.length > 0 
+          ? organizations[0].id  // Usar a primeira organização (que deve ser a do usuário logado)
+          : organizationId       // Fallback para o organizationId do localStorage
+        
+        // Aplicar máscaras nos campos phone e document
+        // As funções de máscara removem caracteres não numéricos antes de aplicar a máscara
+        // Isso garante que funcionem mesmo se o valor já vier formatado do backend
+        let maskedPhone = ''
+        let maskedDocument = ''
+        
+        if (user.phone) {
+          // Remove caracteres não numéricos e aplica a máscara
+          const phoneNumbers = user.phone.replace(/\D/g, '')
+          if (phoneNumbers.length > 0) {
+            maskedPhone = maskPhone(phoneNumbers)
+          }
+        }
+        
+        if (user.document) {
+          // Remove caracteres não numéricos e aplica a máscara
+          const documentNumbers = user.document.replace(/\D/g, '')
+          if (documentNumbers.length > 0) {
+            maskedDocument = maskCPFCNPJ(documentNumbers)
+          }
+        }
+        
+        // Converter roleId string para número e depois para string novamente
+        // Isso garante que "0" (Admin) seja tratado corretamente
+        const roleIdNum = user.roleId !== undefined && user.roleId !== null && user.roleId !== '' 
+          ? parseInt(user.roleId) 
+          : null
+        const roleIdValue = roleIdNum !== null && !isNaN(roleIdNum)
+          ? roleIdNum.toString()
+          : UserOrganizationType.Employee.toString()
+        
+        setFormData({
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          email: user.email || '',
+          phone: maskedPhone,
+          document: maskedDocument,
+          organizationId: finalOrgId, // Sempre usar a organização do usuário logado
+          roleId: roleIdValue,
+          status: user.userOrganizationStatus !== undefined ? user.userOrganizationStatus.toString() : UserOrganizationStatus.Active.toString()
+        })
+      } catch (error: any) {
         console.error('Erro ao carregar usuário:', error)
+        toast.error(error.message || 'Erro ao carregar dados do usuário')
         router.push('/admin/users')
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadUser()
-  }, [userId, router])
+    if (userId && !isLoadingOrganizations) {
+      loadUser()
+    }
+  }, [userId, router, organizations, isLoadingOrganizations])
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    let maskedValue = value
+    
+    if (field === 'phone') {
+      maskedValue = maskPhone(value)
+    } else if (field === 'document') {
+      maskedValue = maskCPFCNPJ(value)
+    }
+    
+    setFormData(prev => ({ ...prev, [field]: maskedValue }))
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
   }
 
-  const handlePermissionChange = (permissionId: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      permissions: checked 
-        ? [...prev.permissions, permissionId]
-        : prev.permissions.filter(id => id !== permissionId)
-    }))
-  }
-
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {}
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'Nome é obrigatório'
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'Nome é obrigatório'
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Sobrenome é obrigatório'
     }
 
     if (!formData.email.trim()) {
@@ -214,16 +292,27 @@ export default function EditUserPage() {
       newErrors.email = 'Email inválido'
     }
 
-    if (formData.password && formData.password.length < 6) {
-      newErrors.password = 'Senha deve ter pelo menos 6 caracteres'
-    }
-
-    if (formData.password && formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Senhas não coincidem'
-    }
-
     if (!formData.phone.trim()) {
       newErrors.phone = 'Telefone é obrigatório'
+    }
+
+    if (!formData.document.trim()) {
+      newErrors.document = 'CPF/CNPJ é obrigatório'
+    } else {
+      const normalizedDoc = formData.document.replace(/[.\-\s/]/g, '')
+      if (normalizedDoc.length < 11 || normalizedDoc.length > 14) {
+        newErrors.document = 'CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos'
+      } else if (!/^\d+$/.test(normalizedDoc)) {
+        newErrors.document = 'CPF/CNPJ deve conter apenas números'
+      }
+    }
+
+    if (!formData.organizationId) {
+      newErrors.organizationId = 'Organização é obrigatória'
+    }
+
+    if (!formData.roleId) {
+      newErrors.roleId = 'Função é obrigatória'
     }
 
     setErrors(newErrors)
@@ -233,52 +322,45 @@ export default function EditUserPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!validateForm()) {
+    if (!validateForm() || !currentUser) {
       return
     }
 
     setIsSaving(true)
     
     try {
-      // Simular atualização do usuário
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Remove formatação dos campos com máscara antes de enviar
+      const cleanPhone = formData.phone.replace(/\D/g, '')
+      const cleanDocument = formData.document.replace(/\D/g, '')
       
-      // Em produção, aqui seria feita a chamada para a API
-      console.log('Atualizando usuário:', { id: userId, ...formData })
+      const userData = {
+        id: currentUser.id,
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        email: formData.email.trim(),
+        phone: cleanPhone,
+        document: cleanDocument,
+        organizationId: formData.organizationId,
+        roleId: parseInt(formData.roleId),
+        statusUserOrganization: parseInt(formData.status)
+        // Não enviar status - o backend usa o valor padrão do UpdateUserCommand
+      }
+
+      await UsersService.updateUser(currentUser.id, userData)
+      
+      toast.success('Usuário atualizado com sucesso!')
       
       // Redirecionar para a lista de usuários
       router.push('/admin/users')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao atualizar usuário:', error)
+      const errorMessage = error.message || 'Erro ao atualizar usuário. Por favor, tente novamente.'
+      toast.error(errorMessage)
+      setErrors(prev => ({ ...prev, submit: errorMessage }))
     } finally {
       setIsSaving(false)
     }
   }
-
-  const handleDelete = async () => {
-    if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) {
-      return
-    }
-
-    setIsDeleting(true)
-    
-    try {
-      // Simular exclusão do usuário
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      // Em produção, aqui seria feita a chamada para a API
-      console.log('Excluindo usuário:', userId)
-      
-      // Redirecionar para a lista de usuários
-      router.push('/admin/users')
-    } catch (error) {
-      console.error('Erro ao excluir usuário:', error)
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  const currentUser = mockUsers.find(u => u.id === userId)
 
   if (isLoading) {
     return (
@@ -318,25 +400,14 @@ export default function EditUserPage() {
             <p className="text-gray-600">Modifique as informações do usuário</p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          className="text-red-600 hover:text-red-700"
-          onClick={handleDelete}
-          disabled={isDeleting}
-        >
-          {isDeleting ? (
-            <>
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              Excluindo...
-            </>
-          ) : (
-            <>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Excluir
-            </>
-          )}
-        </Button>
       </div>
+
+      {errors.submit && (
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-md flex items-center gap-2">
+          <AlertCircle className="h-5 w-5" />
+          <span>{errors.submit}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
@@ -353,20 +424,38 @@ export default function EditUserPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome Completo *
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome *
                 </label>
                 <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Ex: João Silva"
-                  className={errors.name ? 'border-red-500' : ''}
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  placeholder="Ex: João"
+                  className={errors.firstName ? 'border-red-500' : ''}
                 />
-                {errors.name && (
-                  <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+                {errors.firstName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>
                 )}
               </div>
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                  Sobrenome *
+                </label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  placeholder="Ex: Silva"
+                  className={errors.lastName ? 'border-red-500' : ''}
+                />
+                {errors.lastName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                   Email *
@@ -386,9 +475,6 @@ export default function EditUserPage() {
                   <p className="text-red-500 text-sm mt-1">{errors.email}</p>
                 )}
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                   Telefone *
@@ -399,7 +485,8 @@ export default function EditUserPage() {
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="11999887766"
+                    placeholder="(11) 99999-9999"
+                    maxLength={15}
                     className={`pl-10 ${errors.phone ? 'border-red-500' : ''}`}
                   />
                 </div>
@@ -407,163 +494,118 @@ export default function EditUserPage() {
                   <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
                 )}
               </div>
-              <div>
-                <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-1">
-                  Departamento
-                </label>
-                <select
-                  id="department"
-                  value={formData.department}
-                  onChange={(e) => handleInputChange('department', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">Selecione um departamento</option>
-                  {departments.map(dept => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
-              </div>
             </div>
 
             <div>
-              <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-1">
-                Cargo
+              <label htmlFor="document" className="block text-sm font-medium text-gray-700 mb-1">
+                CPF/CNPJ *
               </label>
               <Input
-                id="position"
-                value={formData.position}
-                onChange={(e) => handleInputChange('position', e.target.value)}
-                placeholder="Ex: Gerente de Eventos"
+                id="document"
+                value={formData.document}
+                onChange={(e) => handleInputChange('document', e.target.value)}
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                maxLength={18}
+                className={errors.document ? 'border-red-500' : ''}
               />
+              {errors.document && (
+                <p className="text-red-500 text-sm mt-1">{errors.document}</p>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Security */}
+        {/* Organization and Role */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Segurança
+              <Building2 className="h-5 w-5" />
+              Organização e Função
             </CardTitle>
             <CardDescription>
-              Configurações de acesso e segurança
+              Defina a organização e função do usuário
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="organizationId" className="block text-sm font-medium text-gray-700 mb-1">
+                  Organização *
+                </label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <select
+                    id="organizationId"
+                    value={formData.organizationId}
+                    onChange={(e) => handleInputChange('organizationId', e.target.value)}
+                    disabled={true}
+                    className={`w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      errors.organizationId ? 'border-red-500' : ''
+                    } bg-gray-100 cursor-not-allowed`}
+                  >
+                    {isLoadingOrganizations ? (
+                      <option value="">Carregando organizações...</option>
+                    ) : organizations.length === 0 ? (
+                      <option value="">Nenhuma organização disponível</option>
+                    ) : (
+                      <>
+                        <option value="">Selecione uma organização</option>
+                        {organizations.map(org => (
+                          <option key={org.id} value={org.id}>{org.name}</option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                </div>
+                {errors.organizationId && (
+                  <p className="text-red-500 text-sm mt-1">{errors.organizationId}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="roleId" className="block text-sm font-medium text-gray-700 mb-1">
                   Função *
                 </label>
                 <select
-                  id="role"
-                  value={formData.role}
-                  onChange={(e) => handleInputChange('role', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  id="roleId"
+                  value={formData.roleId}
+                  onChange={(e) => handleInputChange('roleId', e.target.value)}
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    errors.roleId ? 'border-red-500' : ''
+                  }`}
                 >
                   {roles.map(role => (
-                    <option key={role.id} value={role.id}>{role.name}</option>
+                    <option key={role.id} value={role.id.toString()}>{role.name}</option>
                   ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  {roles.find(r => r.id === formData.role)?.description}
+                  {roles.find(r => r.id.toString() === formData.roleId)?.description}
                 </p>
+                {errors.roleId && (
+                  <p className="text-red-500 text-sm mt-1">{errors.roleId}</p>
+                )}
               </div>
               <div>
                 <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
+                  Status *
                 </label>
                 <select
                   id="status"
                   value={formData.status}
                   onChange={(e) => handleInputChange('status', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    errors.status ? 'border-red-500' : ''
+                  }`}
                 >
-                  <option value="active">Ativo</option>
-                  <option value="inactive">Inativo</option>
-                  <option value="pending">Pendente</option>
+                  {statusOptions.map(status => (
+                    <option key={status.id} value={status.id.toString()}>{status.name}</option>
+                  ))}
                 </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Nova Senha (deixe em branco para manter a atual)
-                </label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    className={errors.password ? 'border-red-500' : ''}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {statusOptions.find(s => s.id.toString() === formData.status)?.description}
+                </p>
+                {errors.status && (
+                  <p className="text-red-500 text-sm mt-1">{errors.status}</p>
                 )}
-              </div>
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirmar Nova Senha
-                </label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  placeholder="Confirme a nova senha"
-                  className={errors.confirmPassword ? 'border-red-500' : ''}
-                />
-                {errors.confirmPassword && (
-                  <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Permissions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Permissões
-            </CardTitle>
-            <CardDescription>
-              Selecione as permissões específicas para este usuário
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {permissions.map((permission) => (
-                  <div key={permission.id} className="flex items-start gap-3 p-4 border rounded-lg hover:bg-gray-50">
-                    <input
-                      type="checkbox"
-                      id={permission.id}
-                      checked={formData.permissions.includes(permission.id)}
-                      onChange={(e) => handlePermissionChange(permission.id, e.target.checked)}
-                      className="mt-1 rounded"
-                    />
-                    <div className="flex-1">
-                      <label htmlFor={permission.id} className="block text-sm font-medium text-gray-900 cursor-pointer">
-                        {permission.name}
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1">{permission.description}</p>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           </CardContent>
@@ -585,24 +627,28 @@ export default function EditUserPage() {
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center">
                   <span className="text-white font-medium text-lg">
-                    {formData.name.charAt(0).toUpperCase()}
+                    {formData.firstName.charAt(0).toUpperCase() || 'U'}
                   </span>
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-medium text-gray-900">{formData.name}</h4>
-                  <p className="text-sm text-gray-500">{formData.email}</p>
+                  <h4 className="font-medium text-gray-900">
+                    {formData.firstName && formData.lastName 
+                      ? `${formData.firstName} ${formData.lastName}` 
+                      : 'Nome do usuário'}
+                  </h4>
+                  <p className="text-sm text-gray-500">{formData.email || 'email@exemplo.com'}</p>
                   <p className="text-xs text-gray-400">
-                    {roles.find(r => r.id === formData.role)?.name} • 
-                    {formData.department && ` ${formData.department}`}
+                    {roles.find(r => r.id.toString() === formData.roleId)?.name || 'Função'} • 
+                    {organizations.find(org => org.id === formData.organizationId)?.name || ' Organização'}
                   </p>
                 </div>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  formData.status === 'active' ? 'text-green-600 bg-green-100' : 
-                  formData.status === 'inactive' ? 'text-gray-600 bg-gray-100' :
+                  formData.status === UserOrganizationStatus.Active.toString() ? 'text-green-600 bg-green-100' :
+                  formData.status === UserOrganizationStatus.Inactive.toString() ? 'text-gray-600 bg-gray-100' :
+                  formData.status === UserOrganizationStatus.Suspended.toString() ? 'text-red-600 bg-red-100' :
                   'text-yellow-600 bg-yellow-100'
                 }`}>
-                  {formData.status === 'active' ? 'Ativo' : 
-                   formData.status === 'inactive' ? 'Inativo' : 'Pendente'}
+                  {statusOptions.find(s => s.id.toString() === formData.status)?.name || 'Ativo'}
                 </span>
               </div>
             </div>
@@ -612,13 +658,13 @@ export default function EditUserPage() {
         {/* Actions */}
         <div className="flex justify-end gap-4">
           <Link href="/admin/users">
-            <Button variant="outline">
+            <Button variant="outline" type="button">
               Cancelar
             </Button>
           </Link>
           <Button 
             type="submit"
-            disabled={isSaving}
+            disabled={isSaving || isLoadingOrganizations}
           >
             {isSaving ? (
               <>
@@ -637,13 +683,3 @@ export default function EditUserPage() {
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-

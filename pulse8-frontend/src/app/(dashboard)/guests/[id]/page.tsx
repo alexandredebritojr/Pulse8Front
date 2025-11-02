@@ -40,6 +40,8 @@ export default function GuestDetailsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [qrCode, setQrCode] = useState<string | null>(null)
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false)
 
   // Carregar dados reais da API
   useEffect(() => {
@@ -76,6 +78,31 @@ export default function GuestDetailsPage() {
       setError(err.message || 'Erro ao excluir convidado')
     } finally {
       setShowDeleteModal(false)
+    }
+  }
+
+  const handleGenerateQRCode = async () => {
+    if (!guest) return
+    
+    setIsGeneratingQR(true)
+    setError(null)
+    
+    try {
+      console.log('🔍 GuestDetailsPage: Gerando QR Code para guest:', guest.id)
+      const response = await GuestsService.generateQRCode(guest.id)
+      setQrCode(response.qrCode)
+      console.log('✅ GuestDetailsPage: QR Code gerado:', response.qrCode)
+      
+      // Se houver URL da imagem do QR Code, pode exibir também
+      if (response.qrCodeUrl) {
+        // Pode abrir em nova janela ou exibir modal
+        window.open(response.qrCodeUrl, '_blank')
+      }
+    } catch (err: any) {
+      console.error('❌ GuestDetailsPage: Erro ao gerar QR Code:', err)
+      setError(err.message || 'Erro ao gerar QR Code')
+    } finally {
+      setIsGeneratingQR(false)
     }
   }
 
@@ -327,10 +354,31 @@ export default function GuestDetailsPage() {
               <CardTitle>Ações Rápidas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start">
+              <Button 
+                className="w-full justify-start"
+                onClick={handleGenerateQRCode}
+                disabled={isGeneratingQR || !guest}
+              >
                 <QrCode className="h-4 w-4 mr-2" />
-                Gerar QR Code
+                {isGeneratingQR ? 'Gerando...' : 'Gerar QR Code'}
               </Button>
+              {qrCode && (
+                <div className="mt-2 p-3 bg-gray-50 rounded-md border border-gray-200">
+                  <p className="text-xs text-gray-500 mb-1">Código QR:</p>
+                  <p className="text-sm font-mono text-gray-900 break-all">{qrCode}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 w-full"
+                    onClick={() => {
+                      navigator.clipboard.writeText(qrCode)
+                      alert('Código copiado para a área de transferência!')
+                    }}
+                  >
+                    Copiar Código
+                  </Button>
+                </div>
+              )}
               <Button variant="outline" className="w-full justify-start">
                 <LogIn className="h-4 w-4 mr-2" />
                 Fazer Check-in

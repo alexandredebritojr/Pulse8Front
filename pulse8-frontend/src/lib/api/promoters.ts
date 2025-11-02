@@ -8,7 +8,7 @@ export interface PromoterDto {
   id: string
   promoterCode?: string
   utmCode?: string
-  commissionRate: number
+  commissionRate?: number
   totalSales: number
   totalCommission: number
   status: string
@@ -31,7 +31,7 @@ export interface CreatePromoterRequest {
   userId: string
   promoterCode?: string
   utmCode?: string
-  commissionRate: number
+  commissionRate?: number
   campaignId?: string
 }
 
@@ -124,6 +124,14 @@ export class PromotersService {
     if (!apiClient) {
       throw new Error('ApiClient não foi inicializado corretamente')
     }
-    await apiClient.delete(`/Promoters/${id}`)
+    console.log('🔍 PromotersService.deletePromoter: Iniciando exclusão do promoter:', id)
+    console.log('🔍 PromotersService.deletePromoter: URL =', `/Promoters/${id}`)
+    try {
+      await apiClient.delete(`/Promoters/${id}`)
+      console.log('✅ PromotersService.deletePromoter: Promoter excluído com sucesso')
+    } catch (error: any) {
+      console.error('❌ PromotersService.deletePromoter: Erro ao excluir:', error)
+      throw error
+    }
   }
 }

@@ -13,7 +13,7 @@ export interface EventDto {
   address?: string
   city?: string
   state?: string
-  capacity: number
+  capacity?: number
   startDate: string
   endDate: string
   setupDate?: string
@@ -39,7 +39,7 @@ export interface CreateEventRequest {
   address?: string
   city?: string
   state?: string
-  capacity: number
+  capacity?: number
   startDate: string
   endDate: string
   setupDate?: string

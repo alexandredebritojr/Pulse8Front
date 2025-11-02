@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Plus, Search, Filter, Edit, Trash2, Eye, Users, DollarSign, Target, Grid, List, CheckCircle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PromotersService, PromoterDto } from '@/lib/api/promoters'
@@ -22,6 +21,7 @@ export default function PromotersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   const pageSize = 10
@@ -55,14 +55,33 @@ export default function PromotersPage() {
 
 
   const handleDelete = async (id: string) => {
+    if (!id) {
+      setError('ID do promoter não fornecido')
+      return
+    }
+    
+    setIsDeleting(true)
+    setError('')
+    
     try {
+      console.log('🔍 Iniciando exclusão do promoter:', id)
+      
       await PromotersService.deletePromoter(id)
+      
+      console.log('✅ Promoter excluído com sucesso')
       setShowDeleteModal(false)
       setDeletingId(null)
-      loadPromoters()
+      setError('') // Limpar qualquer erro anterior
+      
+      // Recarregar a lista
+      await loadPromoters()
     } catch (err: any) {
       console.error('❌ Erro ao excluir promoter:', err)
-      setError(err.message || 'Erro ao excluir promoter')
+      const errorMessage = err?.message || 'Erro ao excluir promoter. Verifique se o promoter pode ser excluído.'
+      setError(errorMessage)
+      // Não fechar o modal em caso de erro para o usuário ver a mensagem
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -91,7 +110,10 @@ export default function PromotersPage() {
     }).format(value)
   }
 
-  const formatPercentage = (value: number) => {
+  const formatPercentage = (value: number | undefined) => {
+    if (value === undefined || value === null) {
+      return 'N/A'
+    }
     return `${value.toFixed(2)}%`
   }
 
@@ -196,17 +218,16 @@ export default function PromotersPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="min-w-[140px]">
-              <SelectValue placeholder="Todos os status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Todos os status</SelectItem>
-              <SelectItem value="Active">Ativo</SelectItem>
-              <SelectItem value="Inactive">Inativo</SelectItem>
-              <SelectItem value="Suspended">Suspenso</SelectItem>
-            </SelectContent>
-          </Select>
+          <select 
+            value={statusFilter} 
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'Active' | 'Inactive' | 'Suspended')}
+            className="flex h-10 min-w-[140px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <option value="all">Todos os status</option>
+            <option value="Active">Ativo</option>
+            <option value="Inactive">Inativo</option>
+            <option value="Suspended">Suspenso</option>
+          </select>
           
           <Button 
             variant="outline" 
@@ -444,15 +465,23 @@ export default function PromotersPage() {
       <ConfirmationModal
         isOpen={showDeleteModal}
         onClose={() => {
-          setShowDeleteModal(false)
-          setDeletingId(null)
+          if (!isDeleting) {
+            setShowDeleteModal(false)
+            setDeletingId(null)
+            setError('') // Limpar erro ao fechar modal
+          }
         }}
-        onConfirm={() => deletingId && handleDelete(deletingId)}
+        onConfirm={() => {
+          if (deletingId && !isDeleting) {
+            handleDelete(deletingId)
+          }
+        }}
         title="Excluir Promoter"
         message="Tem certeza que deseja excluir este promoter? Esta ação não pode ser desfeita."
         confirmText="Excluir"
         cancelText="Cancelar"
         variant="danger"
+        isLoading={isDeleting}
       />
     </div>
   )

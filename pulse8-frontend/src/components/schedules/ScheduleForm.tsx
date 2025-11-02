@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { 
   ArrowLeft, 
   Save, 
@@ -17,6 +16,7 @@ import { SchedulesService, ScheduleDto, CreateScheduleRequest, UpdateScheduleReq
 interface ScheduleFormProps {
   scheduleId?: string
   mode: 'create' | 'edit'
+  eventId?: string
 }
 
 // Função para converter data da API para formato datetime-local
@@ -37,7 +37,7 @@ const formatDateForAPI = (dateString: string): string => {
 }
 
 
-export default function ScheduleForm({ scheduleId, mode }: ScheduleFormProps) {
+export default function ScheduleForm({ scheduleId, mode, eventId }: ScheduleFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(mode === 'edit')
   const [isSaving, setIsSaving] = useState(false)
@@ -47,12 +47,31 @@ export default function ScheduleForm({ scheduleId, mode }: ScheduleFormProps) {
   const [schedule, setSchedule] = useState<ScheduleDto | null>(null)
   
   const [formData, setFormData] = useState({
-    eventId: '',
+    eventId: eventId || '',
     title: '',
     description: '',
     startTime: '',
     endTime: '',
   })
+
+  // Função auxiliar para redirecionamento baseado no contexto
+  const handleGoBack = () => {
+    // Usar eventId da prop ou do schedule carregado
+    const currentEventId = eventId || schedule?.eventId
+    
+    if (currentEventId) {
+      router.push(`/events/${currentEventId}/edit?tab=schedule`)
+    } else {
+      router.push('/calendar/schedules')
+    }
+  }
+
+  // Atualizar eventId quando prop mudar
+  useEffect(() => {
+    if (eventId) {
+      setFormData(prev => ({ ...prev, eventId: eventId }))
+    }
+  }, [eventId])
 
   // Carregar eventos da API
   useEffect(() => {
@@ -134,7 +153,8 @@ export default function ScheduleForm({ scheduleId, mode }: ScheduleFormProps) {
         const newScheduleId = await SchedulesService.createSchedule(scheduleData)
         console.log('✅ CreateSchedule: Cronograma criado com ID:', newScheduleId)
         
-        router.push('/calendar/schedules')
+        // Redirecionar usando a função auxiliar
+        handleGoBack()
       } else {
         const scheduleData: UpdateScheduleRequest = {
           id: scheduleId!,
@@ -149,7 +169,8 @@ export default function ScheduleForm({ scheduleId, mode }: ScheduleFormProps) {
         await SchedulesService.updateSchedule(scheduleId!, scheduleData)
         console.log('✅ UpdateSchedule: Cronograma atualizado')
         
-        router.push('/calendar/schedules')
+        // Redirecionar usando a função auxiliar (verifica eventId)
+        handleGoBack()
       }
     } catch (error) {
       console.error('❌ Erro ao salvar cronograma:', error)
@@ -183,7 +204,7 @@ export default function ScheduleForm({ scheduleId, mode }: ScheduleFormProps) {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => router.push('/calendar/schedules')}
+          onClick={handleGoBack}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -304,11 +325,14 @@ export default function ScheduleForm({ scheduleId, mode }: ScheduleFormProps) {
 
         {/* Actions */}
         <div className="flex justify-end gap-4">
-          <Link href="/calendar/schedules">
-            <Button variant="outline">
-              Cancelar
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={handleGoBack}
+            disabled={isSaving}
+          >
+            Cancelar
+          </Button>
           <Button type="submit" disabled={isSaving}>
             <Save className="h-4 w-4 mr-2" />
             {isSaving ? 'Salvando...' : (mode === 'create' ? 'Criar Cronograma' : 'Salvar Alterações')}

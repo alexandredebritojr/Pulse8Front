@@ -76,7 +76,25 @@ class ApiClient {
       throw new Error(errorMessage)
     }
 
-    return response.json()
+    // Para status 204 (No Content), retornar undefined
+    if (response.status === 204) {
+      return undefined as T
+    }
+
+    // Tentar fazer parse do JSON
+    // O backend geralmente retorna JSON, mas se não houver conteúdo, isso falhará
+    try {
+      const text = await response.text()
+      if (!text || text.trim() === '') {
+        return undefined as T
+      }
+      return JSON.parse(text) as T
+    } catch (parseError) {
+      // Se não houver conteúdo ou não for JSON válido, retornar undefined
+      // Isso é comum em respostas DELETE bem-sucedidas que não retornam conteúdo
+      console.log('🔍 ApiClient: Resposta sem conteúdo JSON (pode ser normal para DELETE)')
+      return undefined as T
+    }
   }
 
   async get<T>(url: string): Promise<T> {
@@ -126,10 +144,20 @@ class ApiClient {
   }
 
   async delete<T>(url: string): Promise<T> {
-    const response = await fetch(`${this.baseURL}${url}`, {
+    const fullUrl = `${this.baseURL}${url}`
+    const headers = this.getHeaders()
+    
+    console.log('🔍 ApiClient: Fazendo DELETE para:', fullUrl)
+    console.log('🔍 ApiClient: Com headers:', headers)
+    
+    const response = await fetch(fullUrl, {
       method: 'DELETE',
-      headers: this.getHeaders(),
+      headers,
     })
+    
+    console.log('🔍 ApiClient: Status da resposta DELETE:', response.status)
+    console.log('🔍 ApiClient: Headers da resposta:', Object.fromEntries(response.headers.entries()))
+    
     return this.handleResponse<T>(response)
   }
 }

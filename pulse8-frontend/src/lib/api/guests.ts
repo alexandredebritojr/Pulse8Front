@@ -18,7 +18,8 @@ export interface GuestDto {
 }
 
 export interface CreateGuestRequest {
-  name: string
+  firstName: string
+  lastName: string
   email: string
   phone: string
   document: string
@@ -27,6 +28,8 @@ export interface CreateGuestRequest {
 
 export interface UpdateGuestRequest {
   id: string
+  firstName: string
+  lastName: string
   name: string
   email: string
   phone: string
@@ -113,9 +116,12 @@ export class GuestsService {
     }
     
     // Criar UpdateGuestRequest com o id incluído
+    const fullName = `${guestData.firstName} ${guestData.lastName}`.trim()
     const updateData: UpdateGuestRequest = {
       id: id,
-      name: guestData.name,
+      firstName: guestData.firstName,
+      lastName: guestData.lastName,
+      name: fullName,
       email: guestData.email,
       phone: guestData.phone,
       document: guestData.document,
@@ -131,6 +137,27 @@ export class GuestsService {
       throw new Error('ApiClient não foi inicializado corretamente')
     }
     await apiClient.delete(`/guests/${id}`)
+  }
+
+  /**
+   * Gera um QR Code para o convidado
+   */
+  static async generateQRCode(guestId: string): Promise<{ qrCode: string; qrCodeUrl?: string }> {
+    if (!apiClient) {
+      throw new Error('ApiClient não foi inicializado corretamente')
+    }
+    
+    try {
+      // Tentar chamar o endpoint do backend se existir
+      const response = await apiClient.post<{ qrCode: string; qrCodeUrl?: string }>(`/guests/${guestId}/qr-code`, {})
+      return response
+    } catch (error: any) {
+      // Se o endpoint não existir, gerar um código único baseado no ID do guest
+      // Este código pode ser usado pelo backend para gerar o QR Code real
+      console.warn('Endpoint de QR Code não encontrado, gerando código único:', error)
+      const qrCode = `GUEST-${guestId}-${Date.now()}`
+      return { qrCode }
+    }
   }
 }
 

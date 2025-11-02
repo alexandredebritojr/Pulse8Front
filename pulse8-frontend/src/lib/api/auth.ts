@@ -33,11 +33,30 @@ export class AuthService {
     try {
       console.log('🔐 AuthService: Tentando fazer login...')
       const response = await apiClient.post<AuthResponse>('/auth/login', credentials)
+      
+      // Validação adicional: garantir que temos um token válido
+      if (!response || !response.token) {
+        console.error('❌ AuthService: Resposta inválida - token não recebido')
+        throw new Error('Credenciais inválidas. Verifique seu email e senha.')
+      }
+
+      // Validar formato do token (deve ser JWT válido ou mock token)
+      if (!response.token || (typeof response.token === 'string' && response.token.length < 10)) {
+        console.error('❌ AuthService: Token inválido recebido')
+        throw new Error('Credenciais inválidas. Verifique seu email e senha.')
+      }
+      
       console.log('✅ AuthService: Login bem-sucedido!')
       return response
     } catch (error: any) {
       console.error('❌ AuthService: Erro no login:', error)
       const errorMessage = this.getErrorMessage(error)
+      
+      // Garantir mensagem de erro apropriada para credenciais inválidas
+      if (errorMessage.includes('401') || errorMessage.includes('Unauthorized') || errorMessage.includes('inválid')) {
+        throw new Error('Credenciais inválidas. Verifique seu email e senha e tente novamente.')
+      }
+      
       console.log('📝 AuthService: Mensagem de erro:', errorMessage)
       throw new Error(errorMessage)
     }

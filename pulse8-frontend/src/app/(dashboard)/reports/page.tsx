@@ -31,7 +31,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function ReportsPage() {
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true) // Inicializar como true para simular carregamento
   const [selectedPeriod, setSelectedPeriod] = useState('30d')
   const [selectedEvent, setSelectedEvent] = useState('all')
 
@@ -61,9 +61,12 @@ export default function ReportsPage() {
 
   // Mock data - em produção viria da API
   useEffect(() => {
-    setTimeout(() => {
+    // Simular carregamento inicial
+    const timer = setTimeout(() => {
       setIsLoading(false)
-    }, 1000)
+    }, 500) // Reduzir tempo de loading para melhor UX
+    
+    return () => clearTimeout(timer)
   }, [])
 
   const periods = [

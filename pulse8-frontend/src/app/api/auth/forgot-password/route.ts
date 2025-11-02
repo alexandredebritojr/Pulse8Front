@@ -77,20 +77,27 @@ async function fetchWithSelfSignedCert(url: string, options: RequestInit): Promi
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const { email } = await request.json()
+
+    if (!email) {
+      return NextResponse.json(
+        { error: 'Email é obrigatório' },
+        { status: 400 }
+      )
+    }
 
     // Fazer requisição para o backend real
-    const backendUrl = process.env.BACKEND_URL || 'https://localhost:5001'
+    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:5001'
     
     let response: Response
     try {
       // Tentar primeiro com fetch nativo
-      response = await fetch(`${backendUrl}/api/auth/login`, {
+      response = await fetch(`${backendUrl}/api/auth/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email })
       })
     } catch (fetchError: any) {
       // Se falhar por causa de certificado SSL, usar função customizada
@@ -98,12 +105,12 @@ export async function POST(request: NextRequest) {
           fetchError.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' ||
           fetchError.message?.includes('self-signed certificate')) {
         console.log('⚠️ Usando fetch customizado para certificado auto-assinado')
-        response = await fetchWithSelfSignedCert(`${backendUrl}/api/auth/login`, {
+        response = await fetchWithSelfSignedCert(`${backendUrl}/api/auth/forgot-password`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email })
         })
       } else {
         throw fetchError
@@ -113,24 +120,19 @@ export async function POST(request: NextRequest) {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Erro na requisição' }))
       return NextResponse.json(
-        { error: errorData.message || 'Erro na autenticação' },
+        { error: errorData.message || 'Erro ao processar solicitação de recuperação de senha' },
         { status: response.status }
       )
     }
 
-    const loginData = await response.json()
-    return NextResponse.json(loginData)
+    const data = await response.json()
+    return NextResponse.json(data)
   } catch (error) {
-    console.error('Erro no endpoint /auth/login:', error)
+    console.error('Erro no endpoint /auth/forgot-password:', error)
     return NextResponse.json(
       { error: 'Erro interno do servidor' },
       { status: 500 }
     )
   }
 }
-
-
-
-
-
 

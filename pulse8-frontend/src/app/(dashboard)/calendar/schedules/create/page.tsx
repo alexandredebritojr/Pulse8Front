@@ -1,5 +1,11 @@
 import ScheduleForm from '@/components/schedules/ScheduleForm'
 
-export default function CreateSchedulePage() {
-  return <ScheduleForm mode="create" />
+interface CreateSchedulePageProps {
+  searchParams: {
+    eventId?: string
+  }
+}
+
+export default function CreateSchedulePage({ searchParams }: CreateSchedulePageProps) {
+  return <ScheduleForm mode="create" eventId={searchParams.eventId} />
 }

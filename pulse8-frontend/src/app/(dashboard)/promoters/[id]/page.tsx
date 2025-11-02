@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { ArrowLeft, Edit, Trash2, Users, DollarSign, Target, Calendar, Phone, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -76,7 +77,10 @@ export default function PromoterDetailsPage() {
     }).format(value)
   }
 
-  const formatPercentage = (value: number) => {
+  const formatPercentage = (value: number | undefined) => {
+    if (value === undefined || value === null) {
+      return 'N/A'
+    }
     return `${value.toFixed(2)}%`
   }
 
@@ -248,6 +252,16 @@ export default function PromoterDetailsPage() {
                     <p className="text-gray-900">{promoter.eventName}</p>
                   </div>
                 </div>
+              </div>
+              
+              {/* Botão para acessar seção financeira */}
+              <div className="pt-4 border-t border-gray-200">
+                <Link href="/finance">
+                  <Button variant="outline" className="w-full">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Ver Detalhes Financeiros
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>

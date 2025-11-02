@@ -1,5 +1,11 @@
 import TeamForm from '@/components/team/TeamForm'
 
-export default function CreateTeamMemberPage() {
-  return <TeamForm mode="create" />
+interface CreateTeamMemberPageProps {
+  searchParams: {
+    eventId?: string
+  }
+}
+
+export default function CreateTeamMemberPage({ searchParams }: CreateTeamMemberPageProps) {
+  return <TeamForm mode="create" eventId={searchParams.eventId} />
 }

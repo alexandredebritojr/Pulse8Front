@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,21 +9,31 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { EventsService, EventDto } from '@/lib/api/events'
 import { RevenueService, CreateRevenueRequest } from '@/lib/api/revenue'
+import { formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 
 export default function CreateRevenuePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const eventId = searchParams.get('eventId') || ''
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingEvents, setIsLoadingEvents] = useState(true)
   const [events, setEvents] = useState<EventDto[]>([])
   const [error, setError] = useState('')
   const [formData, setFormData] = useState({
-    eventId: '',
+    eventId: eventId,
     source: '',
     amount: '',
     date: '',
     reference: '',
     notes: '',
   })
+
+  // Atualizar eventId quando searchParams mudar
+  useEffect(() => {
+    if (eventId) {
+      setFormData(prev => ({ ...prev, eventId: eventId }))
+    }
+  }, [eventId])
 
   // Carregar eventos da API
   useEffect(() => {
@@ -50,10 +60,20 @@ export default function CreateRevenuePage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    
+    // Aplica máscara decimal para o campo amount
+    if (name === 'amount') {
+      const formatted = formatCurrencyInput(value)
+      setFormData(prev => ({
+        ...prev,
+        [name]: formatted
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,7 +95,7 @@ export default function CreateRevenuePage() {
       // Mapear dados do formulário para o formato da API
       const revenueData: CreateRevenueRequest = {
         source: formData.source,
-        amount: parseFloat(formData.amount),
+        amount: parseCurrencyInput(formData.amount),
         date: toUTCString(formData.date),
         reference: formData.reference || undefined,
         notes: formData.notes || undefined,
@@ -87,7 +107,12 @@ export default function CreateRevenuePage() {
       const newRevenueId = await RevenueService.createRevenue(revenueData)
       console.log('✅ Receita criada com sucesso:', newRevenueId)
 
-      router.push('/finance/revenue')
+      // Se a receita foi criada a partir de uma tela de evento, voltar para a edição do evento
+      if (eventId) {
+        router.push(`/events/${eventId}/edit?tab=revenue`)
+      } else {
+        router.push('/finance/revenue')
+      }
     } catch (err: any) {
       console.error('❌ Erro ao criar receita:', err)
       setError(err.message || 'Erro ao criar receita')
@@ -102,11 +127,19 @@ export default function CreateRevenuePage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/finance/revenue">
-          <Button variant="outline" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => {
+            if (eventId) {
+              router.push(`/events/${eventId}/edit?tab=revenue`)
+            } else {
+              router.push('/finance/revenue')
+            }
+          }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Nova Receita</h1>
           <p className="text-gray-600">Registre uma nova receita para um evento</p>
@@ -178,11 +211,10 @@ export default function CreateRevenuePage() {
                     <Input
                       id="amount"
                       name="amount"
-                      type="number"
+                      type="text"
                       value={formData.amount}
                       onChange={handleChange}
-                      placeholder="0.00"
-                      step="0.01"
+                      placeholder="0,00"
                       required
                     />
                   </div>
@@ -234,11 +266,20 @@ export default function CreateRevenuePage() {
 
         {/* Actions */}
         <div className="flex justify-end gap-4">
-          <Link href="/finance/revenue">
-            <Button variant="outline">
-              Cancelar
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => {
+              if (eventId) {
+                router.push(`/events/${eventId}/edit?tab=revenue`)
+              } else {
+                router.push('/finance/revenue')
+              }
+            }}
+            disabled={isLoading}
+          >
+            Cancelar
+          </Button>
           <Button type="submit" disabled={isLoading}>
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? 'Salvando...' : 'Criar Receita'}

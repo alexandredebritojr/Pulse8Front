@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { 
   ArrowLeft,
   Users, 
@@ -42,6 +43,7 @@ import ConfirmationModal from '@/components/ui/confirmation-modal'
 import { UsersService, UserDto } from '@/lib/api/users'
 
 export default function UsersPage() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -415,11 +417,14 @@ export default function UsersPage() {
                         <Eye className="h-4 w-4" />
                       </Button>
                     </Link>
-                    <Link href={`/admin/users/edit/${user.id}`}>
-                      <Button variant="outline" size="icon" className="h-8 w-8">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </Link>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => router.push(`/admin/users/edit/${user.id}`)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                     <Button 
                       variant="outline" 
                       size="icon" 
@@ -485,11 +490,13 @@ export default function UsersPage() {
                       Ver Detalhes
                   </Button>
                   </Link>
-                  <Link href={`/admin/users/edit/${user.id}`}>
-                    <Button variant="outline" size="icon">
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => router.push(`/admin/users/edit/${user.id}`)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
                   <Button 
                     variant="outline" 
                     size="icon"

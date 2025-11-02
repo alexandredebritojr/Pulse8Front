@@ -21,6 +21,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import toast from 'react-hot-toast'
 import { EventsService, EventDto, CreateEventRequest, UpdateEventRequest } from '@/lib/api/events'
 import { ExpensesService, ExpenseDto, GetExpensesQuery } from '@/lib/api/expenses'
 import { RevenueService, RevenueDto, GetRevenueQuery } from '@/lib/api/revenue'
@@ -29,10 +30,13 @@ import { SchedulesService, ScheduleDto, GetSchedulesQuery } from '@/lib/api/sche
 import { MarketingService, MarketingDto, GetMarketingQuery } from '@/lib/api/marketing'
 import { TeamService, PersonDto, GetPeopleQuery } from '@/lib/api/team'
 import { PromotersService, PromoterDto, GetPromotersQuery } from '@/lib/api/promoters'
+import { formatDateOnly } from '@/lib/utils'
+import ConfirmationModal from '@/components/ui/confirmation-modal'
 
 interface EventFormProps {
   eventId?: string
   mode: 'create' | 'edit'
+  initialTab?: string
 }
 
 // Função para converter data da API para formato datetime-local sem alterar o horário
@@ -54,12 +58,12 @@ const formatDateForAPI = (dateString: string): string => {
   return date.toISOString()
 }
 
-export default function EventForm({ eventId, mode }: EventFormProps) {
+export default function EventForm({ eventId, mode, initialTab }: EventFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(mode === 'edit')
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState('basic')
+  const [activeTab, setActiveTab] = useState(initialTab || 'basic')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -112,6 +116,16 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
   const [promoterItems, setPromoterItems] = useState<PromoterDto[]>([])
   const [promotersLoading, setPromotersLoading] = useState(false)
   const [promotersError, setPromotersError] = useState('')
+  
+  // Estados para modais de confirmação
+  const [showDeleteExpenseModal, setShowDeleteExpenseModal] = useState(false)
+  const [showDeleteRevenueModal, setShowDeleteRevenueModal] = useState(false)
+  const [showDeleteGuestModal, setShowDeleteGuestModal] = useState(false)
+  const [showDeleteScheduleModal, setShowDeleteScheduleModal] = useState(false)
+  const [showDeleteTeamModal, setShowDeleteTeamModal] = useState(false)
+  const [showDeletePromoterModal, setShowDeletePromoterModal] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<{ type: string; id: string; name?: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Função para carregar despesas do evento
   const loadExpenses = async (eventId: string) => {
@@ -185,8 +199,11 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
       const response = await GuestsService.getGuests(query)
       console.log('✅ Convidados carregados:', response)
       
-      // Garantir que response.guests existe e é um array
-      const guestsData = response?.guests || []
+      // Garantir que response.guests existe e é um array, e filtrar apenas pelo eventId
+      const allGuestsData = response?.guests || []
+      // Filtrar no frontend também para garantir que apenas dados do evento sejam exibidos
+      const guestsData = allGuestsData.filter(guest => guest.eventId === eventId)
+      console.log('🔍 Convidados filtrados para o evento:', guestsData.length)
       setGuestItems(guestsData)
     } catch (err: any) {
       console.error('❌ Erro ao carregar convidados:', err)
@@ -233,31 +250,21 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
     try {
       console.log('🔍 Carregando marketing para o evento:', eventId)
       
-      // Primeiro, tentar com filtro por eventId
-      let query: GetMarketingQuery = {
+      // Buscar apenas campanhas do evento específico
+      const query: GetMarketingQuery = {
         pageNumber: 1,
         pageSize: 100,
         eventId: eventId
       }
       
-      let response = await MarketingService.getMarketingCampaigns(query)
+      const response = await MarketingService.getMarketingCampaigns(query)
       console.log('✅ Marketing carregado (com eventId):', response)
       console.log('🔍 Total de campanhas recebidas:', response?.campaigns?.length || 0)
       
-      // Se não retornou campanhas, tentar sem filtro para ver se há campanhas no sistema
-      if (!response?.campaigns || response.campaigns.length === 0) {
-        console.log('🔍 Nenhuma campanha encontrada com eventId, tentando sem filtro...')
-        query = {
-          pageNumber: 1,
-          pageSize: 100
-        }
-        response = await MarketingService.getMarketingCampaigns(query)
-        console.log('✅ Marketing carregado (sem filtro):', response)
-        console.log('🔍 Total de campanhas no sistema:', response?.campaigns?.length || 0)
-      }
-      
       // Garantir que response.campaigns existe e é um array
+      // O backend já filtra pelo eventId passado na query, então confiamos nele
       const marketingData = response?.campaigns || []
+      console.log('🔍 Campanhas recebidas para o evento:', marketingData.length)
       setMarketingItems(marketingData)
     } catch (err: any) {
       console.error('❌ Erro ao carregar marketing:', err)
@@ -324,6 +331,41 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
     }
   }
 
+  // Função para formatar valor decimal (moeda brasileira) - precisa estar antes do useEffect
+  const formatDecimalValue = (value: string): string => {
+    // Remove tudo que não é dígito
+    const numbers = value.replace(/\D/g, '')
+    
+    if (numbers === '') return ''
+    
+    // Converte para número e divide por 100 para ter 2 casas decimais
+    const number = parseFloat(numbers) / 100
+    
+    // Formata como moeda brasileira
+    return number.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+  }
+
+  // Função para formatar número decimal já existente (do backend) para formato brasileiro
+  const formatNumberToBrazilian = (num: number | undefined): string => {
+    if (!num) return ''
+    return num.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+  }
+
+  // Função para converter valor formatado de volta para número
+  const parseDecimalValue = (value: string): string => {
+    // Remove formatação e converte para número com ponto decimal
+    const cleaned = value.replace(/\./g, '').replace(',', '.')
+    if (cleaned === '' || cleaned === '.') return ''
+    const number = parseFloat(cleaned)
+    return isNaN(number) ? '' : number.toString()
+  }
+
   // Carregar dados do evento se estiver editando
   useEffect(() => {
     if (mode === 'edit' && eventId) {
@@ -342,9 +384,9 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
             address: eventData.address || '',
             city: eventData.city || '',
             state: eventData.state || '',
-            capacity: eventData.capacity.toString(),
-            totalBudget: eventData.totalBudget?.toString() || '',
-            ticketPrice: eventData.ticketPrice?.toString() || '',
+            capacity: eventData.capacity ? eventData.capacity.toString() : '',
+            totalBudget: formatNumberToBrazilian(eventData.totalBudget),
+            ticketPrice: formatNumberToBrazilian(eventData.ticketPrice),
             imageUrl: eventData.imageUrl || '',
             bannerUrl: eventData.bannerUrl || '',
             website: eventData.website || '',
@@ -379,11 +421,21 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
   }, [mode, eventId])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    const { name, value, type } = e.target
+    
+    // Aplicar máscara decimal para campos monetários
+    if ((name === 'totalBudget' || name === 'ticketPrice') && type !== 'checkbox') {
+      const formatted = formatDecimalValue(value)
+      setFormData(prev => ({
+        ...prev,
+        [name]: formatted
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      }))
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -392,59 +444,152 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
     setError('')
 
     try {
+      // Validações no frontend
+      if (!formData.name || formData.name.trim() === '') {
+        toast.error('Nome do evento é obrigatório')
+        setIsSaving(false)
+        return
+      }
+
+      if (!formData.description || formData.description.trim() === '') {
+        toast.error('Descrição do evento é obrigatória')
+        setIsSaving(false)
+        return
+      }
+
+      if (!formData.location || formData.location.trim() === '') {
+        toast.error('Local do evento é obrigatório')
+        setIsSaving(false)
+        return
+      }
+
+      if (!formData.startDate) {
+        toast.error('Data de início é obrigatória')
+        setIsSaving(false)
+        return
+      }
+
+      if (!formData.endDate) {
+        toast.error('Data de fim é obrigatória')
+        setIsSaving(false)
+        return
+      }
+
+      // Validar que endDate é posterior a startDate
+      const startDate = new Date(formatDateForAPI(formData.startDate))
+      const endDate = new Date(formatDateForAPI(formData.endDate))
+      
+      if (endDate <= startDate) {
+        toast.error('Data de fim deve ser posterior à data de início')
+        setIsSaving(false)
+        return
+      }
+
+      // Validar capacidade (apenas se preenchida)
+      let capacity: number | undefined = undefined
+      if (formData.capacity && formData.capacity.trim() !== '') {
+        const parsedCapacity = parseInt(formData.capacity)
+        if (isNaN(parsedCapacity) || parsedCapacity <= 0) {
+          toast.error('Capacidade deve ser um número maior que zero')
+          setIsSaving(false)
+          return
+        }
+        capacity = parsedCapacity
+      }
+
       console.log('🔍 Salvando evento...', formData)
       
       if (mode === 'create') {
         const createData: CreateEventRequest = {
-          name: formData.name,
-          description: formData.description,
-          location: formData.location,
-          address: formData.address || undefined,
-          city: formData.city || undefined,
-          state: formData.state || undefined,
-          capacity: parseInt(formData.capacity) || 0,
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          location: formData.location.trim(),
+          address: formData.address?.trim() || undefined,
+          city: formData.city?.trim() || undefined,
+          state: formData.state?.trim() || undefined,
+          capacity: capacity,
           startDate: formatDateForAPI(formData.startDate),
           endDate: formatDateForAPI(formData.endDate),
-          ticketPrice: formData.ticketPrice ? parseFloat(formData.ticketPrice) : undefined,
-          imageUrl: formData.imageUrl || undefined,
-          bannerUrl: formData.bannerUrl || undefined,
-          website: formData.website || undefined,
-          socialMedia: formData.socialMedia || undefined,
-          totalBudget: formData.totalBudget ? parseFloat(formData.totalBudget) : undefined,
+          ticketPrice: formData.ticketPrice ? parseFloat(parseDecimalValue(formData.ticketPrice)) : undefined,
+          imageUrl: formData.imageUrl?.trim() || undefined,
+          bannerUrl: formData.bannerUrl?.trim() || undefined,
+          website: formData.website?.trim() || undefined,
+          socialMedia: formData.socialMedia?.trim() || undefined,
+          totalBudget: formData.totalBudget ? parseFloat(parseDecimalValue(formData.totalBudget)) : undefined,
           status: formData.status.charAt(0).toUpperCase() + formData.status.slice(1),
         }
 
         const eventId = await EventsService.createEvent(createData)
         console.log('✅ Evento criado com sucesso:', eventId)
+        toast.success('Evento criado com sucesso!')
         router.push('/events')
       } else {
         const updateData: UpdateEventRequest = {
           id: eventId!,
-          name: formData.name,
-          description: formData.description,
-          location: formData.location,
-          address: formData.address || undefined,
-          city: formData.city || undefined,
-          state: formData.state || undefined,
-          capacity: parseInt(formData.capacity) || 0,
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          location: formData.location.trim(),
+          address: formData.address?.trim() || undefined,
+          city: formData.city?.trim() || undefined,
+          state: formData.state?.trim() || undefined,
+          capacity: capacity,
           startDate: formatDateForAPI(formData.startDate),
           endDate: formatDateForAPI(formData.endDate),
-          ticketPrice: formData.ticketPrice ? parseFloat(formData.ticketPrice) : undefined,
-          imageUrl: formData.imageUrl || undefined,
-          bannerUrl: formData.bannerUrl || undefined,
-          website: formData.website || undefined,
-          socialMedia: formData.socialMedia || undefined,
-          totalBudget: formData.totalBudget ? parseFloat(formData.totalBudget) : undefined,
+          ticketPrice: formData.ticketPrice ? parseFloat(parseDecimalValue(formData.ticketPrice)) : undefined,
+          imageUrl: formData.imageUrl?.trim() || undefined,
+          bannerUrl: formData.bannerUrl?.trim() || undefined,
+          website: formData.website?.trim() || undefined,
+          socialMedia: formData.socialMedia?.trim() || undefined,
+          totalBudget: formData.totalBudget ? parseFloat(parseDecimalValue(formData.totalBudget)) : undefined,
           status: formData.status.charAt(0).toUpperCase() + formData.status.slice(1),
         }
 
         await EventsService.updateEvent(eventId!, updateData)
         console.log('✅ Evento atualizado com sucesso')
+        toast.success('Evento atualizado com sucesso!')
         router.push(`/events/${eventId}`)
       }
     } catch (err: any) {
       console.error('❌ Erro ao salvar evento:', err)
-      setError(err.message || 'Erro ao salvar evento')
+      
+      // Melhorar mensagens de erro e exibir em toast
+      let errorMessage = 'Erro ao salvar evento'
+      if (err.message) {
+        errorMessage = err.message
+        
+        // Extrair mensagens de validação do backend se disponíveis
+        if (err.message.includes('Validation failed')) {
+          const validationMatch = err.message.match(/--\s+(\w+):\s+(.+?)(?=\s+--|$)/g)
+          if (validationMatch && validationMatch.length > 0) {
+            const validationErrors = validationMatch.map(m => m.replace(/--\s+/, '').replace(/:\s+/, ': '))
+            errorMessage = `Erros de validação: ${validationErrors.join(', ')}`
+          }
+        }
+        
+        // Se a mensagem já contém uma validação clara do backend, usar diretamente
+        // Exemplos: "Data de fim deve ser posterior à data de início", etc.
+        if (err.message.includes('deve ser') || 
+            err.message.includes('obrigatório') || 
+            err.message.includes('inválido') ||
+            err.message.includes('posterior') ||
+            err.message.includes('anterior')) {
+          errorMessage = err.message
+        }
+      }
+      
+      // Exibir erro em toast e manter formulário visível
+      toast.error(errorMessage, {
+        duration: 6000,
+        position: 'top-center',
+        style: {
+          background: '#fee2e2',
+          color: '#991b1b',
+          padding: '16px',
+          borderRadius: '8px',
+          maxWidth: '500px'
+        }
+      })
+      setError('') // Limpar erro do estado para não esconder o formulário
     } finally {
       setIsSaving(false)
     }
@@ -462,45 +607,145 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
         // Redirecionar para a página de criação de despesas
         if (eventId) {
           router.push(`/finance/expenses/create?eventId=${eventId}`)
+        } else if (mode === 'create') {
+          const shouldProceed = window.confirm('O evento ainda não foi salvo. Deseja criar a despesa agora? Você poderá associá-la ao evento depois.')
+          if (shouldProceed) {
+            router.push('/finance/expenses/create')
+          }
         }
         break
       case 'revenue':
         // Redirecionar para a página de criação de receitas
         if (eventId) {
           router.push(`/finance/revenue/create?eventId=${eventId}`)
+        } else if (mode === 'create') {
+          const shouldProceed = window.confirm('O evento ainda não foi salvo. Deseja criar a receita agora? Você poderá associá-la ao evento depois.')
+          if (shouldProceed) {
+            router.push('/finance/revenue/create')
+          }
         }
         break
       case 'guest':
         // Redirecionar para a página de criação de convidados
         if (eventId) {
           router.push(`/guests/create?eventId=${eventId}`)
+        } else if (mode === 'create') {
+          const shouldProceed = window.confirm('O evento ainda não foi salvo. Deseja criar o convidado agora? Você poderá associá-lo ao evento depois.')
+          if (shouldProceed) {
+            router.push('/guests/create')
+          }
         }
         break
       case 'schedule':
         // Redirecionar para a página de criação de cronograma
         if (eventId) {
           router.push(`/calendar/schedules/create?eventId=${eventId}`)
+        } else if (mode === 'create') {
+          const shouldProceed = window.confirm('O evento ainda não foi salvo. Deseja criar o cronograma agora? Você poderá associá-lo ao evento depois.')
+          if (shouldProceed) {
+            router.push('/calendar/schedules/create')
+          }
         }
         break
       case 'marketing':
         // Redirecionar para a página de criação de marketing
         if (eventId) {
           router.push(`/marketing/create?eventId=${eventId}`)
+        } else if (mode === 'create') {
+          // Se estiver criando um novo evento, mostrar mensagem ou redirecionar para criar campanha
+          // O eventId será associado depois que o evento for salvo
+          const shouldProceed = window.confirm('O evento ainda não foi salvo. Deseja criar a campanha agora? Você poderá associá-la ao evento depois.')
+          if (shouldProceed) {
+            router.push('/marketing/create')
+          }
         }
         break
       case 'team':
         // Redirecionar para a página de criação de membros da equipe
         if (eventId) {
           router.push(`/team/create?eventId=${eventId}`)
+        } else if (mode === 'create') {
+          const shouldProceed = window.confirm('O evento ainda não foi salvo. Deseja criar o membro da equipe agora? Você poderá associá-lo ao evento depois.')
+          if (shouldProceed) {
+            router.push('/team/create')
+          }
         }
         break
       case 'promoter':
         // Redirecionar para a página de criação de promoters
         if (eventId) {
           router.push(`/promoters/create?eventId=${eventId}`)
+        } else if (mode === 'create') {
+          const shouldProceed = window.confirm('O evento ainda não foi salvo. Deseja criar o promoter agora? Você poderá associá-lo ao evento depois.')
+          if (shouldProceed) {
+            router.push('/promoters/create')
+          }
         }
         break
     }
+  }
+
+  const handleDeleteClick = (type: string, id: string, name?: string) => {
+    setItemToDelete({ type, id, name })
+    if (type === 'expense') {
+      setShowDeleteExpenseModal(true)
+    } else if (type === 'revenue') {
+      setShowDeleteRevenueModal(true)
+    } else if (type === 'guest') {
+      setShowDeleteGuestModal(true)
+    } else if (type === 'schedule') {
+      setShowDeleteScheduleModal(true)
+    } else if (type === 'team') {
+      setShowDeleteTeamModal(true)
+    } else if (type === 'promoter') {
+      setShowDeletePromoterModal(true)
+    } else {
+      // Para outros tipos, deletar diretamente sem modal
+      removeItem(type, id)
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    console.log('🔍 EventForm.handleConfirmDelete: Iniciando exclusão')
+    console.log('🔍 EventForm.handleConfirmDelete: itemToDelete =', itemToDelete)
+    
+    if (!itemToDelete) {
+      console.warn('⚠️ EventForm.handleConfirmDelete: itemToDelete é null/undefined')
+      return
+    }
+    
+    setIsDeleting(true)
+    try {
+      console.log('🔍 EventForm.handleConfirmDelete: Chamando removeItem - type:', itemToDelete.type, 'id:', itemToDelete.id)
+      await removeItem(itemToDelete.type, itemToDelete.id)
+      console.log('✅ EventForm.handleConfirmDelete: removeItem executado com sucesso')
+      
+      // Só fecha os modais se não houve erro
+      setShowDeleteExpenseModal(false)
+      setShowDeleteRevenueModal(false)
+      setShowDeleteGuestModal(false)
+      setShowDeleteScheduleModal(false)
+      setShowDeleteTeamModal(false)
+      setShowDeletePromoterModal(false)
+      setItemToDelete(null)
+      console.log('✅ EventForm.handleConfirmDelete: Modais fechados')
+    } catch (err) {
+      // Erro já foi tratado no removeItem com toast
+      // Mantém o modal aberto para o usuário ver o erro
+      console.error('❌ EventForm.handleConfirmDelete: Erro ao confirmar exclusão:', err)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setShowDeleteExpenseModal(false)
+    setShowDeleteRevenueModal(false)
+    setShowDeleteGuestModal(false)
+    setShowDeleteScheduleModal(false)
+    setShowDeleteTeamModal(false)
+    setShowDeletePromoterModal(false)
+    setItemToDelete(null)
   }
 
   const removeItem = async (type: string, id: string) => {
@@ -589,15 +834,34 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
         break
       case 'promoter':
         try {
-          console.log('🔍 Removendo promoter:', id)
+          console.log('🔍 EventForm.removeItem: Removendo promoter - ID:', id)
+          console.log('🔍 EventForm.removeItem: eventId:', eventId)
+          
           await PromotersService.deletePromoter(id)
-          console.log('✅ Promoter removido com sucesso')
+          
+          console.log('✅ EventForm.removeItem: Promoter removido com sucesso')
+          toast.success('Promoter excluído com sucesso')
+          
+          // Recarregar a lista de promoters após exclusão bem-sucedida
           if (eventId) {
+            console.log('🔍 EventForm.removeItem: Recarregando lista de promoters para o evento:', eventId)
             await loadPromoters(eventId)
+            console.log('✅ EventForm.removeItem: Lista de promoters recarregada')
+          } else {
+            console.warn('⚠️ EventForm.removeItem: eventId não encontrado, não será possível recarregar a lista')
           }
         } catch (err: any) {
-          console.error('❌ Erro ao remover promoter:', err)
-          setPromotersError(err.message || 'Erro ao remover promoter')
+          console.error('❌ EventForm.removeItem: Erro ao remover promoter:', err)
+          console.error('❌ EventForm.removeItem: Detalhes do erro:', {
+            message: err.message,
+            response: err.response,
+            status: err.response?.status,
+            data: err.response?.data
+          })
+          const errorMessage = err.message || 'Erro ao remover promoter'
+          setPromotersError(errorMessage)
+          toast.error(errorMessage)
+          throw err // Re-throw para que o modal possa tratar
         }
         break
     }
@@ -626,7 +890,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
     }
   }
 
-  const tabs = [
+  const allTabs = [
     { id: 'basic', name: 'Informações Básicas', icon: Calendar },
     { id: 'budget', name: 'Orçamento', icon: DollarSign },
     { id: 'expense', name: 'Despesas', icon: DollarSign },
@@ -637,6 +901,23 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
     { id: 'team', name: 'Equipe', icon: Users },
     { id: 'promoter', name: 'Promoters', icon: UserCheck }
   ]
+
+  // Filtrar tabs: esconder "Orçamento" tanto no modo de criação quanto no de edição
+  const tabs = allTabs.filter(tab => tab.id !== 'budget')
+
+  // Aplicar initialTab quando disponível
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab)
+    }
+  }, [initialTab])
+
+  // Se a tab ativa foi escondida (budget), mudar para basic
+  useEffect(() => {
+    if (activeTab === 'budget') {
+      setActiveTab('basic')
+    }
+  }, [activeTab])
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -671,7 +952,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
 
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                    Descrição
+                    Descrição *
                   </label>
                   <textarea
                     id="description"
@@ -681,6 +962,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                     placeholder="Descreva o evento..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     rows={4}
+                    required
                   />
                 </div>
 
@@ -842,16 +1124,16 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                     <Input
                       id="totalBudget"
                       name="totalBudget"
-                      type="number"
+                      type="text"
                       value={formData.totalBudget}
                       onChange={handleChange}
-                      placeholder="0.00"
-                      step="0.01"
+                      placeholder="0,00"
+                      inputMode="decimal"
                     />
                   </div>
                   <div>
                     <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 mb-1">
-                      Capacidade Máxima *
+                      Capacidade Máxima
                     </label>
                     <Input
                       id="capacity"
@@ -860,7 +1142,6 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                       value={formData.capacity}
                       onChange={handleChange}
                       placeholder="1000"
-                      required
                     />
                   </div>
                   <div>
@@ -870,11 +1151,11 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                     <Input
                       id="ticketPrice"
                       name="ticketPrice"
-                      type="number"
+                      type="text"
                       value={formData.ticketPrice}
                       onChange={handleChange}
-                      placeholder="0.00"
-                      step="0.01"
+                      placeholder="0,00"
+                      inputMode="decimal"
                     />
                   </div>
                 </div>
@@ -1039,7 +1320,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                           R$ {expense.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(expense.dueDate).toLocaleDateString('pt-BR')}
+                          {formatDateOnly(expense.dueDate)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -1061,7 +1342,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => {/* TODO: Implementar edição */}}
+                              onClick={() => router.push(`/finance/expenses/${expense.id}/edit?eventId=${eventId}&tab=expense`)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -1069,10 +1350,10 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => removeItem('expense', expense.id)}
+                              onClick={() => handleDeleteClick('expense', expense.id, expense.title)}
                             >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                 </div>
                         </td>
                       </tr>
@@ -1153,7 +1434,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => {/* TODO: Implementar edição */}}
+                              onClick={() => router.push(`/finance/revenue/${revenue.id}/edit?eventId=${eventId}&tab=revenue`)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -1161,10 +1442,10 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => removeItem('revenue', revenue.id)}
+                              onClick={() => handleDeleteClick('revenue', revenue.id, revenue.source)}
                             >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                 </div>
                         </td>
                       </tr>
@@ -1259,7 +1540,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => {/* TODO: Implementar edição */}}
+                              onClick={() => router.push(`/guests/${guest.id}/edit?eventId=${eventId}`)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -1267,7 +1548,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => removeItem('guest', guest.id)}
+                              onClick={() => handleDeleteClick('guest', guest.id, guest.name)}
                             >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -1365,7 +1646,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => {/* TODO: Implementar edição */}}
+                              onClick={() => router.push(`/calendar/schedules/${schedule.id}/edit${eventId ? `?eventId=${eventId}` : ''}`)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -1373,7 +1654,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => removeItem('schedule', schedule.id)}
+                              onClick={() => handleDeleteClick('schedule', schedule.id, schedule.title)}
                             >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -1463,7 +1744,9 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                           {marketing.budget ? `R$ ${marketing.budget.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {marketing.channels.join(', ')}
+                          {Array.isArray(marketing.channels) && marketing.channels.length > 0 
+                            ? marketing.channels.join(', ') 
+                            : '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
@@ -1574,7 +1857,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => {/* TODO: Implementar edição */}}
+                              onClick={() => router.push(`/team/${member.id}/edit${eventId ? `?eventId=${eventId}` : ''}`)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -1582,7 +1865,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => removeItem('team', member.id)}
+                              onClick={() => handleDeleteClick('team', member.id, `${member.firstName} ${member.lastName}`)}
                             >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -1683,7 +1966,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => {/* TODO: Implementar edição */}}
+                              onClick={() => router.push(`/promoters/${promoter.id}/edit${eventId ? `?eventId=${eventId}` : ''}`)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -1691,7 +1974,7 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => removeItem('promoter', promoter.id)}
+                              onClick={() => handleDeleteClick('promoter', promoter.id, promoter.userName)}
                             >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -1719,7 +2002,9 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
     )
   }
 
-  if (error) {
+  // Só mostrar tela de erro se for erro de carregamento (não de validação)
+  // Erros de validação são mostrados via toast e o formulário permanece visível
+  if (error && mode === 'edit' && !eventId) {
     return (
       <div className="text-center py-12">
         <h3 className="text-lg font-medium text-gray-900">Erro ao carregar evento</h3>
@@ -1750,17 +2035,22 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
         </div>
       </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="text-red-600 text-sm">{error}</div>
-        </div>
-      )}
+      {/* Erros de carregamento são exibidos acima, erros de validação via toast */}
+      {/* Não mostrar error aqui para não esconder o formulário */}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Tab Navigation */}
-        <div className="border-b border-gray-200 overflow-x-auto">
-          <nav className="-mb-px flex space-x-8 min-w-max">
+        <div 
+          className="border-b border-gray-200 overflow-x-auto overflow-y-hidden scrollbar-hide"
+          style={{ 
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch',
+            maxHeight: '50px',
+            height: '50px'
+          }}
+        >
+          <nav className="-mb-px flex space-x-8 min-w-max" style={{ height: '48px', alignItems: 'flex-end' }}>
             {tabs.map((tab) => {
               const Icon = tab.icon
               return (
@@ -1768,19 +2058,20 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0 ${
+                  className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap flex-shrink-0 h-full ${
                     activeTab === tab.id
                       ? 'border-indigo-500 text-indigo-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
-                  {tab.name}
+                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <span className="flex-shrink-0">{tab.name}</span>
                 </button>
               )
             })}
           </nav>
         </div>
+
 
         {/* Tab Content */}
         <Card>
@@ -1802,6 +2093,79 @@ export default function EventForm({ eventId, mode }: EventFormProps) {
           </Button>
         </div>
       </form>
+
+      {/* Modais de confirmação */}
+      <ConfirmationModal
+        isOpen={showDeleteExpenseModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Despesa"
+        message={`Tem certeza que deseja excluir a despesa "${itemToDelete?.name || ''}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={isDeleting}
+        variant="danger"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteRevenueModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Receita"
+        message={`Tem certeza que deseja excluir a receita "${itemToDelete?.name || ''}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={isDeleting}
+        variant="danger"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteGuestModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Convidado"
+        message={`Tem certeza que deseja excluir o convidado "${itemToDelete?.name || ''}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={isDeleting}
+        variant="danger"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteScheduleModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Atividade"
+        message={`Tem certeza que deseja excluir a atividade "${itemToDelete?.name || ''}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={isDeleting}
+        variant="danger"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeleteTeamModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Membro da Equipe"
+        message={`Tem certeza que deseja excluir o membro da equipe "${itemToDelete?.name || ''}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={isDeleting}
+        variant="danger"
+      />
+
+      <ConfirmationModal
+        isOpen={showDeletePromoterModal}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Promoter"
+        message={`Tem certeza que deseja excluir o promoter "${itemToDelete?.name || ''}"? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={isDeleting}
+        variant="danger"
+      />
     </div>
   )
 }

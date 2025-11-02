@@ -12,9 +12,44 @@ import { EventsService, EventDto } from '@/lib/api/events'
 interface GuestFormProps {
   mode: 'create' | 'edit'
   guestId?: string
+  eventId?: string
 }
 
-export default function GuestForm({ mode, guestId }: GuestFormProps) {
+// Função para mascarar telefone: (00) 00000-0000 ou (00) 0000-0000
+const maskPhone = (value: string): string => {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '')
+  
+  // Aplica máscara: (00) 00000-0000 ou (00) 0000-0000
+  if (numbers.length <= 2) {
+    return numbers
+  } else if (numbers.length <= 6) {
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`
+  } else if (numbers.length <= 10) {
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 6)}-${numbers.slice(6)}`
+  } else {
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7, 11)}`
+  }
+}
+
+// Função para mascarar CPF: 000.000.000-00
+const maskCPF = (value: string): string => {
+  // Remove tudo que não é número
+  const numbers = value.replace(/\D/g, '')
+  
+  // Aplica máscara: 000.000.000-00 (11 dígitos)
+  if (numbers.length <= 3) {
+    return numbers
+  } else if (numbers.length <= 6) {
+    return `${numbers.slice(0, 3)}.${numbers.slice(3)}`
+  } else if (numbers.length <= 9) {
+    return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`
+  } else {
+    return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9, 11)}`
+  }
+}
+
+export default function GuestForm({ mode, guestId, eventId }: GuestFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -25,8 +60,24 @@ export default function GuestForm({ mode, guestId }: GuestFormProps) {
     email: '',
     phone: '',
     document: '',
-    eventId: '',
+    eventId: eventId || '',
   })
+
+  // Função auxiliar para redirecionamento baseado no contexto
+  const handleGoBack = () => {
+    if (eventId) {
+      router.push(`/events/${eventId}/edit?tab=guest`)
+    } else {
+      router.push('/guests')
+    }
+  }
+
+  // Atualizar eventId quando prop mudar
+  useEffect(() => {
+    if (eventId) {
+      setFormData(prev => ({ ...prev, eventId: eventId }))
+    }
+  }, [eventId])
 
   // Carregar eventos
   useEffect(() => {
@@ -62,8 +113,8 @@ export default function GuestForm({ mode, guestId }: GuestFormProps) {
           const newFormData = {
             name: guest.name,
             email: guest.email,
-            phone: guest.phone,
-            document: guest.document,
+            phone: guest.phone ? maskPhone(guest.phone) : '',
+            document: guest.document ? maskCPF(guest.document) : '',
             eventId: guest.eventId,
           }
           console.log('🔍 GuestForm: Definindo formData:', newFormData)
@@ -86,9 +137,21 @@ export default function GuestForm({ mode, guestId }: GuestFormProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target
     console.log('🔍 GuestForm: handleChange - name:', name, 'value:', value)
+    
+    let maskedValue = value
+    
+    // Aplica máscara para campos específicos
+    if (type !== 'checkbox') {
+      if (name === 'phone') {
+        maskedValue = maskPhone(value)
+      } else if (name === 'document') {
+        maskedValue = maskCPF(value)
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : maskedValue
     }))
   }
 
@@ -102,12 +165,18 @@ export default function GuestForm({ mode, guestId }: GuestFormProps) {
       console.log('🔍 GuestForm: mode =', mode)
       console.log('🔍 GuestForm: formData =', formData)
       
-      // Preparar dados para a API
+      // Dividir o nome completo em primeiro e último nome
+      const nameParts = formData.name.trim().split(/\s+/)
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+      
+      // Preparar dados para a API (remover máscaras)
       const guestData: CreateGuestRequest = {
-        name: formData.name,
+        firstName: firstName,
+        lastName: lastName,
         email: formData.email,
-        phone: formData.phone,
-        document: formData.document,
+        phone: formData.phone.replace(/\D/g, ''), // Remove tudo que não é número
+        document: formData.document.replace(/\D/g, ''), // Remove tudo que não é número
         eventId: formData.eventId,
       }
       
@@ -121,7 +190,8 @@ export default function GuestForm({ mode, guestId }: GuestFormProps) {
         console.log('✅ GuestForm: Guest atualizado')
       }
       
-      router.push('/guests')
+      // Redirecionar usando a função auxiliar
+      handleGoBack()
     } catch (err: any) {
       console.error('❌ GuestForm: Erro na operação:', err)
       setError(err.message || 'Erro ao salvar guest')
@@ -141,7 +211,7 @@ export default function GuestForm({ mode, guestId }: GuestFormProps) {
         <Button 
           variant="outline" 
           size="icon"
-          onClick={() => router.push('/guests')}
+          onClick={handleGoBack}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -286,7 +356,8 @@ export default function GuestForm({ mode, guestId }: GuestFormProps) {
           <Button 
             type="button" 
             variant="outline"
-            onClick={() => router.push('/guests')}
+            onClick={handleGoBack}
+            disabled={isLoading}
           >
             Cancelar
           </Button>

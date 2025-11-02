@@ -12,7 +12,7 @@ interface HeaderProps {
 export function Header({ user, onMenuClick }: HeaderProps) {
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="flex h-16 items-center px-4 sm:px-6 lg:px-8">
         {/* Left side - Mobile menu button */}
         <div className="lg:hidden">
           <Button
@@ -25,8 +25,8 @@ export function Header({ user, onMenuClick }: HeaderProps) {
           </Button>
         </div>
         
-        {/* Right side */}
-        <div className="flex items-center gap-4">
+        {/* Right side - User info and notifications */}
+        <div className="flex items-center gap-4 ml-auto">
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
@@ -37,7 +37,7 @@ export function Header({ user, onMenuClick }: HeaderProps) {
 
           {/* User menu */}
           <div className="flex items-center gap-3">
-            <div className="text-right">
+            <div className="hidden sm:block text-right">
               <p className="text-sm font-medium text-gray-900">
                 {user.name || 'Usuário'}
               </p>

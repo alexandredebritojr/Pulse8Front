@@ -1,3 +1,6 @@
+'use client'
+
+import { useSearchParams } from 'next/navigation'
 import ScheduleForm from '@/components/schedules/ScheduleForm'
 
 interface EditSchedulePageProps {
@@ -7,5 +10,8 @@ interface EditSchedulePageProps {
 }
 
 export default function EditSchedulePage({ params }: EditSchedulePageProps) {
-  return <ScheduleForm mode="edit" scheduleId={params.id} />
+  const searchParams = useSearchParams()
+  const eventId = searchParams.get('eventId') || undefined
+
+  return <ScheduleForm mode="edit" scheduleId={params.id} eventId={eventId} />
 }

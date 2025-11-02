@@ -4,8 +4,11 @@ interface EditEventPageProps {
   params: {
     id: string
   }
+  searchParams: {
+    tab?: string
+  }
 }
 
-export default function EditEventPage({ params }: EditEventPageProps) {
-  return <EventForm mode="edit" eventId={params.id} />
+export default function EditEventPage({ params, searchParams }: EditEventPageProps) {
+  return <EventForm mode="edit" eventId={params.id} initialTab={searchParams.tab} />
 }
