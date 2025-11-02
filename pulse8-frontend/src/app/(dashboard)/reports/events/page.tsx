@@ -581,35 +581,35 @@ export default function EventsReportPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/reports">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          <Link href="/reports" className="flex-shrink-0">
             <Button variant="outline" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Relatório de Eventos</h1>
-            <p className="text-gray-600">Análise detalhada dos eventos realizados</p>
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Relatório de Eventos</h1>
+            <p className="text-sm sm:text-base text-gray-600">Análise detalhada dos eventos realizados</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar PDF
+        <div className="flex gap-2 flex-shrink-0">
+          <Button variant="outline" className="text-xs sm:text-sm">
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Exportar PDF</span>
           </Button>
-          <Button variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
+          <Button variant="outline" onClick={handleRefresh} className="text-xs sm:text-sm">
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Atualizar</span>
           </Button>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
@@ -756,11 +756,11 @@ export default function EventsReportPage() {
               </div>
             ) : (
               eventPerformanceData.map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h4 className="font-medium">{event.name}</h4>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                <div key={event.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                      <h4 className="font-medium truncate">{event.name}</h4>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 ${
                         event.status === 'Concluído' ? 'bg-green-100 text-green-800' :
                         event.status === 'Ativo' ? 'bg-blue-100 text-blue-800' :
                         event.status === 'Planejamento' ? 'bg-yellow-100 text-yellow-800' :
@@ -770,30 +770,31 @@ export default function EventsReportPage() {
                         {event.status}
                       </span>
                     </div>
-                    <div className="flex gap-4 text-sm text-gray-500 mt-1">
+                    <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
                       {event.guests > 0 && (
                         <span className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
+                          <Users className="h-4 w-4 flex-shrink-0" />
                           {event.guests} convidados
                         </span>
                       )}
                       <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
+                        <Calendar className="h-4 w-4 flex-shrink-0" />
                         {event.date}
                       </span>
                       {event.revenue > 0 && (
                         <span className="flex items-center gap-1">
-                          <TrendingUp className="h-4 w-4" />
+                          <TrendingUp className="h-4 w-4 flex-shrink-0" />
                           {formatCurrency(event.revenue)}
                         </span>
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0">
                     <Link href={`/events/${event.id}`}>
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-2" />
-                        Ver Detalhes
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                        <Eye className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Ver Detalhes</span>
+                        <span className="sm:hidden">Ver</span>
                       </Button>
                     </Link>
                   </div>

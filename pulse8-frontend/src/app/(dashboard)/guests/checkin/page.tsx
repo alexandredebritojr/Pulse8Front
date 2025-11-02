@@ -43,11 +43,14 @@ export default function CheckInPage() {
     const loadCheckIns = async () => {
       try {
         console.log('🔍 Carregando check-ins da API...')
+        const organizationId = localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
+        
         const queryParams = {
           pageNumber: 1,
           pageSize: 50,
           searchTerm: searchTerm || undefined,
-          status: statusFilter !== 'all' ? statusFilter : undefined
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          organizationId: organizationId
         }
         
         const response = await CheckinService.getCheckins(queryParams)

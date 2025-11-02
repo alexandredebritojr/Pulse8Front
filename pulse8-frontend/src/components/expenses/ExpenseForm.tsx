@@ -69,11 +69,19 @@ export default function ExpenseForm({ expenseId, mode, eventId }: ExpenseFormPro
           const expense = await ExpensesService.getExpenseById(expenseId)
           console.log('✅ Despesa carregada:', expense)
           
+          // Formatar o valor corretamente quando vem do backend (já está em decimal, não precisa dividir por 100)
+          const formattedAmount = typeof expense.amount === 'number' 
+            ? expense.amount.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+              })
+            : formatCurrencyInput(expense.amount.toString())
+          
           setFormData({
             eventId: expense.eventId,
             title: expense.title,
             description: expense.description,
-            amount: formatCurrencyInput(expense.amount.toString()),
+            amount: formattedAmount,
             type: expense.type,
             status: expense.status,
             supplierId: expense.supplierId || '',

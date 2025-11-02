@@ -362,21 +362,21 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Relatórios & Dashboards</h1>
-          <p className="text-gray-600">Análises e métricas dos seus eventos</p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Relatórios & Dashboards</h1>
+          <p className="text-sm sm:text-base text-gray-600">Análises e métricas dos seus eventos</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
+        <div className="flex gap-2 flex-shrink-0">
+          <Button variant="outline" className="text-xs sm:text-sm">
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Exportar</span>
           </Button>
-          <Button variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
+          <Button variant="outline" onClick={handleRefresh} className="text-xs sm:text-sm">
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Atualizar</span>
           </Button>
         </div>
       </div>
@@ -392,11 +392,11 @@ export default function ReportsPage() {
             />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
           >
             {periods.map(period => (
               <option key={period.value} value={period.value}>{period.label}</option>
@@ -405,16 +405,16 @@ export default function ReportsPage() {
           <select
             value={selectedEvent}
             onChange={(e) => setSelectedEvent(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm min-w-0"
           >
             <option value="all">Todos os eventos</option>
             {events.map(event => (
               <option key={event.id} value={event.id}>{event.name}</option>
             ))}
           </select>
-          <Button variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Filtros
+          <Button variant="outline" className="text-xs sm:text-sm">
+            <Filter className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Filtros</span>
           </Button>
         </div>
       </div>

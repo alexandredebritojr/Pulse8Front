@@ -1,7 +1,7 @@
 'use client'
 
 import { User } from '@/types/api'
-import { Bell, User as UserIcon, Menu } from 'lucide-react'
+import { User as UserIcon, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface HeaderProps {
@@ -27,13 +27,13 @@ export function Header({ user, onMenuClick }: HeaderProps) {
         
         {/* Right side - User info and notifications */}
         <div className="flex items-center gap-4 ml-auto">
-          {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative text-gray-700 dark:text-gray-300">
+          {/* Notifications - Escondido */}
+          {/* <Button variant="ghost" size="icon" className="relative text-gray-700 dark:text-gray-300">
             <Bell className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">
               3
             </span>
-          </Button>
+          </Button> */}
 
           {/* User menu */}
           <div className="flex items-center gap-3">

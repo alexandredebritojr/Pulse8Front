@@ -12,14 +12,15 @@ import {
   DollarSign, 
   Users, 
   Clock,
-  BarChart3,
-  FileText,
-  Settings
+  BarChart3
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import ConfirmationModal from '@/components/ui/confirmation-modal'
 import { EventsService, EventDto } from '@/lib/api/events'
+import { GuestsService, GetGuestsResponse } from '@/lib/api/guests'
+import { RevenueService, GetRevenueResponse } from '@/lib/api/revenue'
+import { ExpensesService, GetExpensesResponse } from '@/lib/api/expenses'
 import { formatDate, formatDateTime, formatCurrency } from '@/lib/utils'
 
 export default function EventDetailsPage() {
@@ -31,27 +32,59 @@ export default function EventDetailsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [totalGuests, setTotalGuests] = useState(0)
+  const [totalRevenue, setTotalRevenue] = useState(0)
+  const [totalExpenses, setTotalExpenses] = useState(0)
 
   // Carregar dados reais da API
   useEffect(() => {
-    const loadEvent = async () => {
+    const loadEventData = async () => {
+      if (!params.id) return
+      
       try {
-        console.log('🔍 Carregando evento:', params.id)
-        const eventData = await EventsService.getEventById(params.id as string)
+        setIsLoading(true)
+        setError('')
+        
+        const eventId = params.id as string
+        const organizationId = localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
+        
+        console.log('🔍 Carregando dados do evento:', eventId)
+        
+        // Carregar evento
+        const eventData = await EventsService.getEventById(eventId)
         console.log('✅ Evento carregado:', eventData)
         setEvent(eventData)
-        setError('')
+        
+        // Carregar dados relacionados em paralelo
+        const [guestsResponse, revenueResponse, expensesResponse] = await Promise.all([
+          GuestsService.getGuests({ eventId, pageSize: 1, organizationId }).catch(() => ({ guests: [], totalCount: 0 } as GetGuestsResponse)),
+          RevenueService.getRevenue({ eventId, pageSize: 1, organizationId }).catch(() => ({ revenues: [], totalCount: 0, totalAmount: 0 } as GetRevenueResponse)),
+          ExpensesService.getExpenses({ eventId, pageSize: 1, organizationId }).catch(() => ({ expenses: [], totalCount: 0, totalAmount: 0 } as GetExpensesResponse))
+        ])
+        
+        // Calcular totais
+        const guestsCount = guestsResponse.totalCount || guestsResponse.guests?.length || 0
+        const revenueTotal = revenueResponse.totalAmount || revenueResponse.revenues?.reduce((sum, r) => sum + (r.amount || 0), 0) || 0
+        const expensesTotal = expensesResponse.totalAmount || expensesResponse.expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0
+        
+        setTotalGuests(guestsCount)
+        setTotalRevenue(revenueTotal)
+        setTotalExpenses(expensesTotal)
+        
+        console.log('✅ Dados carregados:', {
+          guests: guestsCount,
+          revenue: revenueTotal,
+          expenses: expensesTotal
+        })
       } catch (err: any) {
-        console.error('❌ Erro ao carregar evento:', err)
-        setError(err.message || 'Erro ao carregar evento')
+        console.error('❌ Erro ao carregar dados do evento:', err)
+        setError(err.message || 'Erro ao carregar dados do evento')
       } finally {
         setIsLoading(false)
       }
     }
 
-    if (params.id) {
-      loadEvent()
-    }
+    loadEventData()
   }, [params.id])
 
   const getStatusColor = (status: string | number | null | undefined) => {
@@ -211,9 +244,6 @@ export default function EventDetailsPage() {
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${getStatusColor(event.status)}`}>
                 {getStatusText(event.status)}
               </span>
-              <span className="text-sm text-gray-500 whitespace-nowrap">
-                Criado em {formatDate(event.createdAt)}
-              </span>
             </div>
           </div>
         </div>
@@ -231,9 +261,7 @@ export default function EventDetailsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="space-y-6">
           {/* Description */}
           <Card>
             <CardHeader>
@@ -293,7 +321,7 @@ export default function EventDetailsPage() {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Convidados</p>
-                    <p className="text-2xl font-semibold text-gray-900">245</p>
+                    <p className="text-2xl font-semibold text-gray-900">{totalGuests}</p>
                   </div>
                 </div>
               </CardContent>
@@ -306,7 +334,7 @@ export default function EventDetailsPage() {
                   </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500">Receita</p>
-                    <p className="text-2xl font-semibold text-gray-900">R$ 85.000</p>
+                    <p className="text-2xl font-semibold text-gray-900">{formatCurrency(totalRevenue)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -318,55 +346,13 @@ export default function EventDetailsPage() {
                     <BarChart3 className="h-8 w-8 text-blue-600" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-500">Vendas</p>
-                    <p className="text-2xl font-semibold text-gray-900">156</p>
+                    <p className="text-sm font-medium text-gray-500">Despesas</p>
+                    <p className="text-2xl font-semibold text-gray-900">{formatCurrency(totalExpenses)}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Ações Rápidas</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button className="w-full justify-start">
-                <Users className="h-4 w-4 mr-2" />
-                Gerenciar Convidados
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <DollarSign className="h-4 w-4 mr-2" />
-                Orçamento
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <Calendar className="h-4 w-4 mr-2" />
-                Cronograma
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <FileText className="h-4 w-4 mr-2" />
-                Relatórios
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Event Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start">
-                <Settings className="h-4 w-4 mr-2" />
-                Configurações do Evento
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
       {/* Modal de Confirmação de Exclusão */}

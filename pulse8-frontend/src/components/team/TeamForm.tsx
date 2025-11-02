@@ -193,9 +193,11 @@ export default function TeamForm({ mode, teamMemberId, eventId }: TeamFormProps)
         birthDate: formData.birthDate ? new Date(formData.birthDate).toISOString() : undefined,
         profilePicture: formData.profilePicture,
         role: formData.role,
-        status: formData.status,
+        status: formData.status || 'Active', // Garantir que sempre tenha um status válido (Active por padrão)
         eventId: formData.eventId || localStorage.getItem('currentEventId') || '3fa85f64-5717-4562-b3fc-2c963f66afa6',
       }
+      
+      console.log('🔍 TeamForm: teamMemberData.status =', teamMemberData.status)
       
       if (mode === 'create') {
         console.log('🔍 TeamForm: Criando novo membro da equipe...')

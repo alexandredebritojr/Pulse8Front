@@ -502,35 +502,35 @@ export default function GuestsReportPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/reports">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
+          <Link href="/reports" className="flex-shrink-0">
             <Button variant="outline" size="icon">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Relatório de Convidados</h1>
-            <p className="text-gray-600">Análise detalhada dos convidados e check-in</p>
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">Relatório de Convidados</h1>
+            <p className="text-sm sm:text-base text-gray-600">Análise detalhada dos convidados e check-in</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar PDF
+        <div className="flex gap-2 flex-shrink-0">
+          <Button variant="outline" className="text-xs sm:text-sm">
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Exportar PDF</span>
           </Button>
-          <Button variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar
+          <Button variant="outline" onClick={handleRefresh} className="text-xs sm:text-sm">
+            <RefreshCw className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Atualizar</span>
           </Button>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
@@ -741,33 +741,34 @@ export default function GuestsReportPage() {
           ) : (
             <div className="space-y-4">
               {eventPerformanceData.map((event) => (
-                <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-medium">{event.name}</h4>
-                    <div className="flex gap-4 text-sm text-gray-500 mt-1">
+                <div key={event.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg gap-3">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium truncate mb-2">{event.name}</h4>
+                    <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
                       <span className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
+                        <Users className="h-4 w-4 flex-shrink-0" />
                         {event.totalGuests} convidados
                       </span>
                       <span className="flex items-center gap-1">
-                        <UserCheck className="h-4 w-4" />
+                        <UserCheck className="h-4 w-4 flex-shrink-0" />
                         {event.checkedIn} check-in
                       </span>
                       <span className="flex items-center gap-1">
-                        <Target className="h-4 w-4" />
+                        <Target className="h-4 w-4 flex-shrink-0" />
                         {event.checkInRate.toFixed(1)}% taxa
                       </span>
                       <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
+                        <Calendar className="h-4 w-4 flex-shrink-0" />
                         {event.date}
                       </span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0">
                     <Link href={`/events/${event.id}`}>
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-2" />
-                        Ver Detalhes
+                      <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                        <Eye className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Ver Detalhes</span>
+                        <span className="sm:hidden">Ver</span>
                       </Button>
                     </Link>
                   </div>
@@ -845,9 +846,9 @@ export default function GuestsReportPage() {
           ) : (
             <div className="space-y-4">
               {eventPerformanceData.slice(0, 5).map((event, index) => (
-                <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                <div key={event.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg gap-3">
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0 ${
                       index === 0 ? 'bg-yellow-500' :
                       index === 1 ? 'bg-gray-400' :
                       index === 2 ? 'bg-orange-500' :
@@ -855,16 +856,16 @@ export default function GuestsReportPage() {
                     }`}>
                       {index + 1}
                     </div>
-                    <div>
-                      <h4 className="font-medium">{event.name}</h4>
-                      <div className="flex gap-4 text-sm text-gray-500">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-medium truncate">{event.name}</h4>
+                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500">
                         <span>{event.totalGuests} convidados</span>
                         <span>{event.checkInRate.toFixed(1)}% check-in</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-2xl font-bold ${
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`text-xl sm:text-2xl font-bold ${
                       event.checkInRate >= 90 ? 'text-green-600' :
                       event.checkInRate >= 70 ? 'text-yellow-600' :
                       'text-red-600'

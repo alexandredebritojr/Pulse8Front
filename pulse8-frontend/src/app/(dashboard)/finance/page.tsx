@@ -44,6 +44,7 @@ interface ChartData {
   month: string
   budget: number
   expenses: number
+  revenue: number
 }
 
 const EXPENSE_TYPE_NAMES: Record<number, string> = {
@@ -183,6 +184,15 @@ export default function FinancePage() {
             })
             .reduce((sum: number, exp: ExpenseDto) => sum + exp.amount, 0)
 
+          // Calcular receitas do mês
+          const monthRevenue = revenueResponse.revenues
+            .filter((rev: RevenueDto) => {
+              const revDate = new Date(rev.date)
+              return revDate.getMonth() === date.getMonth() && 
+                     revDate.getFullYear() === date.getFullYear()
+            })
+            .reduce((sum: number, rev: RevenueDto) => sum + (rev.amount || 0), 0)
+
           // Calcular orçamento do mês (soma dos budgets ativos no mês)
           const monthBudget = budgetsResponse.budgets
             .filter((budget: BudgetDto) => {
@@ -201,7 +211,8 @@ export default function FinancePage() {
           monthlyData.push({
             month: monthName.charAt(0).toUpperCase() + monthName.slice(1),
             budget: monthBudget,
-            expenses: monthExpenses
+            expenses: monthExpenses,
+            revenue: monthRevenue
           })
         }
 
@@ -252,7 +263,7 @@ export default function FinancePage() {
   const renderLineChart = () => {
     if (!chartData.length) return null
 
-    const maxValue = Math.max(...chartData.map(d => Math.max(d.budget, d.expenses)))
+    const maxValue = Math.max(...chartData.map(d => Math.max(d.budget, d.expenses, d.revenue)))
     const chartWidth = 600
     const chartHeight = 300
     const padding = 40
@@ -264,6 +275,7 @@ export default function FinancePage() {
 
     const budgetPoints = chartData.map((d, i) => `${getX(i)},${getY(d.budget)}`).join(' ')
     const expensePoints = chartData.map((d, i) => `${getX(i)},${getY(d.expenses)}`).join(' ')
+    const revenuePoints = chartData.map((d, i) => `${getX(i)},${getY(d.revenue)}`).join(' ')
 
     return (
       <div className="w-full">
@@ -325,6 +337,16 @@ export default function FinancePage() {
             strokeLinejoin="round"
           />
 
+          {/* Revenue line */}
+          <polyline
+            points={revenuePoints}
+            fill="none"
+            stroke="#10b981"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+
           {/* Data points */}
           {chartData.map((d, i) => (
             <g key={i}>
@@ -344,6 +366,14 @@ export default function FinancePage() {
                 stroke="white"
                 strokeWidth="2"
               />
+              <circle
+                cx={getX(i)}
+                cy={getY(d.revenue)}
+                r="4"
+                fill="#10b981"
+                stroke="white"
+                strokeWidth="2"
+              />
             </g>
           ))}
         </svg>
@@ -357,6 +387,10 @@ export default function FinancePage() {
           <div className="flex items-center gap-2">
             <div className="w-4 h-0.5 bg-red-500"></div>
             <span className="text-sm text-gray-600">Despesas</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-0.5 bg-green-500"></div>
+            <span className="text-sm text-gray-600">Receitas</span>
           </div>
         </div>
       </div>
@@ -557,15 +591,15 @@ export default function FinancePage() {
         </Card>
       </div>
 
-      {/* Budget vs Expenses Chart */}
+      {/* Budget vs Expenses vs Revenue Chart */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5" />
-            Orçamento vs Despesas
+            Orçamento vs Despesas vs Receitas
           </CardTitle>
           <CardDescription>
-            Comparação entre orçamento planejado e gastos reais ao longo do ano
+            Comparação entre orçamento planejado, gastos reais e receitas ao longo do ano
           </CardDescription>
         </CardHeader>
         <CardContent>

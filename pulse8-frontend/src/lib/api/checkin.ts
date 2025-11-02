@@ -29,6 +29,7 @@ export interface GetCheckinsQuery {
   status?: string
   sortBy?: string
   sortDescending?: boolean
+  organizationId?: string
 }
 
 export interface GetCheckinResponse {
@@ -70,6 +71,7 @@ export class CheckinService {
     if (query.status) params.append('status', query.status)
     if (query.sortBy) params.append('sortBy', query.sortBy)
     if (query.sortDescending !== undefined) params.append('sortDescending', query.sortDescending.toString())
+    if (query.organizationId) params.append('organizationId', query.organizationId)
 
     const queryString = params.toString()
     const url = queryString ? `/guests/checkins?${queryString}` : '/guests/checkins'
@@ -96,7 +98,22 @@ export class CheckinService {
     console.log('🔍 CheckinService.createCheckin: Iniciando...')
     console.log('🔍 CheckinService.createCheckin: checkinData =', checkinData)
     
-    return apiClient.post<string>('/guests/checkin', checkinData)
+    try {
+      const response = await apiClient.post<{ id: string } | string>('/guests/checkin', checkinData)
+      console.log('✅ CheckinService.createCheckin: Resposta =', response)
+      
+      // A resposta pode ser um objeto { id: string } ou diretamente uma string
+      if (typeof response === 'string') {
+        return response
+      } else if (response && typeof response === 'object' && 'id' in response) {
+        return response.id
+      } else {
+        throw new Error('Formato de resposta inválido do servidor')
+      }
+    } catch (error: any) {
+      console.error('❌ CheckinService.createCheckin: Erro:', error)
+      throw error
+    }
   }
 
   static async updateCheckin(id: string, checkinData: UpdateCheckinRequest): Promise<string> {

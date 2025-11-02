@@ -172,9 +172,16 @@ export default function ScheduleForm({ scheduleId, mode, eventId }: ScheduleForm
         // Redirecionar usando a função auxiliar (verifica eventId)
         handleGoBack()
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erro ao salvar cronograma:', error)
-      setError('Erro ao salvar cronograma. Tente novamente.')
+      // Capturar mensagem de erro detalhada do backend
+      const errorMessage = error?.message || error?.response?.data?.message || 'Erro ao salvar cronograma. Tente novamente.'
+      setError(errorMessage)
+      
+      // Log detalhado para debug
+      if (error?.response?.data) {
+        console.error('❌ Detalhes do erro:', error.response.data)
+      }
     } finally {
       setIsSaving(false)
     }

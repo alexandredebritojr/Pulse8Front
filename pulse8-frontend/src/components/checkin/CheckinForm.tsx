@@ -101,10 +101,17 @@ export default function CheckinForm({ mode, checkinId }: CheckinFormProps) {
         console.log('✅ CheckinForm: Checkin atualizado')
       }
       
-      router.push('/checkin')
+      router.push('/guests/checkin')
     } catch (err: any) {
       console.error('❌ CheckinForm: Erro na operação:', err)
-      setError(err.message || 'Erro ao salvar checkin')
+      // Capturar mensagem de erro detalhada do backend
+      const errorMessage = err?.message || err?.response?.data?.message || 'Erro ao salvar check-in. Verifique se os dados estão corretos e tente novamente.'
+      setError(errorMessage)
+      
+      // Log detalhado para debug
+      if (err?.response?.data) {
+        console.error('❌ Detalhes do erro:', err.response.data)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -123,7 +130,7 @@ export default function CheckinForm({ mode, checkinId }: CheckinFormProps) {
         <Button 
           variant="outline" 
           size="icon"
-          onClick={() => router.push('/checkin')}
+          onClick={() => router.push('/guests/checkin')}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
@@ -339,7 +346,7 @@ export default function CheckinForm({ mode, checkinId }: CheckinFormProps) {
                   type="button" 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => router.push('/checkin')}
+                  onClick={() => router.push('/guests/checkin')}
                 >
                   Cancelar
                 </Button>
