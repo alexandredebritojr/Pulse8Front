@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { 
   ArrowLeft,
@@ -29,41 +29,261 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { GuestsService, GuestDto } from '@/lib/api/guests'
+import { CheckinService, CheckinDto } from '@/lib/api/checkin'
+import { EventsService, EventDto } from '@/lib/api/events'
+import { formatDate } from '@/lib/utils'
 
 export default function GuestsReportPage() {
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string>('')
   const [selectedPeriod, setSelectedPeriod] = useState('30d')
   const [selectedEvent, setSelectedEvent] = useState('all')
+  const [guests, setGuests] = useState<GuestDto[]>([])
+  const [checkins, setCheckins] = useState<CheckinDto[]>([])
+  const [events, setEvents] = useState<EventDto[]>([])
 
-  // Dados para os gráficos
-  const checkInTimelineData = [
-    { hour: '08:00', checkIns: 15 },
-    { hour: '09:00', checkIns: 45 },
-    { hour: '10:00', checkIns: 120 },
-    { hour: '11:00', checkIns: 180 },
-    { hour: '12:00', checkIns: 220 },
-    { hour: '13:00', checkIns: 150 },
-    { hour: '14:00', checkIns: 200 },
-    { hour: '15:00', checkIns: 180 },
-    { hour: '16:00', checkIns: 120 },
-    { hour: '17:00', checkIns: 80 },
-    { hour: '18:00', checkIns: 40 },
-    { hour: '19:00', checkIns: 20 }
-  ]
-
-  const guestTypesData = [
-    { type: 'Standard', count: 1100, percentage: 88.0, color: '#3b82f6' },
-    { type: 'VIP', count: 85, percentage: 6.8, color: '#8b5cf6' },
-    { type: 'Staff', count: 45, percentage: 3.6, color: '#10b981' },
-    { type: 'Press', count: 20, percentage: 1.6, color: '#f59e0b' }
-  ]
-
-  // Mock data - em produção viria da API
+  // Carregar dados da API
   useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
+    const loadData = async () => {
+      try {
+        setIsLoading(true)
+        setError('')
+        
+        const organizationId = localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
+        
+        // Buscar convidados, check-ins e eventos
+        const guestsPromise = GuestsService.getGuests({
+          pageNumber: 1,
+          pageSize: 1000,
+          organizationId: organizationId
+        })
+        
+        const eventsPromise = EventsService.getEvents({
+          pageNumber: 1,
+          pageSize: 1000,
+          organizationId: organizationId
+        })
+        
+        // Tentar buscar check-ins, mas não falhar se der erro
+        let checkinsData = { checkIns: [] as CheckinDto[], totalCount: 0, pageNumber: 1, pageSize: 1000, totalPages: 0, checkedInCount: 0, checkedOutCount: 0 }
+        try {
+          checkinsData = await CheckinService.getCheckins({
+            pageNumber: 1,
+            pageSize: 1000
+          })
+        } catch (checkinError: any) {
+          console.warn('⚠️ Aviso: Não foi possível carregar check-ins:', checkinError.message)
+          // Continuar sem check-ins - a página ainda funcionará
+        }
+        
+        const [guestsResponse, eventsResponse] = await Promise.all([
+          guestsPromise,
+          eventsPromise
+        ])
+        
+        setGuests(guestsResponse.guests || [])
+        setCheckins(checkinsData.checkIns || [])
+        setEvents(eventsResponse.events || [])
+      } catch (err: any) {
+        console.error('❌ Erro ao carregar dados de convidados:', err)
+        setError(err.message || 'Erro ao carregar dados de convidados')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
+
+  // Função para calcular data de início do período
+  const getPeriodStartDate = (period: string): Date | null => {
+    const now = new Date()
+    const start = new Date()
+    
+    switch (period) {
+      case '7d':
+        start.setDate(now.getDate() - 7)
+        return start
+      case '30d':
+        start.setDate(now.getDate() - 30)
+        return start
+      case '90d':
+        start.setDate(now.getDate() - 90)
+        return start
+      case '1y':
+        start.setFullYear(now.getFullYear() - 1)
+        return start
+      case 'all':
+      default:
+        return null
+    }
+  }
+
+  // Filtrar dados por período e evento
+  const filteredData = useMemo(() => {
+    let filteredGuests = [...guests]
+    let filteredCheckins = [...checkins]
+    
+    // Filtrar por período
+    if (selectedPeriod !== 'all') {
+      const periodStart = getPeriodStartDate(selectedPeriod)
+      if (periodStart) {
+        filteredCheckins = filteredCheckins.filter(c => {
+          const checkinDate = new Date(c.checkinTime)
+          return checkinDate >= periodStart
+        })
+      }
+    }
+    
+    // Filtrar por evento
+    if (selectedEvent !== 'all') {
+      filteredGuests = filteredGuests.filter(g => g.eventId === selectedEvent)
+      filteredCheckins = filteredCheckins.filter(c => c.eventId === selectedEvent)
+    }
+    
+    return { guests: filteredGuests, checkins: filteredCheckins }
+  }, [guests, checkins, selectedPeriod, selectedEvent])
+
+  // Calcular estatísticas
+  const stats = useMemo(() => {
+    const totalGuests = filteredData.guests.length
+    const checkedIn = filteredData.checkins.length
+    const checkInRate = totalGuests > 0 ? (checkedIn / totalGuests) * 100 : 0
+    const waitingCheckIn = totalGuests - checkedIn
+
+    // Calcular período anterior para comparação
+    const periodStart = getPeriodStartDate(selectedPeriod)
+    let previousGuests = 0
+    let previousCheckins = 0
+    
+    if (periodStart && selectedPeriod !== 'all') {
+      const periodLength = new Date().getTime() - periodStart.getTime()
+      const previousPeriodStart = new Date(periodStart.getTime() - periodLength)
+      
+      const prevGuests = guests.filter(g => {
+        if (!g.createdAt) return false
+        const guestDate = new Date(g.createdAt)
+        return guestDate >= previousPeriodStart && guestDate < periodStart
+      })
+      
+      const prevCheckins = checkins.filter(c => {
+        const checkinDate = new Date(c.checkinTime)
+        return checkinDate >= previousPeriodStart && checkinDate < periodStart
+      })
+      
+      previousGuests = prevGuests.length
+      previousCheckins = prevCheckins.length
+    }
+    
+    const guestsChange = previousGuests > 0 ? ((totalGuests - previousGuests) / previousGuests) * 100 : 0
+    const checkinsChange = previousCheckins > 0 ? ((checkedIn - previousCheckins) / previousCheckins) * 100 : 0
+    const previousCheckInRate = previousGuests > 0 ? (previousCheckins / previousGuests) * 100 : 0
+    const checkInRateChange = checkInRate - previousCheckInRate
+
+    return {
+      totalGuests,
+      checkedIn,
+      waitingCheckIn,
+      checkInRate,
+      guestsChange,
+      checkinsChange,
+      checkInRateChange
+    }
+  }, [filteredData, guests, checkins, selectedPeriod])
+
+  // Gerar dados de timeline de check-in por hora
+  const checkInTimelineData = useMemo(() => {
+    const hours = Array.from({ length: 24 }, (_, i) => i)
+    const hourlyData: { [key: number]: number } = {}
+    
+    filteredData.checkins.forEach(checkin => {
+      const checkinTime = new Date(checkin.checkinTime)
+      const hour = checkinTime.getHours()
+      hourlyData[hour] = (hourlyData[hour] || 0) + 1
+    })
+    
+    return hours
+      .map(hour => ({
+        hour: `${hour.toString().padStart(2, '0')}:00`,
+        checkIns: hourlyData[hour] || 0
+      }))
+      .filter(h => h.checkIns > 0 || hours.indexOf(parseInt(h.hour)) < 13) // Mostrar até 13h ou horas com check-ins
+      .slice(0, 12)
+  }, [filteredData.checkins])
+
+  // Dados de performance por evento
+  const eventPerformanceData = useMemo(() => {
+    return events
+      .map(event => {
+        const eventGuests = filteredData.guests.filter(g => g.eventId === event.id)
+        const eventCheckins = filteredData.checkins.filter(c => c.eventId === event.id)
+        
+        const totalGuests = eventGuests.length
+        const checkedIn = eventCheckins.length
+        const checkInRate = totalGuests > 0 ? (checkedIn / totalGuests) * 100 : 0
+        
+        return {
+          id: event.id,
+          name: event.name,
+          totalGuests,
+          checkedIn,
+          checkInRate,
+          date: formatDate(event.startDate)
+        }
+      })
+      .filter(e => e.totalGuests > 0)
+      .sort((a, b) => b.checkInRate - a.checkInRate)
+      .slice(0, 10)
+  }, [events, filteredData])
+
+  // Função para atualizar dados
+  const handleRefresh = async () => {
+    try {
+      setIsLoading(true)
+      setError('')
+      
+      const organizationId = localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
+      
+      const guestsPromise = GuestsService.getGuests({
+        pageNumber: 1,
+        pageSize: 1000,
+        organizationId: organizationId
+      })
+      
+      const eventsPromise = EventsService.getEvents({
+        pageNumber: 1,
+        pageSize: 1000,
+        organizationId: organizationId
+      })
+      
+      // Tentar buscar check-ins, mas não falhar se der erro
+      let checkinsData = { checkIns: [] as CheckinDto[], totalCount: 0, pageNumber: 1, pageSize: 1000, totalPages: 0, checkedInCount: 0, checkedOutCount: 0 }
+      try {
+        checkinsData = await CheckinService.getCheckins({
+          pageNumber: 1,
+          pageSize: 1000
+        })
+      } catch (checkinError: any) {
+        console.warn('⚠️ Aviso: Não foi possível carregar check-ins:', checkinError.message)
+        // Continuar sem check-ins - a página ainda funcionará
+      }
+      
+      const [guestsResponse, eventsResponse] = await Promise.all([
+        guestsPromise,
+        eventsPromise
+      ])
+      
+      setGuests(guestsResponse.guests || [])
+      setCheckins(checkinsData.checkIns || [])
+      setEvents(eventsResponse.events || [])
+    } catch (err: any) {
+      console.error('❌ Erro ao atualizar dados:', err)
+      setError(err.message || 'Erro ao atualizar dados')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const periods = [
     { value: '7d', label: 'Últimos 7 dias' },
@@ -73,12 +293,7 @@ export default function GuestsReportPage() {
     { value: 'all', label: 'Todos os períodos' }
   ]
 
-  const events = [
-    { value: 'all', label: 'Todos os eventos' },
-    { value: 'event-1', label: 'Festa de Aniversário - Janeiro 2024' },
-    { value: 'event-2', label: 'Evento Corporativo - Q1 2024' },
-    { value: 'event-3', label: 'Festival de Verão 2024' }
-  ]
+  // Remover dados mockados - guestTypesData será simplificado já que não temos campo de tipo no GuestDto
 
   // Função para renderizar gráfico de linha da timeline de check-in
   const renderCheckInTimelineChart = () => {
@@ -177,9 +392,24 @@ export default function GuestsReportPage() {
     )
   }
 
-  // Função para renderizar gráfico de pizza dos tipos de convidados
+  // Função para renderizar gráfico de pizza de status de check-in
   const renderGuestTypesPieChart = () => {
-    if (!guestTypesData.length) return null
+    const checkedInCount = stats.checkedIn
+    const waitingCount = stats.waitingCheckIn
+    const total = stats.totalGuests
+    
+    if (total === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          Nenhum dado disponível
+        </div>
+      )
+    }
+
+    const data = [
+      { type: 'Check-in Realizado', count: checkedInCount, percentage: stats.checkInRate, color: '#10b981' },
+      { type: 'Aguardando Check-in', count: waitingCount, percentage: (waitingCount / total) * 100, color: '#f59e0b' }
+    ]
 
     const chartSize = 200
     const centerX = chartSize / 2
@@ -188,13 +418,12 @@ export default function GuestsReportPage() {
 
     let currentAngle = 0
 
-    const total = guestTypesData.reduce((sum, item) => sum + item.count, 0)
-
     return (
       <div className="w-full">
         <div className="flex items-center justify-center">
           <svg width={chartSize} height={chartSize} className="overflow-visible">
-            {guestTypesData.map((item, index) => {
+            {data.map((item, index) => {
+              if (item.count === 0) return null
               const percentage = item.count / total
               const angle = percentage * 360
               const startAngle = currentAngle
@@ -234,7 +463,7 @@ export default function GuestsReportPage() {
         
         {/* Legend */}
         <div className="mt-4 space-y-2">
-          {guestTypesData.map((item, index) => (
+          {data.map((item, index) => (
             <div key={index} className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <div 
@@ -261,6 +490,17 @@ export default function GuestsReportPage() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">❌ {error}</div>
+        <Button onClick={handleRefresh}>
+          Tentar Novamente
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -281,7 +521,7 @@ export default function GuestsReportPage() {
             <Download className="h-4 w-4 mr-2" />
             Exportar PDF
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Atualizar
           </Button>
@@ -305,8 +545,9 @@ export default function GuestsReportPage() {
             onChange={(e) => setSelectedEvent(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
+            <option value="all">Todos os eventos</option>
             {events.map(event => (
-              <option key={event.value} value={event.value}>{event.label}</option>
+              <option key={event.id} value={event.id}>{event.name}</option>
             ))}
           </select>
           <Button variant="outline">
@@ -324,9 +565,15 @@ export default function GuestsReportPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1.250</div>
+            <div className="text-2xl font-bold">{stats.totalGuests}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+15%</span> vs período anterior
+              {stats.guestsChange > 0 ? (
+                <span className="text-green-600">+{stats.guestsChange.toFixed(1)}%</span>
+              ) : stats.guestsChange < 0 ? (
+                <span className="text-red-600">{stats.guestsChange.toFixed(1)}%</span>
+              ) : (
+                <span>Sem alteração</span>
+              )} vs período anterior
             </p>
           </CardContent>
         </Card>
@@ -337,9 +584,15 @@ export default function GuestsReportPage() {
             <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">1.180</div>
+            <div className="text-2xl font-bold text-green-600">{stats.checkedIn}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12%</span> vs período anterior
+              {stats.checkinsChange > 0 ? (
+                <span className="text-green-600">+{stats.checkinsChange.toFixed(1)}%</span>
+              ) : stats.checkinsChange < 0 ? (
+                <span className="text-red-600">{stats.checkinsChange.toFixed(1)}%</span>
+              ) : (
+                <span>Sem alteração</span>
+              )} vs período anterior
             </p>
           </CardContent>
         </Card>
@@ -350,22 +603,31 @@ export default function GuestsReportPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">94.4%</div>
+            <div className="text-2xl font-bold text-green-600">{stats.checkInRate.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+2.1%</span> vs período anterior
+              {stats.checkInRateChange > 0 ? (
+                <span className="text-green-600">+{stats.checkInRateChange.toFixed(1)}%</span>
+              ) : stats.checkInRateChange < 0 ? (
+                <span className="text-red-600">{stats.checkInRateChange.toFixed(1)}%</span>
+              ) : (
+                <span>Sem alteração</span>
+              )} vs período anterior
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Convidados VIP</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Aguardando Check-in</CardTitle>
+            <UserX className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">85</div>
+            <div className="text-2xl font-bold text-orange-600">{stats.waitingCheckIn}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+8%</span> vs período anterior
+              {stats.totalGuests > 0 
+                ? `${((stats.waitingCheckIn / stats.totalGuests) * 100).toFixed(1)}% do total`
+                : 'Nenhum convidado'
+              }
             </p>
           </CardContent>
         </Card>
@@ -424,29 +686,17 @@ export default function GuestsReportPage() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Check-in Realizado</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">1.180</span>
-                  <span className="text-green-600 text-sm">94.4%</span>
+                  <span className="font-semibold">{stats.checkedIn}</span>
+                  <span className="text-green-600 text-sm">{stats.checkInRate.toFixed(1)}%</span>
                 </div>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Aguardando Check-in</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">70</span>
-                  <span className="text-orange-600 text-sm">5.6%</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Check-in Antecipado</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">320</span>
-                  <span className="text-blue-600 text-sm">27.1%</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Check-in no Dia</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">860</span>
-                  <span className="text-green-600 text-sm">72.9%</span>
+                  <span className="font-semibold">{stats.waitingCheckIn}</span>
+                  <span className="text-orange-600 text-sm">
+                    {stats.totalGuests > 0 ? ((stats.waitingCheckIn / stats.totalGuests) * 100).toFixed(1) : 0}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -465,35 +715,8 @@ export default function GuestsReportPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">VIP</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">85</span>
-                  <span className="text-purple-600 text-sm">6.8%</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Standard</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">1.100</span>
-                  <span className="text-blue-600 text-sm">88.0%</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Staff</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">45</span>
-                  <span className="text-green-600 text-sm">3.6%</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Press</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">20</span>
-                  <span className="text-orange-600 text-sm">1.6%</span>
-                </div>
-              </div>
+            <div className="text-center py-8 text-gray-500">
+              Informações demográficas não disponíveis nos dados atuais
             </div>
           </CardContent>
         </Card>
@@ -511,80 +734,47 @@ export default function GuestsReportPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {[
-              { 
-                name: 'Festa de Aniversário - Janeiro 2024', 
-                totalGuests: 85, 
-                checkedIn: 82, 
-                checkInRate: 96.5,
-                vipGuests: 12,
-                date: '15/01/2024'
-              },
-              { 
-                name: 'Evento Corporativo - Q1 2024', 
-                totalGuests: 120, 
-                checkedIn: 115, 
-                checkInRate: 95.8,
-                vipGuests: 25,
-                date: '22/01/2024'
-              },
-              { 
-                name: 'Festival de Verão 2024', 
-                totalGuests: 250, 
-                checkedIn: 240, 
-                checkInRate: 96.0,
-                vipGuests: 30,
-                date: '05/02/2024'
-              },
-              { 
-                name: 'Evento de Luxo - Março', 
-                totalGuests: 45, 
-                checkedIn: 42, 
-                checkInRate: 93.3,
-                vipGuests: 18,
-                date: '15/03/2024'
-              }
-            ].map((event, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex-1">
-                  <h4 className="font-medium">{event.name}</h4>
-                  <div className="flex gap-4 text-sm text-gray-500 mt-1">
-                    <span className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      {event.totalGuests} convidados
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <UserCheck className="h-4 w-4" />
-                      {event.checkedIn} check-in
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Target className="h-4 w-4" />
-                      {event.checkInRate}% taxa
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Star className="h-4 w-4" />
-                      {event.vipGuests} VIPs
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {event.date}
-                    </span>
+          {eventPerformanceData.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              Nenhum evento encontrado para análise
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {eventPerformanceData.map((event) => (
+                <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <h4 className="font-medium">{event.name}</h4>
+                    <div className="flex gap-4 text-sm text-gray-500 mt-1">
+                      <span className="flex items-center gap-1">
+                        <Users className="h-4 w-4" />
+                        {event.totalGuests} convidados
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <UserCheck className="h-4 w-4" />
+                        {event.checkedIn} check-in
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Target className="h-4 w-4" />
+                        {event.checkInRate.toFixed(1)}% taxa
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        {event.date}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Link href={`/events/${event.id}`}>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalhes
+                      </Button>
+                    </Link>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 mr-2" />
-                    Ver Detalhes
-                  </Button>
-                  <Button variant="outline" size="sm">
-                    <FileText className="h-4 w-4 mr-2" />
-                    Relatório
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -602,24 +792,35 @@ export default function GuestsReportPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600 mb-2">94.4%</div>
+              <div className={`text-3xl font-bold mb-2 ${
+                stats.checkInRate >= 90 ? 'text-green-600' :
+                stats.checkInRate >= 70 ? 'text-yellow-600' :
+                'text-red-600'
+              }`}>
+                {stats.checkInRate.toFixed(1)}%
+              </div>
               <div className="text-sm text-gray-500">Taxa de Check-in</div>
-              <div className="text-xs text-green-600 mt-1">Excelente</div>
+              <div className={`text-xs mt-1 ${
+                stats.checkInRate >= 90 ? 'text-green-600' :
+                stats.checkInRate >= 70 ? 'text-yellow-600' :
+                'text-red-600'
+              }`}>
+                {stats.checkInRate >= 90 ? 'Excelente' :
+                 stats.checkInRate >= 70 ? 'Bom' :
+                 'A melhorar'}
+              </div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">27.1%</div>
-              <div className="text-sm text-gray-500">Check-in Antecipado</div>
-              <div className="text-xs text-blue-600 mt-1">Bom</div>
+              <div className="text-3xl font-bold text-blue-600 mb-2">{stats.checkedIn}</div>
+              <div className="text-sm text-gray-500">Total de Check-ins</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600 mb-2">6.8%</div>
-              <div className="text-sm text-gray-500">Convidados VIP</div>
-              <div className="text-xs text-purple-600 mt-1">Alto Valor</div>
+              <div className="text-3xl font-bold text-orange-600 mb-2">{stats.waitingCheckIn}</div>
+              <div className="text-sm text-gray-500">Aguardando Check-in</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-orange-600 mb-2">4.2</div>
-              <div className="text-sm text-gray-500">Avaliação Média</div>
-              <div className="text-xs text-orange-600 mt-1">Muito Bom</div>
+              <div className="text-3xl font-bold text-purple-600 mb-2">{stats.totalGuests}</div>
+              <div className="text-sm text-gray-500">Total de Convidados</div>
             </div>
           </div>
         </CardContent>
@@ -637,37 +838,44 @@ export default function GuestsReportPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {[
-              { name: 'Festa de Aniversário - Janeiro 2024', checkInRate: 96.5, guests: 85, position: 1 },
-              { name: 'Festival de Verão 2024', checkInRate: 96.0, guests: 250, position: 2 },
-              { name: 'Evento Corporativo - Q1 2024', checkInRate: 95.8, guests: 120, position: 3 },
-              { name: 'Evento de Luxo - Março', checkInRate: 93.3, guests: 45, position: 4 }
-            ].map((event, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                    event.position === 1 ? 'bg-yellow-500' :
-                    event.position === 2 ? 'bg-gray-400' :
-                    event.position === 3 ? 'bg-orange-500' :
-                    'bg-gray-300'
-                  }`}>
-                    {event.position}
-                  </div>
-                  <div>
-                    <h4 className="font-medium">{event.name}</h4>
-                    <div className="flex gap-4 text-sm text-gray-500">
-                      <span>{event.guests} convidados</span>
-                      <span>{event.checkInRate}% check-in</span>
+          {eventPerformanceData.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              Nenhum evento encontrado para análise
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {eventPerformanceData.slice(0, 5).map((event, index) => (
+                <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                      index === 0 ? 'bg-yellow-500' :
+                      index === 1 ? 'bg-gray-400' :
+                      index === 2 ? 'bg-orange-500' :
+                      'bg-gray-300'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <h4 className="font-medium">{event.name}</h4>
+                      <div className="flex gap-4 text-sm text-gray-500">
+                        <span>{event.totalGuests} convidados</span>
+                        <span>{event.checkInRate.toFixed(1)}% check-in</span>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-2xl font-bold ${
+                      event.checkInRate >= 90 ? 'text-green-600' :
+                      event.checkInRate >= 70 ? 'text-yellow-600' :
+                      'text-red-600'
+                    }`}>
+                      {event.checkInRate.toFixed(1)}%
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold text-green-600">{event.checkInRate}%</span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import React from 'react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useTheme } from '@/lib/theme/theme-context'
 import {
   Calendar,
   Users,
@@ -28,6 +29,8 @@ import {
   CheckSquare,
   ClipboardList,
   X,
+  Sun,
+  Moon,
 } from 'lucide-react'
 
 interface NavigationItem {
@@ -132,7 +135,6 @@ const navigation: NavigationItem[] = [
       { name: 'Financeiro', href: '/reports/financial', icon: DollarSign },
       { name: 'Convidados', href: '/reports/guests', icon: Users },
       { name: 'Performance', href: '/reports/performance', icon: BarChart3 },
-      { name: 'Personalizado', href: '/reports/custom', icon: FileText },
     ]
   },
   {
@@ -141,8 +143,6 @@ const navigation: NavigationItem[] = [
     icon: Shield,
     children: [
       { name: 'Usuários', href: '/admin/users', icon: Users },
-      { name: 'Acessos', href: '/admin/access', icon: Shield },
-      { name: 'Cargos', href: '/admin/roles', icon: Shield },
     ]
   },
 ]
@@ -155,6 +155,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const [expandedItems, setExpandedItems] = useState<string[]>([])
 
   const handleLogout = () => {
@@ -217,14 +218,18 @@ export function Sidebar({ onClose }: SidebarProps) {
             <button
               onClick={() => toggleExpanded(item.name)}
               className={cn(
-                isActive ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:text-indigo-700 hover:bg-indigo-50',
+                isActive 
+                  ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' 
+                  : 'text-gray-700 hover:text-indigo-700 hover:bg-indigo-50 dark:text-gray-300 dark:hover:text-indigo-300 dark:hover:bg-indigo-900/30',
                 'group flex w-full items-center justify-between rounded-md p-2 text-sm leading-6 font-semibold'
               )}
             >
               <div className="flex items-center gap-x-3">
                 <item.icon
                   className={cn(
-                    isActive ? 'text-indigo-700' : 'text-gray-400 group-hover:text-indigo-700',
+                    isActive 
+                      ? 'text-indigo-700 dark:text-indigo-300' 
+                      : 'text-gray-400 group-hover:text-indigo-700 dark:text-gray-500 dark:group-hover:text-indigo-300',
                     'h-6 w-6 shrink-0'
                   )}
                   aria-hidden="true"
@@ -232,9 +237,9 @@ export function Sidebar({ onClose }: SidebarProps) {
                 {item.name}
               </div>
               {isExpanded ? (
-                <ChevronDown className="h-4 w-4 text-gray-400" />
+                <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-gray-400" />
+                <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               )}
             </button>
           ) : (
@@ -242,13 +247,17 @@ export function Sidebar({ onClose }: SidebarProps) {
               href={item.href}
               onClick={handleLinkClick}
               className={cn(
-                isActive ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:text-indigo-700 hover:bg-indigo-50',
+                isActive 
+                  ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' 
+                  : 'text-gray-700 hover:text-indigo-700 hover:bg-indigo-50 dark:text-gray-300 dark:hover:text-indigo-300 dark:hover:bg-indigo-900/30',
                 'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
               )}
             >
               <item.icon
                 className={cn(
-                  isActive ? 'text-indigo-700' : 'text-gray-400 group-hover:text-indigo-700',
+                  isActive 
+                    ? 'text-indigo-700 dark:text-indigo-300' 
+                    : 'text-gray-400 group-hover:text-indigo-700 dark:text-gray-500 dark:group-hover:text-indigo-300',
                   'h-6 w-6 shrink-0'
                 )}
                 aria-hidden="true"
@@ -267,14 +276,16 @@ export function Sidebar({ onClose }: SidebarProps) {
                   onClick={handleLinkClick}
                   className={cn(
                     pathname === child.href
-                      ? 'bg-indigo-50 text-indigo-700'
-                      : 'text-gray-600 hover:text-indigo-700 hover:bg-indigo-50',
+                      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+                      : 'text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-gray-400 dark:hover:text-indigo-300 dark:hover:bg-indigo-900/30',
                     'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-medium'
                   )}
                 >
                   <child.icon
                     className={cn(
-                      pathname === child.href ? 'text-indigo-700' : 'text-gray-400 group-hover:text-indigo-700',
+                      pathname === child.href 
+                        ? 'text-indigo-700 dark:text-indigo-300' 
+                        : 'text-gray-400 group-hover:text-indigo-700 dark:text-gray-500 dark:group-hover:text-indigo-300',
                       'h-5 w-5 shrink-0'
                     )}
                     aria-hidden="true"
@@ -290,15 +301,15 @@ export function Sidebar({ onClose }: SidebarProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-white shadow-lg">
+    <div className="flex h-full flex-col bg-white dark:bg-gray-900 shadow-lg">
       {/* Logo and Close button */}
-      <div className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-gray-200">
-        <h1 className="text-xl font-bold text-gray-900">Pulse8</h1>
+      <div className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-gray-200 dark:border-gray-700">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Pulse8</h1>
         {/* Close button - only visible on mobile */}
         {onClose && (
           <button
             onClick={onClose}
-            className="lg:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+            className="lg:hidden p-2 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800"
             aria-label="Fechar menu"
           >
             <X className="h-6 w-6" />
@@ -318,7 +329,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* User menu - fixed at bottom */}
-      <div className="shrink-0 border-t border-gray-200 p-6 bg-white">
+      <div className="shrink-0 border-t border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-900">
         <div className="flex items-center">
           <div className="flex-shrink-0">
             <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">
@@ -328,15 +339,31 @@ export function Sidebar({ onClose }: SidebarProps) {
             </div>
           </div>
           <div className="ml-3">
-            <p className="text-sm font-medium text-gray-700">
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
               {user?.name || 'Usuário'}
             </p>
-            <p className="text-xs text-gray-500">{user?.email || 'usuario@exemplo.com'}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email || 'usuario@exemplo.com'}</p>
           </div>
         </div>
         <button 
+          onClick={toggleTheme}
+          className="mt-4 flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+        >
+          {theme === 'dark' ? (
+            <>
+              <Sun className="mr-3 h-4 w-4" />
+              Modo Light
+            </>
+          ) : (
+            <>
+              <Moon className="mr-3 h-4 w-4" />
+              Modo Dark
+            </>
+          )}
+        </button>
+        <button 
           onClick={handleLogout}
-          className="mt-4 flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50"
+          className="mt-2 flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
         >
           <LogOut className="mr-3 h-4 w-4" />
           Sair

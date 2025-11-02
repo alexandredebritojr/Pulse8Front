@@ -1,13 +1,12 @@
 'use client'
 
-import { AuthProvider } from '@/lib/auth/auth-context'
 import { useRequireAuth } from '@/hooks/use-auth'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
 import { useState } from 'react'
 import { Toaster } from 'react-hot-toast'
 
-function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useRequireAuth()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
@@ -24,7 +23,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -76,7 +75,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       {/* Main content */}
       <div className="lg:pl-64">
         <Header user={user} onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} />
-        <main className="py-6">
+        <main className="py-6 bg-gray-50 dark:bg-gray-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {children}
           </div>
@@ -85,12 +84,3 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
-
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <DashboardLayoutContent>{children}</DashboardLayoutContent>
-    </AuthProvider>
-  )
-}
-

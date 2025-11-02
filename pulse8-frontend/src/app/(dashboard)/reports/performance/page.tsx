@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { 
   ArrowLeft,
@@ -29,41 +29,182 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EventsService, EventDto } from '@/lib/api/events'
+import { GuestsService } from '@/lib/api/guests'
+import { RevenueService } from '@/lib/api/revenue'
+import { ExpensesService } from '@/lib/api/expenses'
+import { formatDate, formatCurrency } from '@/lib/utils'
 
 export default function PerformanceReportPage() {
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string>('')
   const [selectedPeriod, setSelectedPeriod] = useState('30d')
   const [selectedMetric, setSelectedMetric] = useState('all')
+  const [events, setEvents] = useState<EventDto[]>([])
+  const [guests, setGuests] = useState<any[]>([])
+  const [revenues, setRevenues] = useState<any[]>([])
+  const [expenses, setExpenses] = useState<any[]>([])
 
-  // Dados para os gráficos
-  const performanceTrendData = [
-    { month: 'Jan', performance: 88 },
-    { month: 'Fev', performance: 91 },
-    { month: 'Mar', performance: 89 },
-    { month: 'Abr', performance: 93 },
-    { month: 'Mai', performance: 90 },
-    { month: 'Jun', performance: 94 },
-    { month: 'Jul', performance: 92 },
-    { month: 'Ago', performance: 96 },
-    { month: 'Set', performance: 94 },
-    { month: 'Out', performance: 97 },
-    { month: 'Nov', performance: 95 },
-    { month: 'Dez', performance: 98 }
-  ]
-
-  const efficiencyDistributionData = [
-    { category: 'Excelente', count: 8, percentage: 33.3, color: '#10b981' },
-    { category: 'Muito Bom', count: 10, percentage: 41.7, color: '#3b82f6' },
-    { category: 'Bom', count: 4, percentage: 16.7, color: '#f59e0b' },
-    { category: 'Regular', count: 2, percentage: 8.3, color: '#ef4444' }
-  ]
-
-  // Mock data - em produção viria da API
+  // Carregar dados da API
   useEffect(() => {
-    setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
+    const loadData = async () => {
+      try {
+        setIsLoading(true)
+        setError('')
+        
+        const organizationId = localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
+        
+        const [eventsResponse, guestsResponse, revenuesResponse, expensesResponse] = await Promise.all([
+          EventsService.getEvents({ pageNumber: 1, pageSize: 1000, organizationId }),
+          GuestsService.getGuests({ pageNumber: 1, pageSize: 1000, organizationId }),
+          RevenueService.getRevenue({ pageNumber: 1, pageSize: 1000, organizationId }),
+          ExpensesService.getExpenses({ pageNumber: 1, pageSize: 1000, organizationId })
+        ])
+        
+        setEvents(eventsResponse.events || [])
+        setGuests(guestsResponse.guests || [])
+        setRevenues(revenuesResponse.revenues || [])
+        setExpenses(expensesResponse.expenses || [])
+      } catch (err: any) {
+        console.error('❌ Erro ao carregar dados:', err)
+        setError(err.message || 'Erro ao carregar dados')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
+
+  // Função para calcular data de início do período
+  const getPeriodStartDate = (period: string): Date | null => {
+    const now = new Date()
+    const start = new Date()
+    switch (period) {
+      case '7d': start.setDate(now.getDate() - 7); return start
+      case '30d': start.setDate(now.getDate() - 30); return start
+      case '90d': start.setDate(now.getDate() - 90); return start
+      case '1y': start.setFullYear(now.getFullYear() - 1); return start
+      default: return null
+    }
+  }
+
+  // Calcular performance geral baseada em eventos concluídos
+  const performanceStats = useMemo(() => {
+    const totalEvents = events.length
+    const completedEvents = events.filter(e => String(e.status || '').toLowerCase() === 'completed').length
+    const activeEvents = events.filter(e => String(e.status || '').toLowerCase() === 'active').length
+    const totalRevenue = revenues.reduce((sum, r) => sum + r.amount, 0)
+    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
+    const profit = totalRevenue - totalExpenses
+    const successRate = totalEvents > 0 ? (completedEvents / totalEvents) * 100 : 0
+    
+    // Score de performance combinado (0-100)
+    const performanceScore = 
+      (successRate * 0.4) + // 40% baseado em taxa de sucesso
+      (totalEvents > 0 ? Math.min((totalEvents / 10) * 20, 20) : 0) + // 20% baseado em volume
+      (totalRevenue > 0 && totalExpenses > 0 ? Math.min((profit / totalExpenses) * 20, 20) : 0) + // 20% baseado em lucro
+      20 // 20% base fixo
+
+    return {
+      totalEvents,
+      completedEvents,
+      activeEvents,
+      successRate,
+      performanceScore: Math.min(performanceScore, 100),
+      totalRevenue,
+      totalExpenses,
+      profit
+    }
+  }, [events, revenues, expenses])
+
+  // Gerar dados de tendência de performance mensal
+  const performanceTrendData = useMemo(() => {
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    const monthlyPerformance: { [key: string]: { events: number; completed: number } } = {}
+    
+    events.forEach(event => {
+      const eventDate = new Date(event.startDate)
+      const monthKey = `${eventDate.getFullYear()}-${eventDate.getMonth()}`
+      if (!monthlyPerformance[monthKey]) {
+        monthlyPerformance[monthKey] = { events: 0, completed: 0 }
+      }
+      monthlyPerformance[monthKey].events++
+      if (String(event.status || '').toLowerCase() === 'completed') {
+        monthlyPerformance[monthKey].completed++
+      }
+    })
+    
+    const now = new Date()
+    return Array.from({ length: 12 }, (_, i) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1)
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`
+      const data = monthlyPerformance[monthKey] || { events: 0, completed: 0 }
+      const performance = data.events > 0 ? (data.completed / data.events) * 100 : 0
+      return {
+        month: months[date.getMonth()],
+        performance: Math.round(performance)
+      }
+    })
+  }, [events])
+
+  // Distribuição de eficiência baseada em performance dos eventos
+  const efficiencyDistributionData = useMemo(() => {
+    const efficiencyCounts = {
+      'Excelente': 0,
+      'Muito Bom': 0,
+      'Bom': 0,
+      'Regular': 0
+    }
+    
+    events.forEach(event => {
+      if (String(event.status || '').toLowerCase() === 'completed') {
+        const roi = event.roi || 0
+        if (roi > 2) efficiencyCounts['Excelente']++
+        else if (roi > 1) efficiencyCounts['Muito Bom']++
+        else if (roi > 0) efficiencyCounts['Bom']++
+        else efficiencyCounts['Regular']++
+      }
+    })
+    
+    const total = Object.values(efficiencyCounts).reduce((sum, count) => sum + count, 0)
+    const colors: { [key: string]: string } = {
+      'Excelente': '#10b981',
+      'Muito Bom': '#3b82f6',
+      'Bom': '#f59e0b',
+      'Regular': '#ef4444'
+    }
+    
+    return Object.entries(efficiencyCounts)
+      .filter(([_, count]) => count > 0)
+      .map(([category, count]) => ({
+        category,
+        count,
+        percentage: total > 0 ? (count / total) * 100 : 0,
+        color: colors[category]
+      }))
+  }, [events])
+
+  const handleRefresh = async () => {
+    try {
+      setIsLoading(true)
+      const organizationId = localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
+      const [eventsResponse, guestsResponse, revenuesResponse, expensesResponse] = await Promise.all([
+        EventsService.getEvents({ pageNumber: 1, pageSize: 1000, organizationId }),
+        GuestsService.getGuests({ pageNumber: 1, pageSize: 1000, organizationId }),
+        RevenueService.getRevenue({ pageNumber: 1, pageSize: 1000, organizationId }),
+        ExpensesService.getExpenses({ pageNumber: 1, pageSize: 1000, organizationId })
+      ])
+      setEvents(eventsResponse.events || [])
+      setGuests(guestsResponse.guests || [])
+      setRevenues(revenuesResponse.revenues || [])
+      setExpenses(expensesResponse.expenses || [])
+    } catch (err: any) {
+      setError(err.message || 'Erro ao atualizar dados')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const periods = [
     { value: '7d', label: 'Últimos 7 dias' },
@@ -254,10 +395,39 @@ export default function PerformanceReportPage() {
     )
   }
 
+  // Calcular ROI médio
+  const avgROI = useMemo(() => {
+    const eventsWithROI = events.filter(e => e.roi !== null && e.roi !== undefined && e.roi > 0)
+    if (eventsWithROI.length === 0) return 0
+    const totalROI = eventsWithROI.reduce((sum, e) => sum + (e.roi || 0), 0)
+    return totalROI / eventsWithROI.length
+  }, [events])
+
+  // Calcular eficiência operacional (baseada em sucesso vs custo)
+  const operationalEfficiency = useMemo(() => {
+    if (events.length === 0) return 0
+    const completed = events.filter(e => String(e.status || '').toLowerCase() === 'completed').length
+    const avgBudget = events.reduce((sum, e) => sum + (e.totalBudget || 0), 0) / events.length
+    const avgCost = events.reduce((sum, e) => sum + (e.totalCost || 0), 0) / events.length
+    const budgetEfficiency = avgBudget > 0 ? (1 - (avgCost / avgBudget)) * 100 : 0
+    return (completed / events.length) * 0.6 + Math.min(budgetEfficiency, 100) * 0.4
+  }, [events])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">❌ {error}</div>
+        <Button onClick={handleRefresh}>
+          Tentar Novamente
+        </Button>
       </div>
     )
   }
@@ -282,7 +452,7 @@ export default function PerformanceReportPage() {
             <Download className="h-4 w-4 mr-2" />
             Exportar PDF
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Atualizar
           </Button>
@@ -325,9 +495,15 @@ export default function PerformanceReportPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">94%</div>
+            <div className={`text-2xl font-bold ${
+              performanceStats.performanceScore >= 80 ? 'text-green-600' :
+              performanceStats.performanceScore >= 60 ? 'text-yellow-600' :
+              'text-red-600'
+            }`}>
+              {performanceStats.performanceScore.toFixed(0)}%
+            </div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+5%</span> vs período anterior
+              Score combinado de performance
             </p>
           </CardContent>
         </Card>
@@ -338,9 +514,15 @@ export default function PerformanceReportPage() {
             <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">87%</div>
+            <div className={`text-2xl font-bold ${
+              operationalEfficiency >= 70 ? 'text-blue-600' :
+              operationalEfficiency >= 50 ? 'text-yellow-600' :
+              'text-red-600'
+            }`}>
+              {operationalEfficiency.toFixed(0)}%
+            </div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+3%</span> vs período anterior
+              Baseado em sucesso e custos
             </p>
           </CardContent>
         </Card>
@@ -351,22 +533,34 @@ export default function PerformanceReportPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">2.1x</div>
+            <div className={`text-2xl font-bold ${
+              avgROI > 2 ? 'text-purple-600' :
+              avgROI > 1 ? 'text-blue-600' :
+              'text-gray-600'
+            }`}>
+              {avgROI > 0 ? `${avgROI.toFixed(1)}x` : '-'}
+            </div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+0.3x</span> vs período anterior
+              {avgROI > 0 ? 'Return on Investment' : 'Sem dados disponíveis'}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Satisfação</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Taxa de Sucesso</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">4.7/5</div>
+            <div className={`text-2xl font-bold ${
+              performanceStats.successRate >= 80 ? 'text-green-600' :
+              performanceStats.successRate >= 60 ? 'text-yellow-600' :
+              'text-red-600'
+            }`}>
+              {performanceStats.successRate.toFixed(0)}%
+            </div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+0.2</span> vs período anterior
+              {performanceStats.completedEvents} de {performanceStats.totalEvents} concluídos
             </p>
           </CardContent>
         </Card>
@@ -425,29 +619,40 @@ export default function PerformanceReportPage() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Receita por Evento</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">R$ 18.750</span>
-                  <span className="text-green-600 text-sm">+12%</span>
+                  <span className="font-semibold">
+                    {performanceStats.totalEvents > 0 
+                      ? formatCurrency(performanceStats.totalRevenue / performanceStats.totalEvents)
+                      : '-'
+                    }
+                  </span>
                 </div>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Margem de Lucro</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">37.8%</span>
-                  <span className="text-green-600 text-sm">+3.2%</span>
+                  <span className="font-semibold">
+                    {performanceStats.totalRevenue > 0
+                      ? `${((performanceStats.profit / performanceStats.totalRevenue) * 100).toFixed(1)}%`
+                      : '-'
+                    }
+                  </span>
                 </div>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">ROI Médio</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">2.1x</span>
-                  <span className="text-green-600 text-sm">+0.3x</span>
+                  <span className="font-semibold">{avgROI > 0 ? `${avgROI.toFixed(1)}x` : '-'}</span>
                 </div>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Receita por Convidado</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">R$ 360</span>
-                  <span className="text-green-600 text-sm">+8%</span>
+                  <span className="font-semibold">
+                    {guests.length > 0 && performanceStats.totalRevenue > 0
+                      ? formatCurrency(performanceStats.totalRevenue / guests.length)
+                      : '-'
+                    }
+                  </span>
                 </div>
               </div>
             </div>
@@ -470,29 +675,25 @@ export default function PerformanceReportPage() {
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Taxa de Sucesso</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">94%</span>
-                  <span className="text-green-600 text-sm">+2%</span>
+                  <span className="font-semibold">{performanceStats.successRate.toFixed(1)}%</span>
                 </div>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Eficiência de Check-in</span>
+                <span className="text-sm text-gray-600">Eficiência Operacional</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">94.4%</span>
-                  <span className="text-green-600 text-sm">+2.1%</span>
+                  <span className="font-semibold">{operationalEfficiency.toFixed(1)}%</span>
                 </div>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Tempo Médio de Setup</span>
+                <span className="text-sm text-gray-600">Total de Eventos</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">2.5h</span>
-                  <span className="text-green-600 text-sm">-0.3h</span>
+                  <span className="font-semibold">{performanceStats.totalEvents}</span>
                 </div>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Satisfação da Equipe</span>
+                <span className="text-sm text-gray-600">Eventos Concluídos</span>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">4.6/5</span>
-                  <span className="text-green-600 text-sm">+0.1</span>
+                  <span className="font-semibold">{performanceStats.completedEvents}</span>
                 </div>
               </div>
             </div>
@@ -512,88 +713,87 @@ export default function PerformanceReportPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {[
-              { 
-                name: 'Festa de Aniversário - Janeiro 2024', 
-                performance: 98.5, 
-                revenue: 85000, 
-                guests: 85, 
-                satisfaction: 4.9,
-                position: 1
-              },
-              { 
-                name: 'Evento Corporativo - Q1 2024', 
-                performance: 96.2, 
-                revenue: 120000, 
-                guests: 120, 
-                satisfaction: 4.8,
-                position: 2
-              },
-              { 
-                name: 'Festival de Verão 2024', 
-                performance: 94.8, 
-                revenue: 180000, 
-                guests: 250, 
-                satisfaction: 4.7,
-                position: 3
-              },
-              { 
-                name: 'Evento de Luxo - Março', 
-                performance: 92.1, 
-                revenue: 65000, 
-                guests: 45, 
-                satisfaction: 4.6,
-                position: 4
-              }
-            ].map((event, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
-                    event.position === 1 ? 'bg-yellow-500' :
-                    event.position === 2 ? 'bg-gray-400' :
-                    event.position === 3 ? 'bg-orange-500' :
-                    'bg-gray-300'
-                  }`}>
-                    {event.position}
+          {events.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              Nenhum evento encontrado para análise
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {events
+                .map(event => {
+                  const eventRevenue = revenues.filter(r => r.eventId === event.id).reduce((sum, r) => sum + r.amount, 0)
+                  const eventGuests = guests.filter(g => g.eventId === event.id).length
+                  const roi = event.roi || 0
+                  const performance = String(event.status || '').toLowerCase() === 'completed' 
+                    ? (roi > 2 ? 95 : roi > 1 ? 85 : roi > 0 ? 75 : 60)
+                    : 50
+                  
+                  return {
+                    id: event.id,
+                    name: event.name,
+                    performance,
+                    revenue: eventRevenue || event.totalRevenue || 0,
+                    guests: eventGuests || event.capacity || 0,
+                    roi
+                  }
+                })
+                .sort((a, b) => b.performance - a.performance)
+                .slice(0, 10)
+                .map((event, index) => (
+                <div key={event.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${
+                      index === 0 ? 'bg-yellow-500' :
+                      index === 1 ? 'bg-gray-400' :
+                      index === 2 ? 'bg-orange-500' :
+                      'bg-gray-300'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <h4 className="font-medium">{event.name}</h4>
+                      <div className="flex gap-4 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <DollarSign className="h-4 w-4" />
+                          {formatCurrency(event.revenue)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          {event.guests} convidados
+                        </span>
+                        {event.roi > 0 && (
+                          <span className="flex items-center gap-1">
+                            <TrendingUp className="h-4 w-4" />
+                            ROI: {event.roi.toFixed(1)}x
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium">{event.name}</h4>
-                    <div className="flex gap-4 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <DollarSign className="h-4 w-4" />
-                        R$ {event.revenue.toLocaleString()}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        {event.guests} convidados
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Star className="h-4 w-4" />
-                        {event.satisfaction}/5
-                      </span>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className={`text-2xl font-bold ${
+                        event.performance >= 90 ? 'text-green-600' :
+                        event.performance >= 70 ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        {event.performance}%
+                      </div>
+                      <div className="text-xs text-gray-500">Performance</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Link href={`/events/${event.id}`}>
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Detalhes
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-green-600">{event.performance}%</div>
-                    <div className="text-xs text-gray-500">Performance</div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver Detalhes
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Relatório
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -611,19 +811,51 @@ export default function PerformanceReportPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600 mb-2">94%</div>
+              <div className={`text-3xl font-bold mb-2 ${
+                performanceStats.performanceScore >= 80 ? 'text-green-600' :
+                performanceStats.performanceScore >= 60 ? 'text-yellow-600' :
+                'text-red-600'
+              }`}>
+                {performanceStats.performanceScore.toFixed(0)}%
+              </div>
               <div className="text-sm text-gray-500">Performance Geral</div>
-              <div className="text-xs text-green-600 mt-1">Excelente</div>
+              <div className={`text-xs mt-1 ${
+                performanceStats.performanceScore >= 80 ? 'text-green-600' :
+                performanceStats.performanceScore >= 60 ? 'text-yellow-600' :
+                'text-red-600'
+              }`}>
+                {performanceStats.performanceScore >= 80 ? 'Excelente' :
+                 performanceStats.performanceScore >= 60 ? 'Bom' :
+                 'A melhorar'}
+              </div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-2">87%</div>
+              <div className={`text-3xl font-bold mb-2 ${
+                operationalEfficiency >= 70 ? 'text-blue-600' :
+                operationalEfficiency >= 50 ? 'text-yellow-600' :
+                'text-red-600'
+              }`}>
+                {operationalEfficiency.toFixed(0)}%
+              </div>
               <div className="text-sm text-gray-500">Eficiência Operacional</div>
-              <div className="text-xs text-blue-600 mt-1">Muito Bom</div>
+              <div className={`text-xs mt-1 ${
+                operationalEfficiency >= 70 ? 'text-blue-600' :
+                operationalEfficiency >= 50 ? 'text-yellow-600' :
+                'text-red-600'
+              }`}>
+                {operationalEfficiency >= 70 ? 'Muito Bom' :
+                 operationalEfficiency >= 50 ? 'Bom' :
+                 'A melhorar'}
+              </div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600 mb-2">2.1x</div>
+              <div className={`text-3xl font-bold mb-2 ${avgROI > 0 ? (avgROI > 2 ? 'text-purple-600' : avgROI > 1 ? 'text-blue-600' : 'text-yellow-600') : 'text-gray-600'}`}>
+                {avgROI > 0 ? `${avgROI.toFixed(1)}x` : '-'}
+              </div>
               <div className="text-sm text-gray-500">ROI Médio</div>
-              <div className="text-xs text-purple-600 mt-1">Bom</div>
+              <div className={`text-xs mt-1 ${avgROI > 0 ? (avgROI > 2 ? 'text-purple-600' : avgROI > 1 ? 'text-blue-600' : 'text-yellow-600') : 'text-gray-500'}`}>
+                {avgROI > 0 ? (avgROI > 2 ? 'Excelente' : avgROI > 1 ? 'Bom' : 'Regular') : 'Sem dados'}
+              </div>
             </div>
           </div>
         </CardContent>

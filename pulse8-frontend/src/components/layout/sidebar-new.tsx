@@ -132,7 +132,6 @@ const navigation: NavigationItem[] = [
       { name: 'Financeiro', href: '/reports/financial', icon: DollarSign },
       { name: 'Convidados', href: '/reports/guests', icon: Users },
       { name: 'Performance', href: '/reports/performance', icon: BarChart3 },
-      { name: 'Personalizado', href: '/reports/custom', icon: FileText },
     ]
   },
   {
@@ -152,8 +151,6 @@ const navigation: NavigationItem[] = [
     icon: Shield,
     children: [
       { name: 'Usuários', href: '/admin/users', icon: Users },
-      { name: 'Acessos', href: '/admin/access', icon: Shield },
-      { name: 'Cargos', href: '/admin/roles', icon: Shield },
     ]
   },
 ]

@@ -4,23 +4,16 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { 
-  ArrowLeft,
   Users, 
   UserPlus,
   Search,
-  Filter,
   RefreshCw,
   Download,
-  Upload,
-  Plus,
   Edit,
   Trash2,
   Eye,
-  Key,
   Mail,
   Phone,
-  MapPin,
-  Calendar,
   Clock,
   CheckCircle,
   AlertCircle,
@@ -28,11 +21,6 @@ import {
   UserX,
   Crown,
   Award,
-  Shield,
-  Lock,
-  Unlock,
-  Settings,
-  MoreHorizontal,
   Grid,
   List
 } from 'lucide-react'
@@ -216,14 +204,9 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4 flex-1 min-w-0">
-          <Link href="/admin" className="flex-shrink-0">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
           <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Gerenciar Usuários</h1>
-            <p className="text-sm sm:text-base text-gray-600">Gerencie usuários e suas permissões</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Gerenciar Usuários</h1>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Gerencie usuários e suas permissões</p>
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -322,7 +305,7 @@ export default function UsersPage() {
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[140px]"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[140px] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           >
             {roles.map(role => (
               <option key={role.value} value={role.value}>{role.label}</option>
@@ -331,7 +314,7 @@ export default function UsersPage() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[120px]"
+            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm flex-shrink-0 min-w-[120px] bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           >
             {statuses.map(status => (
               <option key={status.value} value={status.value}>{status.label}</option>
@@ -362,8 +345,8 @@ export default function UsersPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="text-red-800">{error}</div>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
+          <div className="text-red-800 dark:text-red-300">{error}</div>
         </div>
       )}
 
@@ -515,9 +498,9 @@ export default function UsersPage() {
       {/* Empty State */}
       {filteredUsers.length === 0 && (
         <div className="text-center py-12">
-          <Users className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum usuário encontrado</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <Users className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-300">Nenhum usuário encontrado</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {searchTerm || filterRole !== 'all' || filterStatus !== 'all'
               ? 'Tente ajustar os filtros de busca.'
               : 'Nenhum usuário cadastrado no sistema.'

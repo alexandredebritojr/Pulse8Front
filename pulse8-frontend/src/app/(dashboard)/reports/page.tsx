@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { 
   BarChart3, 
@@ -13,7 +13,6 @@ import {
   Award,
   PieChart,
   LineChart,
-  Activity,
   Download,
   Filter,
   RefreshCw,
@@ -23,51 +22,154 @@ import {
   Star,
   CheckCircle,
   AlertCircle,
-  Plus,
   Search
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EventsService, EventDto } from '@/lib/api/events'
+import { GuestsService } from '@/lib/api/guests'
+import { RevenueService } from '@/lib/api/revenue'
+import { formatCurrency } from '@/lib/utils'
 
 export default function ReportsPage() {
-  const [isLoading, setIsLoading] = useState(true) // Inicializar como true para simular carregamento
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string>('')
   const [selectedPeriod, setSelectedPeriod] = useState('30d')
   const [selectedEvent, setSelectedEvent] = useState('all')
+  const [events, setEvents] = useState<EventDto[]>([])
+  const [guests, setGuests] = useState<any[]>([])
+  const [revenues, setRevenues] = useState<any[]>([])
 
-  // Dados para os gráficos
-  const revenueData = [
-    { month: 'Jan', revenue: 45000 },
-    { month: 'Fev', revenue: 52000 },
-    { month: 'Mar', revenue: 48000 },
-    { month: 'Abr', revenue: 61000 },
-    { month: 'Mai', revenue: 55000 },
-    { month: 'Jun', revenue: 67000 },
-    { month: 'Jul', revenue: 72000 },
-    { month: 'Ago', revenue: 68000 },
-    { month: 'Set', revenue: 75000 },
-    { month: 'Out', revenue: 82000 },
-    { month: 'Nov', revenue: 78000 },
-    { month: 'Dez', revenue: 89000 }
-  ]
-
-  const eventDistributionData = [
-    { type: 'Corporativo', count: 8, percentage: 33.3, color: '#3b82f6' },
-    { type: 'Social', count: 6, percentage: 25.0, color: '#10b981' },
-    { type: 'Cultural', count: 5, percentage: 20.8, color: '#f59e0b' },
-    { type: 'Esportivo', count: 3, percentage: 12.5, color: '#ef4444' },
-    { type: 'Religioso', count: 2, percentage: 8.4, color: '#8b5cf6' }
-  ]
-
-  // Mock data - em produção viria da API
+  // Carregar dados da API
   useEffect(() => {
-    // Simular carregamento inicial
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 500) // Reduzir tempo de loading para melhor UX
-    
-    return () => clearTimeout(timer)
+    const loadData = async () => {
+      try {
+        setIsLoading(true)
+        setError('')
+        
+        const organizationId = localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
+        
+        const [eventsResponse, guestsResponse, revenuesResponse] = await Promise.all([
+          EventsService.getEvents({ pageNumber: 1, pageSize: 1000, organizationId }),
+          GuestsService.getGuests({ pageNumber: 1, pageSize: 1000, organizationId }),
+          RevenueService.getRevenue({ pageNumber: 1, pageSize: 1000, organizationId })
+        ])
+        
+        setEvents(eventsResponse.events || [])
+        setGuests(guestsResponse.guests || [])
+        setRevenues(revenuesResponse.revenues || [])
+      } catch (err: any) {
+        console.error('❌ Erro ao carregar dados:', err)
+        setError(err.message || 'Erro ao carregar dados')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadData()
   }, [])
+
+  // Calcular estatísticas
+  const stats = useMemo(() => {
+    const totalEvents = events.length
+    const completedEvents = events.filter(e => String(e.status || '').toLowerCase() === 'completed').length
+    const successRate = totalEvents > 0 ? (completedEvents / totalEvents) * 100 : 0
+    const totalRevenue = revenues.reduce((sum, r) => sum + r.amount, 0)
+    const totalGuests = guests.length
+
+    return {
+      totalEvents,
+      completedEvents,
+      successRate,
+      totalRevenue,
+      totalGuests
+    }
+  }, [events, revenues, guests])
+
+  // Gerar dados de receita mensal
+  const revenueData = useMemo(() => {
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+    const monthlyRevenue: { [key: string]: number } = {}
+    
+    revenues.forEach(revenue => {
+      const date = new Date(revenue.date)
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`
+      monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + revenue.amount
+    })
+    
+    const now = new Date()
+    return Array.from({ length: 12 }, (_, i) => {
+      const date = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1)
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`
+      return {
+        month: months[date.getMonth()],
+        revenue: monthlyRevenue[monthKey] || 0
+      }
+    })
+  }, [revenues])
+
+  // Gerar dados de distribuição de eventos
+  const eventDistributionData = useMemo(() => {
+    const typeColors: { [key: string]: string } = {
+      'Corporativo': '#3b82f6',
+      'Social': '#10b981',
+      'Cultural': '#f59e0b',
+      'Esportivo': '#ef4444',
+      'Religioso': '#8b5cf6',
+      'Outros': '#6b7280'
+    }
+    
+    const typeCounts: { [key: string]: number } = {}
+    
+    events.forEach(event => {
+      const nameLower = (event.name || '').toLowerCase()
+      let type = 'Outros'
+      
+      if (nameLower.includes('corporativo') || nameLower.includes('empresa') || nameLower.includes('business')) {
+        type = 'Corporativo'
+      } else if (nameLower.includes('festa') || nameLower.includes('aniversário') || nameLower.includes('social')) {
+        type = 'Social'
+      } else if (nameLower.includes('cultural') || nameLower.includes('arte') || nameLower.includes('música')) {
+        type = 'Cultural'
+      } else if (nameLower.includes('esport') || nameLower.includes('jogo') || nameLower.includes('competição')) {
+        type = 'Esportivo'
+      } else if (nameLower.includes('religios') || nameLower.includes('igreja') || nameLower.includes('missa')) {
+        type = 'Religioso'
+      }
+      
+      typeCounts[type] = (typeCounts[type] || 0) + 1
+    })
+    
+    const total = events.length
+    return Object.entries(typeCounts)
+      .map(([type, count]) => ({
+        type,
+        count,
+        percentage: total > 0 ? (count / total) * 100 : 0,
+        color: typeColors[type] || '#6b7280'
+      }))
+      .sort((a, b) => b.count - a.count)
+  }, [events])
+
+  const handleRefresh = async () => {
+    try {
+      setIsLoading(true)
+      const organizationId = localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
+      const [eventsResponse, guestsResponse, revenuesResponse] = await Promise.all([
+        EventsService.getEvents({ pageNumber: 1, pageSize: 1000, organizationId }),
+        GuestsService.getGuests({ pageNumber: 1, pageSize: 1000, organizationId }),
+        RevenueService.getRevenue({ pageNumber: 1, pageSize: 1000, organizationId })
+      ])
+      setEvents(eventsResponse.events || [])
+      setGuests(guestsResponse.guests || [])
+      setRevenues(revenuesResponse.revenues || [])
+    } catch (err: any) {
+      setError(err.message || 'Erro ao atualizar dados')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const periods = [
     { value: '7d', label: 'Últimos 7 dias' },
@@ -77,20 +179,6 @@ export default function ReportsPage() {
     { value: 'all', label: 'Todos os períodos' }
   ]
 
-  const events = [
-    { value: 'all', label: 'Todos os eventos' },
-    { value: 'event-1', label: 'Festa de Aniversário - Janeiro 2024' },
-    { value: 'event-2', label: 'Evento Corporativo - Q1 2024' },
-    { value: 'event-3', label: 'Festival de Verão 2024' }
-  ]
-
-  // Função para formatar moeda
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(amount)
-  }
 
   // Função para renderizar gráfico de barras da receita
   const renderRevenueBarChart = () => {
@@ -262,6 +350,17 @@ export default function ReportsPage() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">❌ {error}</div>
+        <Button onClick={handleRefresh}>
+          Tentar Novamente
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -275,7 +374,7 @@ export default function ReportsPage() {
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Atualizar
           </Button>
@@ -308,8 +407,9 @@ export default function ReportsPage() {
             onChange={(e) => setSelectedEvent(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
+            <option value="all">Todos os eventos</option>
             {events.map(event => (
-              <option key={event.value} value={event.value}>{event.label}</option>
+              <option key={event.id} value={event.id}>{event.name}</option>
             ))}
           </select>
           <Button variant="outline">
@@ -327,9 +427,9 @@ export default function ReportsPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24</div>
+            <div className="text-2xl font-bold">{stats.totalEvents}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+12%</span> vs período anterior
+              Total de eventos cadastrados
             </p>
           </CardContent>
         </Card>
@@ -340,9 +440,9 @@ export default function ReportsPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 450.000</div>
+            <div className="text-2xl font-bold">{formatCurrency(stats.totalRevenue)}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+8%</span> vs período anterior
+              Receita acumulada
             </p>
           </CardContent>
         </Card>
@@ -353,9 +453,9 @@ export default function ReportsPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1.250</div>
+            <div className="text-2xl font-bold">{stats.totalGuests}</div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+15%</span> vs período anterior
+              Total de convidados cadastrados
             </p>
           </CardContent>
         </Card>
@@ -366,9 +466,15 @@ export default function ReportsPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">94%</div>
+            <div className={`text-2xl font-bold ${
+              stats.successRate >= 80 ? 'text-green-600' :
+              stats.successRate >= 60 ? 'text-yellow-600' :
+              'text-red-600'
+            }`}>
+              {stats.successRate.toFixed(0)}%
+            </div>
             <p className="text-xs text-muted-foreground">
-              <span className="text-green-600">+2%</span> vs período anterior
+              {stats.completedEvents} de {stats.totalEvents} eventos concluídos
             </p>
           </CardContent>
         </Card>
@@ -426,25 +532,27 @@ export default function ReportsPage() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Receita Total</span>
-                <span className="font-semibold">R$ 450.000</span>
+                <span className="font-semibold">{formatCurrency(stats.totalRevenue)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Custos</span>
-                <span className="font-semibold">R$ 280.000</span>
+                <span className="text-sm text-gray-500">Eventos</span>
+                <span className="font-semibold">{stats.totalEvents}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Lucro</span>
-                <span className="font-semibold text-green-600">R$ 170.000</span>
+                <span className="text-sm text-gray-500">Convidados</span>
+                <span className="font-semibold text-green-600">{stats.totalGuests}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Margem</span>
-                <span className="font-semibold text-green-600">37.8%</span>
+                <span className="text-sm text-gray-500">Taxa de Sucesso</span>
+                <span className="font-semibold text-green-600">{stats.successRate.toFixed(1)}%</span>
               </div>
             </div>
-            <Button variant="outline" className="w-full">
-              <FileText className="h-4 w-4 mr-2" />
-              Ver Relatório Completo
-            </Button>
+            <Link href="/reports/financial" className="w-full">
+              <Button variant="outline" className="w-full">
+                <FileText className="h-4 w-4 mr-2" />
+                Ver Relatório Completo
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 
@@ -463,25 +571,29 @@ export default function ReportsPage() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Total de Eventos</span>
-                <span className="font-semibold">24</span>
+                <span className="font-semibold">{stats.totalEvents}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Eventos Concluídos</span>
-                <span className="font-semibold">22</span>
+                <span className="font-semibold">{stats.completedEvents}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Em Andamento</span>
-                <span className="font-semibold">2</span>
+                <span className="font-semibold">
+                  {events.filter(e => String(e.status || '').toLowerCase() === 'active').length}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Taxa de Sucesso</span>
-                <span className="font-semibold text-green-600">94%</span>
+                <span className="font-semibold text-green-600">{stats.successRate.toFixed(1)}%</span>
               </div>
             </div>
-            <Button variant="outline" className="w-full">
-              <FileText className="h-4 w-4 mr-2" />
-              Ver Relatório Completo
-            </Button>
+            <Link href="/reports/events" className="w-full">
+              <Button variant="outline" className="w-full">
+                <FileText className="h-4 w-4 mr-2" />
+                Ver Relatório Completo
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 
@@ -500,93 +612,31 @@ export default function ReportsPage() {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm text-gray-500">Total de Convidados</span>
-                <span className="font-semibold">1.250</span>
+                <span className="font-semibold">{stats.totalGuests}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Check-in Realizado</span>
-                <span className="font-semibold">1.180</span>
+                <span className="text-sm text-gray-500">Receita Total</span>
+                <span className="font-semibold">{formatCurrency(stats.totalRevenue)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">Taxa de Check-in</span>
-                <span className="font-semibold text-green-600">94.4%</span>
+                <span className="text-sm text-gray-500">Eventos</span>
+                <span className="font-semibold text-green-600">{stats.totalEvents}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-500">VIPs</span>
-                <span className="font-semibold">85</span>
+                <span className="text-sm text-gray-500">Taxa de Sucesso</span>
+                <span className="font-semibold">{stats.successRate.toFixed(1)}%</span>
               </div>
             </div>
-            <Button variant="outline" className="w-full">
-              <FileText className="h-4 w-4 mr-2" />
-              Ver Relatório Completo
-            </Button>
+            <Link href="/reports/guests" className="w-full">
+              <Button variant="outline" className="w-full">
+                <FileText className="h-4 w-4 mr-2" />
+                Ver Relatório Completo
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Ações Rápidas
-          </CardTitle>
-          <CardDescription>
-            Acesse relatórios e análises específicas
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/reports/financial">
-              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center">
-                <DollarSign className="h-6 w-6 mb-2" />
-                <span className="text-sm">Financeiro</span>
-              </Button>
-            </Link>
-            <Link href="/reports/events">
-              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center">
-                <Calendar className="h-6 w-6 mb-2" />
-                <span className="text-sm">Eventos</span>
-              </Button>
-            </Link>
-            <Link href="/reports/guests">
-              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center">
-                <Users className="h-6 w-6 mb-2" />
-                <span className="text-sm">Convidados</span>
-              </Button>
-            </Link>
-            <Link href="/reports/team">
-              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center">
-                <Award className="h-6 w-6 mb-2" />
-                <span className="text-sm">Equipe</span>
-              </Button>
-            </Link>
-            <Link href="/reports/marketing">
-              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center">
-                <Target className="h-6 w-6 mb-2" />
-                <span className="text-sm">Marketing</span>
-              </Button>
-            </Link>
-            <Link href="/reports/suppliers">
-              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center">
-                <Star className="h-6 w-6 mb-2" />
-                <span className="text-sm">Fornecedores</span>
-              </Button>
-            </Link>
-            <Link href="/reports/performance">
-              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center">
-                <BarChart3 className="h-6 w-6 mb-2" />
-                <span className="text-sm">Performance</span>
-              </Button>
-            </Link>
-            <Link href="/reports/custom">
-              <Button variant="outline" className="w-full h-20 flex flex-col items-center justify-center">
-                <Plus className="h-6 w-6 mb-2" />
-                <span className="text-sm">Personalizado</span>
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
