@@ -40,6 +40,8 @@ export interface GetSchedulesQuery {
   sortBy?: string
   sortDescending?: boolean
   organizationId?: string
+  eventId?: string
+  startDate?: string
 }
 
 export interface GetSchedulesResponse {
@@ -66,6 +68,8 @@ export class SchedulesService {
     if (query.sortBy) params.append('sortBy', query.sortBy)
     if (query.sortDescending !== undefined) params.append('sortDescending', query.sortDescending.toString())
     if (query.organizationId) params.append('organizationId', query.organizationId)
+    if (query.eventId) params.append('eventId', query.eventId)
+    if (query.startDate) params.append('startDate', query.startDate)
 
     const queryString = params.toString()
     const url = queryString ? `/schedule?${queryString}` : '/schedule'

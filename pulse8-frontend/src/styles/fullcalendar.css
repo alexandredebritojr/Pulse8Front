@@ -1,0 +1,151 @@
+/* FullCalendar v6 Styles - Customizado para funcionar sem imports de módulo */
+
+.fc {
+  font-family: inherit;
+}
+
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-color: #e5e7eb;
+}
+
+.fc-theme-standard .fc-scrollgrid {
+  border-color: #e5e7eb;
+}
+
+.fc-button {
+  background-color: #fff;
+  border-color: #d1d5db;
+  color: #374151;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.fc-button:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.fc-button-primary:not(:disabled):active,
+.fc-button-primary:not(:disabled).fc-button-active {
+  background-color: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.fc-button-primary:not(:disabled):focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.fc-today-button {
+  background-color: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.fc-today-button:hover {
+  background-color: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.fc-day-today {
+  background-color: #eff6ff;
+}
+
+.fc-event {
+  border-radius: 4px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.fc-event:hover {
+  opacity: 0.9;
+}
+
+.fc-event-title {
+  font-weight: 500;
+}
+
+.fc-col-header-cell {
+  padding: 0.5rem;
+  background-color: #f9fafb;
+  font-weight: 600;
+}
+
+.fc-daygrid-day-number {
+  padding: 0.5rem;
+  color: #374151;
+}
+
+.fc-day-today .fc-daygrid-day-number {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.fc-timegrid-slot {
+  border-color: #e5e7eb;
+}
+
+.fc-timegrid-slot-label {
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+.fc-timegrid-col {
+  border-color: #e5e7eb;
+}
+
+.fc-timegrid-event {
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.fc-toolbar-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.fc-scrollgrid-section-header td {
+  border-color: #e5e7eb;
+}
+
+/* Habilitar scroll vertical */
+.fc-scroller {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+.fc-scroller-liquid-absolute {
+  overflow-y: auto !important;
+}
+
+.fc-timegrid-body {
+  overflow-y: auto !important;
+}
+
+.fc-daygrid-body {
+  overflow-y: auto !important;
+}
+
+/* Estilizar scrollbar */
+.fc-scroller::-webkit-scrollbar {
+  width: 8px;
+}
+
+.fc-scroller::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+

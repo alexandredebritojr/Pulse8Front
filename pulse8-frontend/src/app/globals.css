@@ -69,3 +69,51 @@
   }
 }
 
+/* React Big Calendar - Remover toolbar nativa */
+.rbc-toolbar {
+  display: none !important;
+}
+
+.rbc-toolbar-label {
+  display: none !important;
+}
+
+.rbc-btn-group {
+  display: none !important;
+}
+
+/* React Big Calendar - Eventos multi-dia no corpo */
+.rbc-allday-cell {
+  display: none !important;
+}
+
+.rbc-time-header-gutter {
+  display: none !important;
+}
+
+.rbc-header + .rbc-allday-cell {
+  display: none !important;
+}
+
+.rbc-allday-cell + .rbc-time-content {
+  border-top: none !important;
+}
+
+/* Garantir que eventos multi-dia apareçam no corpo */
+.rbc-time-content {
+  border-top: 1px solid #ddd !important;
+}
+
+.rbc-events-container {
+  margin-right: 0 !important;
+}
+
+/* Ajustar visualização mobile para exibir horários até 23:59 */
+@media (max-width: 768px) {
+  /* Garantir que o calendário exiba todas as horas até 23:59 na visualização dia e semana */
+  .rbc-time-view .rbc-time-content {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+}
+
