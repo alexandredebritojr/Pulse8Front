@@ -153,7 +153,7 @@ export default function TimelinePage() {
         startTime: schedule.startTime,
         endTime: schedule.endTime,
         type: schedule.type,
-        status: schedule.status,
+        status: schedule.status || 'Pending',
         source: 'schedule',
         eventName: schedule.eventName
       })
