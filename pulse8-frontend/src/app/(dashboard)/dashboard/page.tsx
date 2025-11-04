@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,7 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const { user } = useAuth()
+  const router = useRouter()
   const [stats, setStats] = useState<DashboardStats>({
     totalEvents: 0,
     totalGuests: 0,
@@ -35,6 +37,14 @@ export default function DashboardPage() {
   const [recentEvents, setRecentEvents] = useState<EventDto[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // Redirecionar Promoters para a página de eventos imediatamente
+  useEffect(() => {
+    if (user?.userOrganizationType === 3) {
+      console.log('🔀 Dashboard: Redirecionando Promoter para /events')
+      router.replace('/events')
+    }
+  }, [user, router])
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -125,7 +135,8 @@ export default function DashboardPage() {
       }
     }
 
-    if (user) {
+    // Não carregar dados do dashboard se o usuário for Promoter (será redirecionado)
+    if (user && user.userOrganizationType !== 3) {
       loadDashboardData()
     }
   }, [user])
@@ -208,6 +219,15 @@ export default function DashboardPage() {
       icon: TrendingUp,
     },
   ]
+
+  // Se for Promoter, não renderizar nada (será redirecionado)
+  if (user?.userOrganizationType === 3) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -305,30 +325,46 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
-              <Link href="/events/create">
-                <Button className="h-20 w-full flex flex-col items-center justify-center">
-                  <Calendar className="h-6 w-6 mb-2" />
-                  <span className="text-sm">Novo Evento</span>
-                </Button>
-              </Link>
-              <Link href="/guests">
-                <Button variant="outline" className="h-20 w-full flex flex-col items-center justify-center">
-                  <Users className="h-6 w-6 mb-2" />
-                  <span className="text-sm">Convidados</span>
-                </Button>
-              </Link>
-              <Link href="/finance/budget">
-                <Button variant="outline" className="h-20 w-full flex flex-col items-center justify-center">
-                  <DollarSign className="h-6 w-6 mb-2" />
-                  <span className="text-sm">Orçamento</span>
-                </Button>
-              </Link>
-              <Link href="/reports">
-                <Button variant="outline" className="h-20 w-full flex flex-col items-center justify-center">
-                  <TrendingUp className="h-6 w-6 mb-2" />
-                  <span className="text-sm">Relatórios</span>
-                </Button>
-              </Link>
+              {user?.userOrganizationType !== 3 && (
+                <Link href="/events/create">
+                  <Button className="h-20 w-full flex flex-col items-center justify-center">
+                    <Calendar className="h-6 w-6 mb-2" />
+                    <span className="text-sm">Novo Evento</span>
+                  </Button>
+                </Link>
+              )}
+              {user?.userOrganizationType !== 3 && (
+                <Link href="/guests">
+                  <Button variant="outline" className="h-20 w-full flex flex-col items-center justify-center">
+                    <Users className="h-6 w-6 mb-2" />
+                    <span className="text-sm">Convidados</span>
+                  </Button>
+                </Link>
+              )}
+              {user?.userOrganizationType !== 3 && (
+                <Link href="/finance/budget">
+                  <Button variant="outline" className="h-20 w-full flex flex-col items-center justify-center">
+                    <DollarSign className="h-6 w-6 mb-2" />
+                    <span className="text-sm">Orçamento</span>
+                  </Button>
+                </Link>
+              )}
+              {user?.userOrganizationType !== 3 && (
+                <Link href="/reports">
+                  <Button variant="outline" className="h-20 w-full flex flex-col items-center justify-center">
+                    <TrendingUp className="h-6 w-6 mb-2" />
+                    <span className="text-sm">Relatórios</span>
+                  </Button>
+                </Link>
+              )}
+              {user?.userOrganizationType === 3 && (
+                <Link href="/events" className="col-span-2">
+                  <Button variant="outline" className="h-20 w-full flex flex-col items-center justify-center">
+                    <Calendar className="h-6 w-6 mb-2" />
+                    <span className="text-sm">Ver Eventos</span>
+                  </Button>
+                </Link>
+              )}
             </div>
           </CardContent>
         </Card>

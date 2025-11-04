@@ -11,11 +11,12 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [shouldRedirect, setShouldRedirect] = useState(false)
   const router = useRouter()
   
   console.log('🔍 LoginPage: Componente renderizado')
   
-  const { login } = useAuth()
+  const { login, user } = useAuth()
   console.log('🔍 LoginPage: useAuth retornou:', { login: typeof login })
 
   // Carregar dados salvos quando a página carrega
@@ -31,6 +32,23 @@ export default function LoginPage() {
       }
     }
   }, [])
+
+  // Redirecionar após login bem-sucedido baseado no tipo de usuário
+  useEffect(() => {
+    if (shouldRedirect && user) {
+      // Verificar o tipo de usuário e redirecionar
+      if (user.userOrganizationType === 3) {
+        // Promoter: redirecionar para eventos
+        console.log('🔀 Redirecionando Promoter para /events', user)
+        router.replace('/events')
+      } else {
+        // Outros usuários: redirecionar para dashboard
+        console.log('🔀 Redirecionando para /dashboard', user)
+        router.replace('/dashboard')
+      }
+      setShouldRedirect(false) // Resetar o flag
+    }
+  }, [shouldRedirect, user, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -75,7 +93,8 @@ export default function LoginPage() {
         }
       }
       
-      router.push('/dashboard')
+      // Marcar que deve redirecionar - o useEffect vai fazer o redirecionamento quando o user estiver disponível
+      setShouldRedirect(true)
     } catch (err: any) {
       console.error('❌ Erro no login:', err)
       // Exibir a mensagem de erro retornada pela API

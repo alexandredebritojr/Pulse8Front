@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import React from 'react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -158,6 +158,32 @@ export function Sidebar({ onClose }: SidebarProps) {
   const { theme, toggleTheme } = useTheme()
   const [expandedItems, setExpandedItems] = useState<string[]>([])
 
+  // Verificar se o usuário é Promoter (UserOrganizationType = 3)
+  // Usar useMemo para evitar recálculos desnecessários
+  const isPromoter = useMemo(() => {
+    return user?.userOrganizationType !== undefined && user.userOrganizationType === 3
+  }, [user?.userOrganizationType])
+
+  // Filtrar navigation baseado no tipo de usuário usando useMemo para evitar recálculos desnecessários
+  // Se o usuário ainda não foi carregado, mostrar todos os menus
+  const filteredNavigation = useMemo(() => {
+    if (isPromoter) {
+      return navigation
+        .filter(item => item.name === 'Eventos')
+        .map(item => {
+          // Se for o item Eventos e o usuário for Promoter, remover "Criar Evento"
+          if (item.name === 'Eventos' && item.children) {
+            return {
+              ...item,
+              children: item.children.filter(child => child.name !== 'Criar Evento')
+            }
+          }
+          return item
+        })
+    }
+    return navigation
+  }, [isPromoter]) // Usar apenas isPromoter que já verifica se o usuário existe
+
   const handleLogout = () => {
     console.log('🚪 Sidebar: Botão sair clicado')
     logout()
@@ -183,16 +209,28 @@ export function Sidebar({ onClose }: SidebarProps) {
   // Auto-expand parent items when on a child page
   useEffect(() => {
     const autoExpandItems: string[] = []
-    navigation.forEach(item => {
+    filteredNavigation.forEach(item => {
       if (item.children) {
         const hasActiveChild = item.children.some(child => pathname === child.href)
-        if (hasActiveChild) {
+        if (hasActiveChild && !autoExpandItems.includes(item.name)) {
           autoExpandItems.push(item.name)
         }
       }
     })
-    setExpandedItems(prev => Array.from(new Set([...prev, ...autoExpandItems])))
-  }, [pathname])
+    
+    if (autoExpandItems.length > 0) {
+      setExpandedItems(prev => {
+        const newExpanded = Array.from(new Set([...prev, ...autoExpandItems]))
+        // Só atualizar se realmente mudou para evitar loops
+        const prevSet = new Set(prev)
+        const newSet = new Set(newExpanded)
+        if (prevSet.size !== newSet.size || ![...newSet].every(item => prevSet.has(item))) {
+          return newExpanded
+        }
+        return prev
+      })
+    }
+  }, [pathname, filteredNavigation]) // filteredNavigation está memoizado, então só muda quando user/isPromoter muda
 
   const isItemActive = (item: NavigationItem): boolean => {
     if (pathname === item.href) return true
@@ -322,7 +360,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         <ul role="list" className="flex flex-col gap-y-7">
           <li>
             <ul role="list" className="-mx-2 space-y-1">
-              {navigation.map((item) => renderNavigationItem(item))}
+              {filteredNavigation.map((item) => renderNavigationItem(item))}
             </ul>
           </li>
         </ul>

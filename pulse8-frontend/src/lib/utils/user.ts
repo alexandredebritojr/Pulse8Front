@@ -27,6 +27,8 @@ export function normalizeUser(user: any): User {
     phone: user.phone || user.Phone,
     lastLogin: user.lastLogin || user.LastLogin,
     createdAt: user.createdAt || user.CreatedAt,
-    organizationId: user.organizationId || user.OrganizationId
+    organizationId: user.organizationId || user.OrganizationId,
+    userOrganizationType: user.userOrganizationType ?? user.UserOrganizationType,
+    userOrganizationTypeName: user.userOrganizationTypeName || user.UserOrganizationTypeName
   }
 }

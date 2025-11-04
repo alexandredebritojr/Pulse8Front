@@ -61,6 +61,8 @@ export interface User {
   lastLogin?: string
   createdAt?: string
   organizationId?: string
+  userOrganizationType?: number // 0=Admin, 1=Manager, 2=Employee, 3=Promoter
+  userOrganizationTypeName?: string
 }
 
 export enum UserRole {

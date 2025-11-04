@@ -22,10 +22,12 @@ import { GuestsService, GetGuestsResponse } from '@/lib/api/guests'
 import { RevenueService, GetRevenueResponse } from '@/lib/api/revenue'
 import { ExpensesService, GetExpensesResponse } from '@/lib/api/expenses'
 import { formatDate, formatDateTime, formatCurrency } from '@/lib/utils'
+import { useAuth } from '@/lib/auth/auth-context'
 
 export default function EventDetailsPage() {
   const params = useParams()
   const router = useRouter()
+  const { user } = useAuth()
   const [event, setEvent] = useState<EventDto | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -35,6 +37,9 @@ export default function EventDetailsPage() {
   const [totalGuests, setTotalGuests] = useState(0)
   const [totalRevenue, setTotalRevenue] = useState(0)
   const [totalExpenses, setTotalExpenses] = useState(0)
+
+  // Verificar se o usuário é Promoter (UserOrganizationType = 3)
+  const isPromoter = user?.userOrganizationType === 3
 
   // Carregar dados reais da API
   useEffect(() => {
@@ -248,18 +253,20 @@ export default function EventDetailsPage() {
             </div>
           </div>
         </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <Link href={`/events/${event.id}/edit`}>
-            <Button variant="outline" size="sm" className="flex items-center gap-2">
-              <Edit className="h-4 w-4" />
-              <span className="hidden sm:inline">Editar</span>
+        {!isPromoter && (
+          <div className="flex gap-2 flex-shrink-0">
+            <Link href={`/events/${event.id}/edit`}>
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <Edit className="h-4 w-4" />
+                <span className="hidden sm:inline">Editar</span>
+              </Button>
+            </Link>
+            <Button variant="outline" size="sm" onClick={handleDeleteClick} className="text-red-600 hover:text-red-700 flex items-center gap-2">
+              <Trash2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Excluir</span>
             </Button>
-          </Link>
-          <Button variant="outline" size="sm" onClick={handleDeleteClick} className="text-red-600 hover:text-red-700 flex items-center gap-2">
-            <Trash2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Excluir</span>
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-6">

@@ -9,8 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import ConfirmationModal from '@/components/ui/confirmation-modal'
 import { EventsService, EventDto, GetEventsResponse } from '@/lib/api/events'
 import { formatDate, formatCurrency } from '@/lib/utils'
+import { useAuth } from '@/lib/auth/auth-context'
 
 export default function EventsPage() {
+  const { user } = useAuth()
   const [events, setEvents] = useState<EventDto[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | 'all'>('all')
@@ -20,6 +22,9 @@ export default function EventsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [eventToDelete, setEventToDelete] = useState<EventDto | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Verificar se o usuário é Promoter (UserOrganizationType = 3)
+  const isPromoter = user?.userOrganizationType === 3
 
   // Carregar eventos da API
   useEffect(() => {
@@ -166,14 +171,18 @@ export default function EventsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Eventos</h1>
-          <p className="text-gray-600">Gerencie todos os seus eventos e produções</p>
+          <p className="text-gray-600">
+            {isPromoter ? 'Visualize os eventos associados a você' : 'Gerencie todos os seus eventos e produções'}
+          </p>
         </div>
-        <Link href="/events/create">
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Evento
-          </Button>
-        </Link>
+        {!isPromoter && (
+          <Link href="/events/create">
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Evento
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -318,19 +327,23 @@ export default function EventsPage() {
                         Ver Detalhes
                       </Button>
                     </Link>
-                    <Link href={`/events/${event.id}/edit`}>
-                      <Button variant="outline" size="icon">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                    <Button 
-                      variant="outline" 
-                      size="icon"
-                      onClick={() => handleDeleteClick(event)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    {!isPromoter && (
+                      <>
+                        <Link href={`/events/${event.id}/edit`}>
+                          <Button variant="outline" size="icon">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          onClick={() => handleDeleteClick(event)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </>
@@ -376,20 +389,24 @@ export default function EventsPage() {
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
-                        <Link href={`/events/${event.id}/edit`}>
-                          <Button variant="outline" size="icon" className="h-8 w-8">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <Button 
-                          variant="outline" 
-                          size="icon"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
-                          onClick={() => handleDeleteClick(event)}
-                          title="Excluir evento"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {!isPromoter && (
+                          <>
+                            <Link href={`/events/${event.id}/edit`}>
+                              <Button variant="outline" size="icon" className="h-8 w-8">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </Link>
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                              onClick={() => handleDeleteClick(event)}
+                              title="Excluir evento"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -411,7 +428,7 @@ export default function EventsPage() {
               : 'Comece criando seu primeiro evento.'
             }
           </p>
-          {!searchTerm && statusFilter === 'all' && (
+          {!searchTerm && statusFilter === 'all' && !isPromoter && (
             <div className="mt-6">
               <Link href="/events/create">
                 <Button>

@@ -23,7 +23,12 @@ export function useRequireGuest() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.push('/dashboard')
+      // Redirecionar Promoters para eventos, outros para dashboard
+      if (user.userOrganizationType === 3) {
+        router.push('/events')
+      } else {
+        router.push('/dashboard')
+      }
     }
   }, [user, isLoading, router])
 
