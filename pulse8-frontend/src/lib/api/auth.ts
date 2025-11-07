@@ -7,17 +7,43 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  name: string
-  email: string
+  // Dados do Usuário (Etapa 1)
+  firstName: string
+  lastName: string
+  userEmail: string
   password: string
+  userPhone: string
+  document: string
+  profilePicture?: string
+  
+  // Dados da Organização (Etapa 2) - opcionais se for promoter
   organizationName: string
-  cnpj: string
+  organizationCnpj: string
+  organizationAddress: string
+  organizationCity: string
+  organizationState: string
+  organizationZipCode: string
+  organizationPhone: string
+  organizationEmail: string
+  
+  // Dados específicos para promoter (cadastro via invite)
+  organizationId?: string
+  userType?: 'promoter' | 'admin' | 'organizer'
 }
 
 export interface AuthResponse {
   token: string
   expiresAt: string
   user: User
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+}
+
+export interface ChangePasswordResponse {
+  message: string
 }
 
 export interface ApiError {
@@ -68,6 +94,7 @@ export class AuthService {
   static async register(userData: RegisterRequest): Promise<AuthResponse> {
     try {
       console.log('🔐 AuthService: Tentando registrar usuário...')
+      console.log('📝 Dados do registro:', userData)
       const response = await apiClient.post<AuthResponse>('/auth/register', userData)
       console.log('✅ AuthService: Registro bem-sucedido!')
       return response
@@ -100,6 +127,22 @@ export class AuthService {
       return response
     } catch (error: any) {
       throw new Error(this.getErrorMessage(error))
+    }
+  }
+
+  /**
+   * Altera a senha do usuário autenticado
+   */
+  static async changePassword(data: ChangePasswordRequest): Promise<ChangePasswordResponse> {
+    try {
+      console.log('🔐 AuthService: Tentando alterar senha...')
+      const response = await apiClient.post<ChangePasswordResponse>('/auth/change-password', data)
+      console.log('✅ AuthService: Senha alterada com sucesso!')
+      return response
+    } catch (error: any) {
+      console.error('❌ AuthService: Erro ao alterar senha:', error)
+      const errorMessage = this.getErrorMessage(error)
+      throw new Error(errorMessage)
     }
   }
 

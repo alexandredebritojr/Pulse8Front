@@ -1,67 +1,90 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
+import { RegisterStepper } from '@/components/auth/RegisterStepper'
+import { OrganizationData, UserData } from '@/types/register'
+import { unformatPhone, unformatCEP } from '@/lib/utils/masks'
+import { unformatCPFOrCNPJ } from '@/lib/utils'
+import { EventInvitesService, ValidateInviteTokenResponse } from '@/lib/api/invites'
 
 export default function RegisterPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    organizationName: '',
-    cnpj: '',
-  })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { register } = useAuth()
+  const inviteToken = searchParams.get('inviteToken')
+  
+  const [inviteData, setInviteData] = useState<ValidateInviteTokenResponse | null>(null)
+  const [isLoadingInvite, setIsLoadingInvite] = useState(false)
 
-  console.log('🔍 RegisterPage: Componente renderizado')
-  console.log('🔍 RegisterPage: useAuth retornou:', { register: typeof register })
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    console.log('🚀 Formulário de registro submetido!')
-    console.log('📝 Dados:', formData)
+  // Buscar dados do invite se houver token
+  useEffect(() => {
+    const fetchInviteData = async () => {
+      if (!inviteToken) return
+      
+      setIsLoadingInvite(true)
+      try {
+        const data = await EventInvitesService.validateInviteToken(inviteToken)
+        setInviteData(data)
+      } catch (err: any) {
+        console.error('❌ Erro ao validar token do invite:', err)
+        setError('Token de convite inválido ou expirado')
+      } finally {
+        setIsLoadingInvite(false)
+      }
+    }
     
+    fetchInviteData()
+  }, [inviteToken])
+
+  const handleComplete = async (data: { organization: OrganizationData; user: UserData }) => {
     setIsLoading(true)
     setError('')
 
-    // Validações
-    if (formData.password !== formData.confirmPassword) {
-      setError('As senhas não coincidem')
-      setIsLoading(false)
-      return
-    }
-
-    if (formData.password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres')
-      setIsLoading(false)
-      return
-    }
-
     try {
-      console.log('🔐 Tentando registrar usuário...')
+      console.log('🔐 Tentando registrar usuário e organização...')
+      
+      // Se for cadastro via invite (promoter), usar dados do invite
+      const isPromoterRegistration = !!inviteToken && !!inviteData
+      
+      // Preparar dados para o backend (remover formatações)
       await register({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        organizationName: formData.organizationName,
-        cnpj: formData.cnpj
+        // Dados do usuário
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        userEmail: data.user.email,
+        password: data.user.password,
+        userPhone: unformatPhone(data.user.phone),
+        document: unformatCPFOrCNPJ(data.user.document),
+        profilePicture: data.user.profilePicture,
+        
+        // Dados da organização (só se não for promoter)
+        organizationName: isPromoterRegistration ? '' : data.organization.name,
+        organizationCnpj: isPromoterRegistration ? '' : unformatCPFOrCNPJ(data.organization.cnpj),
+        organizationAddress: isPromoterRegistration ? '' : data.organization.address,
+        organizationCity: isPromoterRegistration ? '' : data.organization.city,
+        organizationState: isPromoterRegistration ? '' : data.organization.state,
+        organizationZipCode: isPromoterRegistration ? '' : unformatCEP(data.organization.zipCode),
+        organizationPhone: isPromoterRegistration ? '' : unformatPhone(data.organization.phone),
+        organizationEmail: isPromoterRegistration ? '' : data.organization.email,
+        
+        // Dados específicos para promoter
+        organizationId: isPromoterRegistration ? inviteData!.organizationId : undefined,
+        userType: isPromoterRegistration ? 'promoter' : undefined
       })
       
       console.log('✅ Registro realizado com sucesso!')
-      router.push('/dashboard')
+      
+      // Se for promoter, redirecionar para aceitar o invite
+      if (isPromoterRegistration && inviteToken) {
+        router.push(`/invite/${inviteToken}`)
+      } else {
+        router.push('/dashboard')
+      }
     } catch (err: any) {
       console.error('❌ Erro no registro:', err)
       setError(err.message || 'Erro ao criar conta. Tente novamente.')
@@ -72,137 +95,47 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Crie sua conta
+      <div className="max-w-4xl w-full">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-extrabold text-gray-900">
+            {inviteToken && inviteData ? 'Cadastro de Promoter' : 'Crie sua conta'}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Ou{' '}
-            <Link
-              href="/login"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              faça login em sua conta existente
-            </Link>
+          <p className="mt-2 text-sm text-gray-600">
+            {inviteToken && inviteData ? (
+              <>
+                Você foi convidado para ser Promoter na organização <strong>{inviteData.organizationName}</strong>
+              </>
+            ) : (
+              <>
+                Ou{' '}
+                <Link
+                  href="/login"
+                  className="font-medium text-indigo-600 hover:text-indigo-500"
+                >
+                  faça login em sua conta existente
+                </Link>
+              </>
+            )}
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Nome Completo
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Nome Completo"
-                value={formData.name}
-                onChange={handleChange}
-              />
-            </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Email"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700">
-                Nome da Organização
-              </label>
-              <input
-                id="organizationName"
-                name="organizationName"
-                type="text"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Nome da organização"
-                value={formData.organizationName}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="cnpj" className="block text-sm font-medium text-gray-700">
-                CNPJ
-              </label>
-              <input
-                id="cnpj"
-                name="cnpj"
-                type="text"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="CNPJ"
-                value={formData.cnpj}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Senha
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Senha"
-                value={formData.password}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirmar Senha
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Confirmar senha"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
-            </div>
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-600 text-center">{error}</p>
           </div>
+        )}
 
-          {error && (
-            <div className="text-red-600 text-sm text-center">{error}</div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isLoading ? 'Criando conta...' : 'Criar conta'}
-            </button>
+        {isLoadingInvite ? (
+          <div className="text-center py-8">
+            <p className="text-gray-600">Carregando dados do convite...</p>
           </div>
-        </form>
+        ) : (
+          <RegisterStepper 
+            onComplete={handleComplete} 
+            inviteToken={inviteToken || undefined}
+            inviteData={inviteData}
+          />
+        )}
       </div>
     </div>
   )

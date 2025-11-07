@@ -42,7 +42,8 @@ export default function EventsPage() {
           pageNumber: 1,
           pageSize: 50,
           searchTerm: searchTerm || undefined,
-          status: statusFilter !== 'all' ? statusFilter : undefined,
+          // Para Promoters, sempre exibir todos os status (não aplicar filtro de status)
+          status: (!isPromoter && statusFilter !== 'all') ? statusFilter : undefined,
           organizationId: organizationId
         }
         console.log('🔍 Query params =', queryParams)
@@ -254,18 +255,20 @@ export default function EventsPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as string | 'all')}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="all">Todos os status</option>
-            <option value="draft">Rascunho</option>
-            <option value="planning">Planejamento</option>
-            <option value="active">Ativo</option>
-            <option value="completed">Finalizado</option>
-            <option value="cancelled">Cancelado</option>
-          </select>
+          {!isPromoter && (
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as string | 'all')}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="all">Todos os status</option>
+              <option value="draft">Rascunho</option>
+              <option value="planning">Planejamento</option>
+              <option value="active">Ativo</option>
+              <option value="completed">Finalizado</option>
+              <option value="cancelled">Cancelado</option>
+            </select>
+          )}
           
           {/* View Mode Toggle */}
           <div className="flex gap-2">
@@ -314,10 +317,12 @@ export default function EventsPage() {
                       <Calendar className="h-4 w-4 mr-2" />
                       {formatDate(event.startDate)} - {formatDate(event.endDate)}
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <DollarSign className="h-4 w-4 mr-2" />
-                      {event.totalBudget ? formatCurrency(event.totalBudget) : 'Orçamento não definido'}
-                    </div>
+                    {!isPromoter && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        {event.totalBudget ? formatCurrency(event.totalBudget) : 'Orçamento não definido'}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex gap-2 pt-4">
@@ -364,19 +369,23 @@ export default function EventsPage() {
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-4 lg:gap-6">
                     {/* Values Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 lg:gap-6">
+                    <div className={`grid grid-cols-1 ${isPromoter ? 'sm:grid-cols-1' : 'sm:grid-cols-3'} gap-2 sm:gap-4 lg:gap-6`}>
                       <div className="flex items-center text-sm text-gray-500">
                         <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
                         <span className="truncate">{formatDate(event.startDate)} - {formatDate(event.endDate)}</span>
                       </div>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <DollarSign className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span className="truncate">{event.totalBudget ? formatCurrency(event.totalBudget) : 'Orçamento não definido'}</span>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Users className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span className="truncate">{event.capacity ? `${event.capacity} pessoas` : 'Capacidade não definida'}</span>
-                      </div>
+                      {!isPromoter && (
+                        <>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <DollarSign className="h-4 w-4 mr-2 flex-shrink-0" />
+                            <span className="truncate">{event.totalBudget ? formatCurrency(event.totalBudget) : 'Orçamento não definido'}</span>
+                          </div>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+                            <span className="truncate">{event.capacity ? `${event.capacity} pessoas` : 'Capacidade não definida'}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
                     {/* Status and Actions */}
                     <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">

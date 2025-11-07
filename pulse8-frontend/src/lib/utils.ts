@@ -46,12 +46,63 @@ export function formatPhone(phone: string): string {
 
 export function formatCNPJ(cnpj: string): string {
   const cleaned = cnpj.replace(/\D/g, '')
-  return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+  if (cleaned.length <= 14) {
+    return cleaned.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+  }
+  return cnpj
 }
 
 export function formatCPF(cpf: string): string {
   const cleaned = cpf.replace(/\D/g, '')
-  return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+  if (cleaned.length <= 11) {
+    return cleaned.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+  }
+  return cpf
+}
+
+/**
+ * Formata automaticamente CPF ou CNPJ baseado no número de dígitos
+ * CPF: 11 dígitos (000.000.000-00)
+ * CNPJ: 14 dígitos (00.000.000/0000-00)
+ */
+export function formatCPFOrCNPJ(value: string): string {
+  const cleaned = value.replace(/\D/g, '')
+  
+  // Limita a 14 dígitos (tamanho máximo de CNPJ)
+  const limited = cleaned.slice(0, 14)
+  
+  if (limited.length <= 11) {
+    // Formata como CPF: 000.000.000-00
+    if (limited.length <= 3) {
+      return limited
+    } else if (limited.length <= 6) {
+      return limited.replace(/(\d{3})(\d+)/, '$1.$2')
+    } else if (limited.length <= 9) {
+      return limited.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3')
+    } else {
+      return limited.replace(/(\d{3})(\d{3})(\d{3})(\d+)/, '$1.$2.$3-$4')
+    }
+  } else {
+    // Formata como CNPJ: 00.000.000/0000-00
+    if (limited.length <= 2) {
+      return limited
+    } else if (limited.length <= 5) {
+      return limited.replace(/(\d{2})(\d+)/, '$1.$2')
+    } else if (limited.length <= 8) {
+      return limited.replace(/(\d{2})(\d{3})(\d+)/, '$1.$2.$3')
+    } else if (limited.length <= 12) {
+      return limited.replace(/(\d{2})(\d{3})(\d{3})(\d+)/, '$1.$2.$3/$4')
+    } else {
+      return limited.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d+)/, '$1.$2.$3/$4-$5')
+    }
+  }
+}
+
+/**
+ * Remove formatação de CPF/CNPJ, retornando apenas os números
+ */
+export function unformatCPFOrCNPJ(value: string): string {
+  return value.replace(/\D/g, '')
 }
 
 export function formatFileSize(bytes: number): string {

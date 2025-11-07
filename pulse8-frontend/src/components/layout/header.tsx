@@ -43,11 +43,19 @@ export function Header({ user, onMenuClick }: HeaderProps) {
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
             </div>
-            <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">
-              <span className="text-sm font-medium text-white">
-                {(user.name || 'U').charAt(0).toUpperCase()}
-              </span>
-            </div>
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user.name || 'Usuário'}
+                className="h-8 w-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                <span className="text-sm font-medium text-white">
+                  {(user.name || 'U').charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -14,9 +14,12 @@ async function fetchWithSelfSignedCert(url: string, options: RequestInit): Promi
     // O body já vem como string JSON
     const postData = options.body ? (typeof options.body === 'string' ? options.body : JSON.stringify(options.body)) : ''
     
+    // Se a porta não for especificada na URL, usar 5001 para localhost
+    const port = urlObj.port ? parseInt(urlObj.port) : (urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1' ? 5001 : 443)
+    
     const httpsOptions = {
       hostname: urlObj.hostname,
-      port: urlObj.port || 443,
+      port: port,
       path: urlObj.pathname + urlObj.search,
       method: options.method || 'GET',
       headers: {
@@ -27,6 +30,13 @@ async function fetchWithSelfSignedCert(url: string, options: RequestInit): Promi
       // Aceitar certificados auto-assinados apenas em desenvolvimento
       rejectUnauthorized: !isDevelopment
     }
+    
+    console.log('🔍 fetchWithSelfSignedCert: Opções de conexão:', {
+      hostname: httpsOptions.hostname,
+      port: httpsOptions.port,
+      path: httpsOptions.path,
+      rejectUnauthorized: httpsOptions.rejectUnauthorized
+    })
 
     const req = https.request(httpsOptions, (res) => {
       let data = ''
@@ -89,6 +99,8 @@ export async function POST(request: NextRequest) {
     // Fazer requisição para o backend real
     const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:5001'
     
+    console.log('🔍 Tentando conectar ao backend:', `${backendUrl}/api/auth/forgot-password`)
+    
     let response: Response
     try {
       // Tentar primeiro com fetch nativo
@@ -100,11 +112,15 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({ email })
       })
     } catch (fetchError: any) {
-      // Se falhar por causa de certificado SSL, usar função customizada
-      if (fetchError.code === 'DEPTH_ZERO_SELF_SIGNED_CERT' || 
-          fetchError.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' ||
-          fetchError.message?.includes('self-signed certificate')) {
-        console.log('⚠️ Usando fetch customizado para certificado auto-assinado')
+      console.log('⚠️ Fetch nativo falhou, tentando com fetch customizado:', {
+        message: fetchError?.message,
+        code: fetchError?.code,
+        cause: fetchError?.cause
+      })
+      
+      // Se o fetch nativo falhar por qualquer motivo (incluindo "fetch failed"),
+      // tentar usar a função customizada que lida com certificados auto-assinados
+      try {
         response = await fetchWithSelfSignedCert(`${backendUrl}/api/auth/forgot-password`, {
           method: 'POST',
           headers: {
@@ -112,13 +128,23 @@ export async function POST(request: NextRequest) {
           },
           body: JSON.stringify({ email })
         })
-      } else {
-        throw fetchError
+      } catch (customFetchError: any) {
+        console.error('❌ Fetch customizado também falhou:', {
+          message: customFetchError?.message,
+          code: customFetchError?.code
+        })
+        // Se ambos falharem, lançar o erro original
+        throw new Error(`Erro ao conectar ao backend: ${fetchError?.message || 'fetch failed'}. Verifique se o backend está rodando em ${backendUrl}`)
       }
     }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Erro na requisição' }))
+      console.error('❌ Erro na resposta do backend:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      })
       return NextResponse.json(
         { error: errorData.message || 'Erro ao processar solicitação de recuperação de senha' },
         { status: response.status }
@@ -127,10 +153,35 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json()
     return NextResponse.json(data)
-  } catch (error) {
-    console.error('Erro no endpoint /auth/forgot-password:', error)
+  } catch (error: any) {
+    console.error('❌ Erro no endpoint /auth/forgot-password:', {
+      message: error?.message,
+      code: error?.code,
+      stack: error?.stack,
+      cause: error?.cause
+    })
+    
+    // Se o erro for de conexão, retornar mensagem mais específica
+    if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND' || error?.message?.includes('fetch failed')) {
+      const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:5001'
+      return NextResponse.json(
+        { error: `Não foi possível conectar ao servidor backend (${backendUrl}). Verifique se o backend está em execução e se a URL está correta.` },
+        { status: 503 }
+      )
+    }
+    
+    // Extrair mensagem de erro mais útil
+    let errorMessage = 'Erro interno do servidor'
+    if (error?.message) {
+      if (error.message.includes('conectar ao backend')) {
+        errorMessage = error.message
+      } else {
+        errorMessage = `Erro ao processar solicitação: ${error.message}`
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: errorMessage },
       { status: 500 }
     )
   }

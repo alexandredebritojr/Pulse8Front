@@ -27,6 +27,7 @@ import {
   UserPlus,
   CheckSquare,
   ClipboardList,
+  Lock,
 } from 'lucide-react'
 
 interface NavigationItem {
@@ -151,6 +152,7 @@ const navigation: NavigationItem[] = [
     icon: Shield,
     children: [
       { name: 'Usuários', href: '/admin/users', icon: Users },
+      { name: 'Alterar Senha', href: '/admin/change-password', icon: Lock },
     ]
   },
 ]
@@ -292,11 +294,19 @@ export function Sidebar() {
       <div className="border-t border-gray-200 p-6">
         <div className="flex items-center">
           <div className="flex-shrink-0">
-            <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">
-              <span className="text-sm font-medium text-white">
-                {(user?.name || 'U').charAt(0).toUpperCase()}
-              </span>
-            </div>
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user?.name || 'Usuário'}
+                className="h-8 w-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                <span className="text-sm font-medium text-white">
+                  {(user?.name || 'U').charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
           </div>
           <div className="ml-3">
             <p className="text-sm font-medium text-gray-700">

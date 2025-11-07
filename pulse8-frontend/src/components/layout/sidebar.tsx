@@ -31,6 +31,7 @@ import {
   X,
   Sun,
   Moon,
+  Lock,
 } from 'lucide-react'
 
 interface NavigationItem {
@@ -143,6 +144,7 @@ const navigation: NavigationItem[] = [
     icon: Shield,
     children: [
       { name: 'Usuários', href: '/admin/users', icon: Users },
+      { name: 'Alterar Senha', href: '/admin/change-password', icon: Lock },
     ]
   },
 ]
@@ -169,13 +171,20 @@ export function Sidebar({ onClose }: SidebarProps) {
   const filteredNavigation = useMemo(() => {
     if (isPromoter) {
       return navigation
-        .filter(item => item.name === 'Eventos')
+        .filter(item => item.name === 'Eventos' || item.name === 'Administração')
         .map(item => {
           // Se for o item Eventos e o usuário for Promoter, remover "Criar Evento"
           if (item.name === 'Eventos' && item.children) {
             return {
               ...item,
               children: item.children.filter(child => child.name !== 'Criar Evento')
+            }
+          }
+          // Se for Administração e o usuário for Promoter, mostrar apenas "Alterar Senha"
+          if (item.name === 'Administração' && item.children) {
+            return {
+              ...item,
+              children: item.children.filter(child => child.name === 'Alterar Senha')
             }
           }
           return item
@@ -224,7 +233,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         // Só atualizar se realmente mudou para evitar loops
         const prevSet = new Set(prev)
         const newSet = new Set(newExpanded)
-        if (prevSet.size !== newSet.size || ![...newSet].every(item => prevSet.has(item))) {
+        if (prevSet.size !== newSet.size || !Array.from(newSet).every(item => prevSet.has(item))) {
           return newExpanded
         }
         return prev
@@ -370,11 +379,19 @@ export function Sidebar({ onClose }: SidebarProps) {
       <div className="shrink-0 border-t border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-900">
         <div className="flex items-center">
           <div className="flex-shrink-0">
-            <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">
-              <span className="text-sm font-medium text-white">
-                {(user?.name || 'U').charAt(0).toUpperCase()}
-              </span>
-            </div>
+            {user?.avatar ? (
+              <img
+                src={user.avatar}
+                alt={user?.name || 'Usuário'}
+                className="h-8 w-8 rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                <span className="text-sm font-medium text-white">
+                  {(user?.name || 'U').charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
           </div>
           <div className="ml-3">
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">

@@ -32,6 +32,7 @@ export interface CreatePromoterRequest {
   promoterCode?: string
   utmCode?: string
   commissionRate?: number
+  totalSales?: number
   campaignId?: string
 }
 

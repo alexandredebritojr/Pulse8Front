@@ -204,9 +204,9 @@ export default function MarketingPage() {
 
           sampleCampaign: campaignsData[0],
 
-          allTypes: [...new Set(campaignsData.map((c: MarketingDto) => c.type))],
+          allTypes: Array.from(new Set(campaignsData.map((c: MarketingDto) => c.type).filter((type): type is string => Boolean(type)))),
 
-          allStatuses: [...new Set(campaignsData.map((c: MarketingDto) => c.status))]
+          allStatuses: Array.from(new Set(campaignsData.map((c: MarketingDto) => c.status).filter((status): status is string => Boolean(status))))
 
         })
 

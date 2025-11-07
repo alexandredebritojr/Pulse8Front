@@ -32,6 +32,7 @@ export default function EditPromoterPage() {
     promoterCode: '',
     utmCode: '',
     commissionRate: '',
+    totalSales: '',
     campaignId: ''
   })
 
@@ -52,6 +53,7 @@ export default function EditPromoterPage() {
           promoterCode: promoterData.promoterCode || '',
           utmCode: promoterData.utmCode || '',
           commissionRate: promoterData.commissionRate?.toString() || '',
+          totalSales: promoterData.totalSales?.toString() || '',
           campaignId: promoterData.campaignId || ''
         })
 
@@ -100,6 +102,7 @@ export default function EditPromoterPage() {
         promoterCode: formData.promoterCode || undefined,
         utmCode: formData.utmCode || undefined,
         commissionRate: formData.commissionRate ? parseFloat(formData.commissionRate) : undefined,
+        totalSales: formData.totalSales ? parseFloat(formData.totalSales) : undefined,
         campaignId: formData.campaignId || undefined
       })
 
@@ -263,21 +266,38 @@ export default function EditPromoterPage() {
               </div>
             </div>
 
-            <div>
-              <label htmlFor="commissionRate" className="block text-sm font-medium text-gray-700 mb-1">
-                Taxa de Comissão (%)
-              </label>
-              <Input
-                id="commissionRate"
-                name="commissionRate"
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                value={formData.commissionRate}
-                onChange={handleChange}
-                placeholder="Ex: 5.00"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="commissionRate" className="block text-sm font-medium text-gray-700 mb-1">
+                  Taxa de Comissão (%)
+                </label>
+                <Input
+                  id="commissionRate"
+                  name="commissionRate"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  value={formData.commissionRate}
+                  onChange={handleChange}
+                  placeholder="Ex: 5.00"
+                />
+              </div>
+              <div>
+                <label htmlFor="totalSales" className="block text-sm font-medium text-gray-700 mb-1">
+                  Total Vendas
+                </label>
+                <Input
+                  id="totalSales"
+                  name="totalSales"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.totalSales}
+                  onChange={handleChange}
+                  placeholder="Ex: 1000.00"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

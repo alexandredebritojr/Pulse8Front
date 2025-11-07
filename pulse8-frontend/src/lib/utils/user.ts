@@ -21,7 +21,7 @@ export function normalizeUser(user: any): User {
     role: user.role || user.Role || 'user',
     status: user.status || user.Status || 'active',
     permissions: user.permissions || user.Permissions || [],
-    avatar: user.avatar || user.Avatar || '',
+    avatar: user.avatar || user.Avatar || user.profilePicture || user.ProfilePicture || '',
     department: user.department || user.Department,
     position: user.position || user.Position,
     phone: user.phone || user.Phone,

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User } from '@/types/api'
-import { AuthService } from '@/lib/api/auth'
+import { AuthService, RegisterRequest } from '@/lib/api/auth'
 import { normalizeUser } from '@/lib/utils/user'
 
 interface AuthContextType {
@@ -10,15 +10,7 @@ interface AuthContextType {
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
-  register: (userData: RegisterData) => Promise<void>
-}
-
-interface RegisterData {
-  name: string
-  email: string
-  password: string
-  organizationName: string
-  cnpj: string
+  register: (userData: RegisterRequest) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -77,17 +69,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('📧 Email:', email)
       
       // Validação básica antes de chamar a API
-      if (!email || !password) {
+      const trimmedEmail = email.trim()
+      const trimmedPassword = password.trim()
+      
+      if (!trimmedEmail || !trimmedPassword) {
         throw new Error('Email e senha são obrigatórios')
       }
 
-      if (!email.includes('@') || !email.includes('.')) {
+      // Validação de email mais robusta
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(trimmedEmail)) {
         throw new Error('Por favor, insira um email válido')
       }
 
-      if (password.length < 3) {
+      if (trimmedPassword.length < 3) {
         throw new Error('Senha inválida')
       }
+      
+      // Usar os valores trimados
+      email = trimmedEmail
+      password = trimmedPassword
       
       const data = await AuthService.login({ email, password })
       
@@ -137,10 +138,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('👤 Usuário removido do estado')
   }
 
-  const register = async (userData: RegisterData) => {
+  const register = async (userData: RegisterRequest) => {
     try {
       console.log('🔐 AuthContext: Iniciando registro...')
-      console.log('📝 Dados do usuário:', userData)
+      console.log('📝 Dados do registro:', userData)
       
       const data = await AuthService.register(userData)
       console.log('✅ AuthContext: Registro bem-sucedido!', data)
