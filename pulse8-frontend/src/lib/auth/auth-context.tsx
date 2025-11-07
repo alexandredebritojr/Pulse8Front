@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User } from '@/types/api'
-import { AuthService, RegisterRequest, UserOrganizationInfo, GoogleOAuthRequest } from '@/lib/api/auth'
+import { AuthService, RegisterRequest, UserOrganizationInfo, GoogleOAuthRequest, InstagramOAuthRequest } from '@/lib/api/auth'
 import { normalizeUser } from '@/lib/utils/user'
 
 interface AuthContextType {
@@ -10,6 +10,7 @@ interface AuthContextType {
   isLoading: boolean
   login: (email: string, password: string) => Promise<{ userOrganizations?: UserOrganizationInfo[] }>
   loginWithGoogle: (oauthData: GoogleOAuthRequest) => Promise<{ userOrganizations?: UserOrganizationInfo[] }>
+  loginWithInstagram: (oauthData: InstagramOAuthRequest) => Promise<{ userOrganizations?: UserOrganizationInfo[] }>
   logout: () => void
   register: (userData: RegisterRequest) => Promise<void>
   updateUserOrganization: (organizationId: string, userOrganizationType: number, userOrganizationTypeName: string) => void
@@ -253,6 +254,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const loginWithInstagram = async (oauthData: InstagramOAuthRequest) => {
+    try {
+      console.log('🔐 AuthContext: Iniciando login com Instagram OAuth...')
+      
+      const data = await AuthService.loginWithInstagram(oauthData)
+      
+      // Verificar se recebemos uma resposta válida
+      if (!data || !data.token) {
+        throw new Error('Resposta inválida do servidor.')
+      }
+
+      if (!data.user) {
+        throw new Error('Dados do usuário não recebidos.')
+      }
+      
+      console.log('✅ AuthContext: Login com Instagram bem-sucedido!', data)
+      console.log('👤 Estrutura do usuário:', JSON.stringify(data.user, null, 2))
+      console.log('🏢 Organizações recebidas:', data.userOrganizations?.length || 0)
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth-token', data.token)
+        console.log('💾 Token salvo no localStorage')
+      }
+      
+      const normalizedUser = normalizeUser(data.user)
+      console.log('👤 Usuário normalizado:', normalizedUser)
+      
+      // Não definir organização ainda se houver múltiplas - deixar o usuário escolher
+      // Se houver apenas uma organização ou nenhuma, definir como antes
+      if (typeof window !== 'undefined') {
+        if (!data.userOrganizations || data.userOrganizations.length === 0) {
+          // Usuário sem organizações
+          localStorage.removeItem('organizationId')
+          console.log('🗑️ OrganizationId removido do localStorage (usuário sem organização)')
+        } else if (data.userOrganizations.length === 1) {
+          // Usuário com apenas uma organização - definir automaticamente
+          const orgId = data.userOrganizations[0].organizationId
+          localStorage.setItem('organizationId', orgId)
+          console.log('🏢 OrganizationId salvo no localStorage (única organização):', orgId)
+          normalizedUser.organizationId = orgId
+          normalizedUser.userOrganizationType = data.userOrganizations[0].userOrganizationType
+          normalizedUser.userOrganizationTypeName = data.userOrganizations[0].userOrganizationTypeName
+        }
+        // Se houver múltiplas organizações, não definir ainda - o modal vai permitir escolher
+      }
+      
+      setUser(normalizedUser)
+      
+      // Retornar as organizações para o componente de login decidir se mostra o modal
+      return { userOrganizations: data.userOrganizations }
+    } catch (error: any) {
+      console.error('❌ AuthContext: Erro no login com Instagram:', error)
+      const errorMessage = error.message || 'Erro ao fazer login com Instagram'
+      throw new Error(errorMessage)
+    }
+  }
+
   const updateUserOrganization = (organizationId: string, userOrganizationType: number, userOrganizationTypeName: string) => {
     if (user) {
       const updatedUser = {
@@ -269,7 +327,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, loginWithGoogle, logout, register, updateUserOrganization }}>
+    <AuthContext.Provider value={{ user, isLoading, login, loginWithGoogle, loginWithInstagram, logout, register, updateUserOrganization }}>
       {children}
     </AuthContext.Provider>
   )

@@ -18,8 +18,11 @@ interface OAuthButtonsProps {
 export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, onUserNotFound }: OAuthButtonsProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [googleOAuthError, setGoogleOAuthError] = useState<string | null>(null)
-  const { loginWithGoogle } = useAuth()
+  const { loginWithGoogle, loginWithInstagram } = useAuth()
   const router = useRouter()
+  
+  // Controlar exibição do botão Instagram (desabilitado temporariamente)
+  const ENABLE_INSTAGRAM_OAUTH = false
   
   // Interceptar erros do console relacionados ao Google OAuth
   useEffect(() => {
@@ -181,17 +184,111 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
     onError?.('Erro ao autenticar com Google. Verifique a configuração OAuth.')
   }
 
-  const handleInstagramClick = () => {
-    // Instagram OAuth requer configuração no Facebook Developer
-    // Por enquanto, mostra uma mensagem informativa
-    alert('Login com Instagram em breve! Por favor, use email/senha ou Google para entrar.')
+  const handleInstagramClick = async () => {
+    setIsLoading(true)
     
-    // Para implementar Instagram OAuth completo:
-    // 1. Configurar app no Facebook Developer
-    // 2. Redirecionar para: https://api.instagram.com/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI&scope=user_profile,user_media&response_type=code
-    // 3. Trocar código por access token
-    // 4. Obter informações do usuário
-    // 5. Chamar AuthService.loginWithInstagram()
+    try {
+      // App ID do Instagram (pode vir de variável de ambiente ou usar o padrão)
+      const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || '1412398856657814'
+      
+      // Determinar redirect URI
+      let redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI
+      if (!redirectUri && typeof window !== 'undefined') {
+        redirectUri = `${window.location.origin}/auth/instagram/callback`
+      }
+      
+      if (!appId) {
+        onError?.('Instagram OAuth não configurado. Configure NEXT_PUBLIC_INSTAGRAM_APP_ID nas variáveis de ambiente.')
+        setIsLoading(false)
+        return
+      }
+      
+      if (!redirectUri) {
+        onError?.('Redirect URI do Instagram não configurado.')
+        setIsLoading(false)
+        return
+      }
+      
+      // Remover barra final do redirect URI (pode causar problemas)
+      redirectUri = redirectUri.replace(/\/$/, '')
+      
+      // Validar URL antes de redirecionar
+      try {
+        new URL(redirectUri)
+      } catch (urlError) {
+        console.error('❌ Redirect URI inválido:', redirectUri)
+        onError?.('Redirect URI inválido. Verifique a configuração.')
+        setIsLoading(false)
+        return
+      }
+      
+      // Construir URL de autorização do Instagram
+      // IMPORTANTE: O Instagram Basic Display usa a API do Facebook
+      // IMPORTANTE: O redirect_uri deve estar EXATAMENTE igual ao configurado no Facebook Developers
+      const instagramAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user_profile,user_media&response_type=code`
+      
+      console.log('🔗 Redirecionando para Instagram OAuth:', {
+        appId,
+        redirectUri,
+        redirectUriEncoded: encodeURIComponent(redirectUri),
+        fullUrl: instagramAuthUrl,
+        origin: typeof window !== 'undefined' ? window.location.origin : 'N/A',
+        currentUrl: typeof window !== 'undefined' ? window.location.href : 'N/A'
+      })
+      
+      // Mostrar instruções de configuração detalhadas
+      const domain = new URL(redirectUri).hostname
+      const siteUrl = redirectUri.split('/auth')[0]
+      console.log(`
+📋 INSTRUÇÕES COMPLETAS PARA RESOLVER O ERRO "Invalid platform app":
+
+✅ PASSO 1: Configurar Plataforma "Website"
+   1. Acesse: https://developers.facebook.com/apps/${appId}/settings/basic/
+   2. Adicione a plataforma "Website"
+   3. Configure URL do site: ${siteUrl}
+   4. Adicione domínio: ${domain}
+   5. Salve as alterações
+
+✅ PASSO 2: Configurar Redirect URI no Instagram Basic Display (CRÍTICO!)
+   1. Acesse: https://developers.facebook.com/apps/${appId}/instagram-basic-display/basic-display/
+   2. Role até encontrar "Valid OAuth Redirect URIs"
+   3. Clique em "Add URI" ou "Adicionar URI"
+   4. Digite exatamente: ${redirectUri}
+   5. Salve as alterações
+   
+   ⚠️ IMPORTANTE: Este passo é ESSENCIAL quando o usuário já está logado no Instagram!
+
+✅ PASSO 3: Adicionar Usuário de Teste (se app em modo de desenvolvimento)
+   1. Acesse: https://developers.facebook.com/apps/${appId}/roles/roles/
+   2. Adicione seu Instagram como testador na seção "Instagram Testers"
+   3. Aguarde o convite ser aceito
+
+⏱️ Aguarde 5-10 minutos após salvar todas as alterações
+🧹 Limpe o cache do navegador e cookies do Instagram
+🔄 Tente novamente
+
+📖 Documentação completa: Veja RESOLVER_ERRO_INSTAGRAM_OAUTH.md
+      `)
+      
+      if (typeof window !== 'undefined') {
+        // Salvar modo (login ou register) no sessionStorage para usar no callback
+        sessionStorage.setItem('instagram-oauth-mode', mode)
+        sessionStorage.setItem('instagram-oauth-app-id', appId)
+        sessionStorage.setItem('instagram-oauth-redirect-uri', redirectUri)
+        window.location.href = instagramAuthUrl
+      }
+    } catch (error: any) {
+      console.error('❌ Erro ao iniciar OAuth do Instagram:', error)
+      const errorMessage = error.message || 'Erro ao iniciar autenticação com Instagram.'
+      
+      // Mensagem mais útil para o erro "Invalid platform app"
+      const helpfulMessage = errorMessage.includes('Invalid platform app') || errorMessage.includes('Invalid platform')
+        ? `Erro de configuração do Instagram OAuth. Verifique se a plataforma "Website" está configurada no Facebook Developers. Veja o console para instruções detalhadas.`
+        : errorMessage
+      
+      onError?.(helpfulMessage)
+      setIsLoading(false)
+    }
   }
 
   // Obter Client ID do Google (pode vir de variável de ambiente ou usar o padrão)
@@ -213,7 +310,7 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className={`grid gap-3 ${ENABLE_INSTAGRAM_OAUTH ? 'grid-cols-2' : 'grid-cols-1'}`}>
         {googleClientId ? (
           <div className="flex flex-col items-center">
             {googleOAuthError && (
@@ -221,7 +318,7 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
                 ⚠️ Configuração OAuth necessária
               </div>
             )}
-            <div className="flex justify-center">
+            <div className="flex justify-center w-full">
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={handleGoogleError}
@@ -269,16 +366,19 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
           </Button>
         )}
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleInstagramClick}
-          className="w-full"
-          disabled={isLoading}
-        >
-          <Instagram className="w-5 h-5 mr-2" />
-          Instagram
-        </Button>
+        {/* Botão Instagram - desabilitado temporariamente */}
+        {ENABLE_INSTAGRAM_OAUTH && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleInstagramClick}
+            className="w-full"
+            disabled={isLoading}
+          >
+            <Instagram className="w-5 h-5 mr-2" />
+            Instagram
+          </Button>
+        )}
       </div>
     </div>
   )

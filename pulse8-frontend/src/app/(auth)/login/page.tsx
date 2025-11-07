@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
@@ -10,7 +10,7 @@ import { User, Briefcase, Building2 } from 'lucide-react'
 import { UserOrganizationInfo } from '@/lib/api/auth'
 import { OAuthButtons } from '@/components/auth/OAuthButtons'
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -26,11 +26,67 @@ export default function LoginPage() {
   const [showOAuthRedirectMessage, setShowOAuthRedirectMessage] = useState(false)
   const [isOAuthRegistration, setIsOAuthRegistration] = useState(false) // Indica se é cadastro via OAuth
   const router = useRouter()
+  const searchParams = useSearchParams()
   
   console.log('🔍 LoginPage: Componente renderizado')
   
-  const { login, user, updateUserOrganization } = useAuth()
+  const { login, user, updateUserOrganization, loginWithInstagram } = useAuth()
   console.log('🔍 LoginPage: useAuth retornou:', { login: typeof login })
+
+  // Processar login com Instagram OAuth
+  const processInstagramOAuth = useCallback(async (instagramData: any) => {
+    setIsLoading(true)
+    setError('')
+
+    try {
+      const result = await loginWithInstagram({
+        accessToken: instagramData.accessToken,
+        userId: instagramData.userId,
+        username: instagramData.username,
+        accountType: instagramData.accountType,
+      })
+
+      console.log('✅ Login com Instagram bem-sucedido!')
+      console.log('🏢 Organizações recebidas:', result.userOrganizations?.length || 0)
+
+      // Processar resultado como no Google OAuth
+      if (result.userOrganizations && result.userOrganizations.length > 1) {
+        setUserOrganizations(result.userOrganizations)
+        setShowOrganizationModal(true)
+      } else {
+        setShouldRedirect(true)
+      }
+    } catch (err: any) {
+      console.error('❌ Erro no login com Instagram:', err)
+      const errorMessage = err.message || 'Erro ao fazer login com Instagram'
+      
+      // Verificar se é erro de usuário não encontrado
+      if (errorMessage.includes('USER_NOT_FOUND') || errorMessage.includes('não encontrado') || errorMessage.includes('Usuário não encontrado')) {
+        // Preparar dados OAuth para cadastro
+        const oauthData = {
+          email: `${instagramData.username}@instagram.oauth`,
+          firstName: instagramData.username || '',
+          lastName: '',
+          picture: null,
+          oauthProvider: 'Instagram',
+          oauthId: instagramData.userId,
+        }
+        
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('oauth-data', JSON.stringify(oauthData))
+        }
+        
+        // Mostrar modal de seleção de tipo
+        setShowOAuthRedirectMessage(true)
+        setIsOAuthRegistration(true)
+        setShowRegisterTypeModal(true)
+      } else {
+        setError(errorMessage)
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [loginWithInstagram])
 
   // Função para traduzir status para português
   const translateStatus = (status: string): string => {
@@ -65,8 +121,31 @@ export default function LoginPage() {
         setRememberMe(true)
         console.log('💾 Dados salvos carregados:', { email: savedEmail, rememberMe: savedRememberMe })
       }
+
+      // Verificar se há erro de OAuth no sessionStorage (vindo do callback)
+      const oauthError = sessionStorage.getItem('oauth-error')
+      if (oauthError) {
+        setError(oauthError)
+        sessionStorage.removeItem('oauth-error')
+      }
+
+      // Verificar se há dados do Instagram OAuth no sessionStorage
+      const instagramOAuthParam = searchParams.get('instagram_oauth')
+      if (instagramOAuthParam === 'true') {
+        const instagramDataStr = sessionStorage.getItem('instagram-oauth-data')
+        if (instagramDataStr) {
+          try {
+            const instagramData = JSON.parse(instagramDataStr)
+            processInstagramOAuth(instagramData)
+            sessionStorage.removeItem('instagram-oauth-data')
+          } catch (err) {
+            console.error('Erro ao processar dados do Instagram OAuth:', err)
+            setError('Erro ao processar dados do Instagram. Tente novamente.')
+          }
+        }
+      }
     }
-  }, [])
+  }, [searchParams, processInstagramOAuth])
 
   // Função para redirecionar baseado no tipo de usuário
   const redirectUser = useCallback((organizationId?: string, userOrganizationType?: number) => {
@@ -441,9 +520,12 @@ export default function LoginPage() {
                 setShowOAuthRedirectMessage(false)
                 
                 // Redirecionar para cadastro com tipo promoter
-                // Se for OAuth, incluir parâmetro oauth=google para carregar dados do Google
+                // Se for OAuth, incluir parâmetro oauth para carregar dados
                 if (isOAuth) {
-                  router.push('/register?userType=promoter&oauth=google')
+                  // Verificar qual provedor OAuth
+                  const oauthDataStr = typeof window !== 'undefined' ? sessionStorage.getItem('oauth-data') : null
+                  const oauthProvider = oauthDataStr ? JSON.parse(oauthDataStr).oauthProvider : 'google'
+                  router.push(`/register?userType=promoter&oauth=${oauthProvider.toLowerCase()}`)
                 } else {
                   router.push('/register?userType=promoter')
                 }
@@ -464,9 +546,12 @@ export default function LoginPage() {
                 setShowOAuthRedirectMessage(false)
                 
                 // Redirecionar para cadastro com tipo produtor
-                // Se for OAuth, incluir parâmetro oauth=google para carregar dados do Google
+                // Se for OAuth, incluir parâmetro oauth para carregar dados
                 if (isOAuth) {
-                  router.push('/register?oauth=google')
+                  // Verificar qual provedor OAuth
+                  const oauthDataStr = typeof window !== 'undefined' ? sessionStorage.getItem('oauth-data') : null
+                  const oauthProvider = oauthDataStr ? JSON.parse(oauthDataStr).oauthProvider : 'google'
+                  router.push(`/register?oauth=${oauthProvider.toLowerCase()}`)
                 } else {
                   router.push('/register')
                 }
@@ -586,6 +671,21 @@ export default function LoginPage() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   )
 }
 

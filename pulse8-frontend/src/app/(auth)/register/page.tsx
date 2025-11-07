@@ -150,6 +150,29 @@ function RegisterContent() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl w-full">
+        {/* Botão Voltar para Login */}
+        <div className="mb-6 flex justify-start">
+          <Link
+            href="/login"
+            className="inline-flex items-center text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
+          >
+            <svg 
+              className="w-5 h-5 mr-2" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M10 19l-7-7m0 0l7-7m-7 7h18" 
+              />
+            </svg>
+            Voltar para Login
+          </Link>
+        </div>
+
         <div className="text-center mb-8">
           <h2 className="text-3xl font-extrabold text-gray-900">
             {inviteToken && inviteData 

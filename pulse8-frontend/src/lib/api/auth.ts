@@ -210,6 +210,39 @@ export class AuthService {
   }
 
   /**
+   * Valida dados OAuth do Instagram (sem fazer login)
+   * Retorna dados do usuário para preencher o cadastro
+   */
+  static async validateInstagramOAuth(oauthData: InstagramOAuthRequest): Promise<{
+    email: string
+    firstName: string
+    lastName: string
+    picture?: string
+    oauthProvider: string
+    oauthId: string
+    userExists: boolean
+  }> {
+    try {
+      console.log('🔐 AuthService: Validando OAuth do Instagram...')
+      const response = await apiClient.post<{
+        email: string
+        firstName: string
+        lastName: string
+        picture?: string
+        oauthProvider: string
+        oauthId: string
+        userExists: boolean
+      }>('/auth/oauth/instagram/validate', oauthData)
+      console.log('✅ AuthService: Validação OAuth do Instagram bem-sucedida!')
+      return response
+    } catch (error: any) {
+      console.error('❌ AuthService: Erro na validação OAuth do Instagram:', error)
+      const errorMessage = this.getErrorMessage(error)
+      throw new Error(errorMessage)
+    }
+  }
+
+  /**
    * Valida dados OAuth do Google (sem fazer login)
    * Retorna dados do usuário para preencher o cadastro
    */
