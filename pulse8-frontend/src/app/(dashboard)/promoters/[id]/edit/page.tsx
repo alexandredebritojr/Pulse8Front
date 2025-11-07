@@ -11,11 +11,13 @@ import { PromotersService, PromoterDto } from '@/lib/api/promoters'
 import { EventsService } from '@/lib/api/events'
 import { UsersService } from '@/lib/api/users'
 import { MarketingService } from '@/lib/api/marketing'
+import { useAuth } from '@/lib/auth/auth-context'
 
 export default function EditPromoterPage() {
   const router = useRouter()
   const params = useParams()
   const searchParams = useSearchParams()
+  const { user } = useAuth()
   const promoterId = params.id as string
   const eventId = searchParams.get('eventId') || undefined
   
@@ -57,12 +59,24 @@ export default function EditPromoterPage() {
           campaignId: promoterData.campaignId || ''
         })
 
+        // Obter organizationId do usuário logado
+        const organizationId = user?.organizationId || localStorage.getItem('organizationId') || undefined
+
         // Carregar eventos
         const eventsResponse = await EventsService.getEvents()
         setEvents(eventsResponse.events || [])
 
-        // Carregar usuários
-        const usersResponse = await UsersService.getUsers()
+        // Carregar usuários apenas da organização do usuário logado
+        const usersResponse = await UsersService.getUsers(
+          1, // pageNumber
+          1000, // pageSize - número alto para pegar todos os usuários da organização
+          undefined, // searchTerm
+          undefined, // status
+          organizationId, // organizationId - filtrar por organização
+          undefined, // roleId
+          undefined, // sortBy
+          undefined // sortDescending
+        )
         setUsers(usersResponse.users || [])
 
         // Carregar campanhas
@@ -79,7 +93,7 @@ export default function EditPromoterPage() {
     if (promoterId) {
       loadData()
     }
-  }, [promoterId])
+  }, [promoterId, user])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

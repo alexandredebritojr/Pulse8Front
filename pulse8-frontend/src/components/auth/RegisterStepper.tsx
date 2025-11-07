@@ -11,10 +11,11 @@ interface RegisterStepperProps {
   onComplete: (data: { organization: OrganizationData; user: UserData }) => Promise<void>
   inviteToken?: string
   inviteData?: ValidateInviteTokenResponse | null
+  userType?: string
 }
 
-export function RegisterStepper({ onComplete, inviteToken, inviteData }: RegisterStepperProps) {
-  const isPromoterRegistration = !!inviteToken && !!inviteData
+export function RegisterStepper({ onComplete, inviteToken, inviteData, userType }: RegisterStepperProps) {
+  const isPromoterRegistration = (!!inviteToken && !!inviteData) || userType === 'promoter'
   const maxStep = isPromoterRegistration ? 2 : 3 // Se for promoter, só tem 2 steps (Usuário e Confirmação)
   
   const [currentStep, setCurrentStep] = useState(1)

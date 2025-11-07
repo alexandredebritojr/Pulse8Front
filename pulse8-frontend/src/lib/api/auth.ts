@@ -31,10 +31,19 @@ export interface RegisterRequest {
   userType?: 'promoter' | 'admin' | 'organizer'
 }
 
+export interface UserOrganizationInfo {
+  organizationId: string
+  organizationName: string
+  userOrganizationType: number // 0=Admin, 1=Manager, 2=Employee, 3=Promoter
+  userOrganizationTypeName: string
+  status: string // Active, Inactive, Suspended, Pending
+}
+
 export interface AuthResponse {
   token: string
   expiresAt: string
   user: User
+  userOrganizations?: UserOrganizationInfo[]
 }
 
 export interface ChangePasswordRequest {

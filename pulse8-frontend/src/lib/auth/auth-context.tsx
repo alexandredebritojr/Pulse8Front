@@ -2,15 +2,16 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User } from '@/types/api'
-import { AuthService, RegisterRequest } from '@/lib/api/auth'
+import { AuthService, RegisterRequest, UserOrganizationInfo } from '@/lib/api/auth'
 import { normalizeUser } from '@/lib/utils/user'
 
 interface AuthContextType {
   user: User | null
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<{ userOrganizations?: UserOrganizationInfo[] }>
   logout: () => void
   register: (userData: RegisterRequest) => Promise<void>
+  updateUserOrganization: (organizationId: string, userOrganizationType: number, userOrganizationTypeName: string) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -47,10 +48,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = await AuthService.getMe()
       const normalizedUser = normalizeUser(userData)
       
-      // Salvar organizationId no localStorage se disponível
-      if (normalizedUser.organizationId && typeof window !== 'undefined') {
-        localStorage.setItem('organizationId', normalizedUser.organizationId)
-        console.log('🏢 OrganizationId salvo no localStorage:', normalizedUser.organizationId)
+      // Salvar ou remover organizationId no localStorage baseado nos dados do usuário
+      if (typeof window !== 'undefined') {
+        if (normalizedUser.organizationId) {
+          localStorage.setItem('organizationId', normalizedUser.organizationId)
+          console.log('🏢 OrganizationId salvo no localStorage:', normalizedUser.organizationId)
+        } else {
+          localStorage.removeItem('organizationId')
+          console.log('🗑️ OrganizationId removido do localStorage (usuário sem organização)')
+        }
       }
       
       setUser(normalizedUser)
@@ -103,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       console.log('✅ AuthContext: Login bem-sucedido!', data)
       console.log('👤 Estrutura do usuário:', JSON.stringify(data.user, null, 2))
+      console.log('🏢 Organizações recebidas:', data.userOrganizations?.length || 0)
       
       if (typeof window !== 'undefined') {
         localStorage.setItem('auth-token', data.token)
@@ -112,13 +119,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedUser = normalizeUser(data.user)
       console.log('👤 Usuário normalizado:', normalizedUser)
       
-      // Salvar organizationId no localStorage se disponível
-      if (normalizedUser.organizationId && typeof window !== 'undefined') {
-        localStorage.setItem('organizationId', normalizedUser.organizationId)
-        console.log('🏢 OrganizationId salvo no localStorage:', normalizedUser.organizationId)
+      // Não definir organização ainda se houver múltiplas - deixar o usuário escolher
+      // Se houver apenas uma organização ou nenhuma, definir como antes
+      if (typeof window !== 'undefined') {
+        if (!data.userOrganizations || data.userOrganizations.length === 0) {
+          // Usuário sem organizações
+          localStorage.removeItem('organizationId')
+          console.log('🗑️ OrganizationId removido do localStorage (usuário sem organização)')
+        } else if (data.userOrganizations.length === 1) {
+          // Usuário com apenas uma organização - definir automaticamente
+          const orgId = data.userOrganizations[0].organizationId
+          localStorage.setItem('organizationId', orgId)
+          console.log('🏢 OrganizationId salvo no localStorage (única organização):', orgId)
+          normalizedUser.organizationId = orgId
+          normalizedUser.userOrganizationType = data.userOrganizations[0].userOrganizationType
+          normalizedUser.userOrganizationTypeName = data.userOrganizations[0].userOrganizationTypeName
+        }
+        // Se houver múltiplas organizações, não definir ainda - o modal vai permitir escolher
       }
       
       setUser(normalizedUser)
+      
+      // Retornar as organizações para o componente de login decidir se mostra o modal
+      return { userOrganizations: data.userOrganizations }
     } catch (error: any) {
       console.error('❌ AuthContext: Erro no login:', error)
       // Preservar mensagem de erro original ou fornecer uma genérica mas útil
@@ -154,10 +177,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const normalizedUser = normalizeUser(data.user)
       console.log('👤 Usuário normalizado:', normalizedUser)
       
-      // Salvar organizationId no localStorage se disponível
-      if (normalizedUser.organizationId && typeof window !== 'undefined') {
-        localStorage.setItem('organizationId', normalizedUser.organizationId)
-        console.log('🏢 OrganizationId salvo no localStorage:', normalizedUser.organizationId)
+      // Salvar ou remover organizationId no localStorage baseado nos dados do usuário
+      if (typeof window !== 'undefined') {
+        if (normalizedUser.organizationId) {
+          localStorage.setItem('organizationId', normalizedUser.organizationId)
+          console.log('🏢 OrganizationId salvo no localStorage:', normalizedUser.organizationId)
+        } else {
+          localStorage.removeItem('organizationId')
+          console.log('🗑️ OrganizationId removido do localStorage (usuário sem organização)')
+        }
       }
       
       setUser(normalizedUser)
@@ -167,8 +195,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updateUserOrganization = (organizationId: string, userOrganizationType: number, userOrganizationTypeName: string) => {
+    if (user) {
+      const updatedUser = {
+        ...user,
+        organizationId,
+        userOrganizationType,
+        userOrganizationTypeName
+      }
+      setUser(updatedUser)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('organizationId', organizationId)
+      }
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, register, updateUserOrganization }}>
       {children}
     </AuthContext.Provider>
   )

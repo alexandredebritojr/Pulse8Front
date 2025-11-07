@@ -12,10 +12,12 @@ import { PromotersService } from '@/lib/api/promoters'
 import { EventsService } from '@/lib/api/events'
 import { UsersService } from '@/lib/api/users'
 import { MarketingService } from '@/lib/api/marketing'
+import { useAuth } from '@/lib/auth/auth-context'
 
 export default function CreatePromoterPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user } = useAuth()
   const eventId = searchParams.get('eventId') || ''
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
@@ -42,12 +44,24 @@ export default function CreatePromoterPage() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        // Obter organizationId do usuário logado
+        const organizationId = user?.organizationId || localStorage.getItem('organizationId') || undefined
+
         // Carregar eventos
         const eventsResponse = await EventsService.getEvents()
         setEvents(eventsResponse.events || [])
 
-        // Carregar usuários
-        const usersResponse = await UsersService.getUsers()
+        // Carregar usuários apenas da organização do usuário logado
+        const usersResponse = await UsersService.getUsers(
+          1, // pageNumber
+          1000, // pageSize - número alto para pegar todos os usuários da organização
+          undefined, // searchTerm
+          undefined, // status
+          organizationId, // organizationId - filtrar por organização
+          undefined, // roleId
+          undefined, // sortBy
+          undefined // sortDescending
+        )
         setUsers(usersResponse.users || [])
 
         // Carregar campanhas
@@ -60,7 +74,7 @@ export default function CreatePromoterPage() {
     }
 
     loadData()
-  }, [])
+  }, [user])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target

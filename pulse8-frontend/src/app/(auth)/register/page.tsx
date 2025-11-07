@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -10,13 +10,14 @@ import { unformatPhone, unformatCEP } from '@/lib/utils/masks'
 import { unformatCPFOrCNPJ } from '@/lib/utils'
 import { EventInvitesService, ValidateInviteTokenResponse } from '@/lib/api/invites'
 
-export default function RegisterPage() {
+function RegisterContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
   const searchParams = useSearchParams()
   const { register } = useAuth()
   const inviteToken = searchParams.get('inviteToken')
+  const userType = searchParams.get('userType') // 'promoter' quando vem do login
   
   const [inviteData, setInviteData] = useState<ValidateInviteTokenResponse | null>(null)
   const [isLoadingInvite, setIsLoadingInvite] = useState(false)
@@ -48,8 +49,11 @@ export default function RegisterPage() {
     try {
       console.log('🔐 Tentando registrar usuário e organização...')
       
-      // Se for cadastro via invite (promoter), usar dados do invite
-      const isPromoterRegistration = !!inviteToken && !!inviteData
+      // Se for cadastro via invite (promoter com invite), usar dados do invite
+      const isPromoterWithInvite = !!inviteToken && !!inviteData
+      // Se for cadastro de promoter direto do login (sem invite)
+      const isPromoterDirect = userType === 'promoter' && !inviteToken
+      const isPromoterRegistration = isPromoterWithInvite || isPromoterDirect
       
       // Preparar dados para o backend (remover formatações)
       await register({
@@ -73,16 +77,21 @@ export default function RegisterPage() {
         organizationEmail: isPromoterRegistration ? '' : data.organization.email,
         
         // Dados específicos para promoter
-        organizationId: isPromoterRegistration ? inviteData!.organizationId : undefined,
+        organizationId: isPromoterWithInvite ? inviteData!.organizationId : undefined,
         userType: isPromoterRegistration ? 'promoter' : undefined
       })
       
       console.log('✅ Registro realizado com sucesso!')
       
-      // Se for promoter, redirecionar para aceitar o invite
-      if (isPromoterRegistration && inviteToken) {
+      // Redirecionar baseado no tipo de cadastro
+      if (isPromoterWithInvite && inviteToken) {
+        // Promoter com invite: redirecionar para aceitar o invite
         router.push(`/invite/${inviteToken}`)
+      } else if (isPromoterDirect) {
+        // Promoter direto (sem invite): redirecionar para eventos
+        router.push('/events')
       } else {
+        // Produtor: redirecionar para dashboard
         router.push('/dashboard')
       }
     } catch (err: any) {
@@ -98,12 +107,20 @@ export default function RegisterPage() {
       <div className="max-w-4xl w-full">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-extrabold text-gray-900">
-            {inviteToken && inviteData ? 'Cadastro de Promoter' : 'Crie sua conta'}
+            {inviteToken && inviteData 
+              ? 'Cadastro de Promoter' 
+              : userType === 'promoter' 
+                ? 'Cadastro de Promoter' 
+                : 'Crie sua conta'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             {inviteToken && inviteData ? (
               <>
                 Você foi convidado para ser Promoter na organização <strong>{inviteData.organizationName}</strong>
+              </>
+            ) : userType === 'promoter' ? (
+              <>
+                Cadastre-se como Promoter para receber convites de eventos
               </>
             ) : (
               <>
@@ -134,10 +151,25 @@ export default function RegisterPage() {
             onComplete={handleComplete} 
             inviteToken={inviteToken || undefined}
             inviteData={inviteData}
+            userType={userType || undefined}
           />
         )}
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    }>
+      <RegisterContent />
+    </Suspense>
   )
 }
 

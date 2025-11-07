@@ -161,10 +161,11 @@ export function Sidebar({ onClose }: SidebarProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([])
 
   // Verificar se o usuário é Promoter (UserOrganizationType = 3)
+  // Também considerar como promoter se não tem organização nem userOrganizationType (cadastrado como promoter direto)
   // Usar useMemo para evitar recálculos desnecessários
   const isPromoter = useMemo(() => {
-    return user?.userOrganizationType !== undefined && user.userOrganizationType === 3
-  }, [user?.userOrganizationType])
+    return user?.userOrganizationType === 3 || (!user?.organizationId && !user?.userOrganizationType)
+  }, [user?.userOrganizationType, user?.organizationId])
 
   // Filtrar navigation baseado no tipo de usuário usando useMemo para evitar recálculos desnecessários
   // Se o usuário ainda não foi carregado, mostrar todos os menus

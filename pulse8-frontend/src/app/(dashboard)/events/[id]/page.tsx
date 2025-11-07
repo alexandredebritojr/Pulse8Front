@@ -642,7 +642,7 @@ export default function EventDetailsPage() {
               Crie um link de convite para promoters se cadastrarem neste evento
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 px-4 sm:px-6">
             <div className="space-y-2">
               <Label htmlFor="invite-email">Email (Opcional)</Label>
               <Input

@@ -40,19 +40,35 @@ export default function DashboardPage() {
 
   // Redirecionar Promoters para a página de eventos imediatamente
   useEffect(() => {
-    if (user?.userOrganizationType === 3) {
+    // Promoter: userOrganizationType === 3 OU não tem organização nem userOrganizationType
+    const isPromoter = user?.userOrganizationType === 3 || (!user?.organizationId && !user?.userOrganizationType)
+    if (isPromoter) {
       console.log('🔀 Dashboard: Redirecionando Promoter para /events')
       router.replace('/events')
+      return
     }
   }, [user, router])
 
   useEffect(() => {
+    // Não carregar dados se for promoter (será redirecionado)
+    const isPromoter = user?.userOrganizationType === 3 || (!user?.organizationId && !user?.userOrganizationType)
+    if (isPromoter) {
+      return
+    }
+
+    // Não carregar dados se não houver organização
+    if (!user?.organizationId) {
+      setIsLoading(false)
+      setError('Organização não encontrada')
+      return
+    }
+
     const loadDashboardData = async () => {
       try {
         setIsLoading(true)
         setError('')
 
-        const organizationId = localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
+        const organizationId = user.organizationId || localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
 
         // Buscar dados em paralelo
         const [eventsResponse, revenueResponse, guestsResponse] = await Promise.all([

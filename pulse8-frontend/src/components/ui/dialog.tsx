@@ -21,6 +21,7 @@ interface DialogHeaderProps {
 
 interface DialogTitleProps {
   children: ReactNode
+  className?: string
 }
 
 interface DialogDescriptionProps {
@@ -65,8 +66,8 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
 
 export function DialogContent({ children, className = '' }: DialogContentProps) {
   return (
-    <div className="flex min-h-full items-center justify-center p-4">
-      <div className={`relative transform overflow-hidden rounded-lg bg-white shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg ${className}`}>
+    <div className="flex min-h-full items-center justify-center p-4 sm:p-6">
+      <div className={`relative transform overflow-hidden rounded-lg bg-white shadow-xl transition-all sm:my-8 w-full max-w-lg mx-auto ${className}`}>
         {children}
       </div>
     </div>
@@ -81,9 +82,9 @@ export function DialogHeader({ children }: DialogHeaderProps) {
   )
 }
 
-export function DialogTitle({ children }: DialogTitleProps) {
+export function DialogTitle({ children, className = '' }: DialogTitleProps) {
   return (
-    <h3 className="text-lg font-semibold leading-6 text-gray-900">
+    <h3 className={`text-lg font-semibold leading-6 text-gray-900 ${className}`}>
       {children}
     </h3>
   )

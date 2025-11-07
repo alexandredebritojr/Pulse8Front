@@ -24,11 +24,28 @@ export default function EventsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
 
   // Verificar se o usuário é Promoter (UserOrganizationType = 3)
-  const isPromoter = user?.userOrganizationType === 3
+  // Também considerar como promoter se não tem organização nem userOrganizationType (cadastrado como promoter direto)
+  const isPromoter = user?.userOrganizationType === 3 || (!user?.organizationId && !user?.userOrganizationType)
+  // Verificar se o promoter não tem organização (cadastrado direto, sem invite)
+  const isPromoterWithoutOrganization = isPromoter && (!user?.organizationId || user.organizationId === null || user.organizationId === undefined)
 
   // Carregar eventos da API
   useEffect(() => {
+    // Aguardar o usuário estar disponível
+    if (!user) {
+      return
+    }
+
     const loadEvents = async () => {
+      // Se for promoter sem organização, não buscar eventos
+      const promoterWithoutOrg = isPromoter && (!user?.organizationId || user.organizationId === null || user.organizationId === undefined)
+      if (promoterWithoutOrg) {
+        setEvents([])
+        setError('')
+        setIsLoading(false)
+        return
+      }
+
       try {
         console.log('🔍 Carregando eventos da API...')
         console.log('🔍 EventsService =', EventsService)
@@ -36,7 +53,7 @@ export default function EventsPage() {
         console.log('🔍 statusFilter =', statusFilter)
         console.log('🔍 searchTerm =', searchTerm)
         
-        const organizationId = localStorage.getItem('organizationId') || '00000000-0000-0000-0000-000000000000'
+        const organizationId = localStorage.getItem('organizationId') || user?.organizationId || '00000000-0000-0000-0000-000000000000'
         
         const queryParams = {
           pageNumber: 1,
@@ -57,14 +74,20 @@ export default function EventsPage() {
       } catch (err: any) {
         console.error('❌ Erro ao carregar eventos:', err)
         console.error('❌ Stack trace:', err.stack)
-        setError(err.message || 'Erro ao carregar eventos')
+        // Se for promoter sem organização, não mostrar erro, apenas lista vazia
+        if (isPromoterWithoutOrganization) {
+          setEvents([])
+          setError('')
+        } else {
+          setError(err.message || 'Erro ao carregar eventos')
+        }
       } finally {
         setIsLoading(false)
       }
     }
 
     loadEvents()
-  }, [searchTerm, statusFilter])
+  }, [searchTerm, statusFilter, isPromoterWithoutOrganization, user, isPromoter])
 
   const getStatusColor = (status: string | number | null | undefined) => {
     if (status === null || status === undefined) return 'bg-gray-100 text-gray-800'
@@ -168,6 +191,22 @@ export default function EventsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Alerta para Promoter sem organização */}
+      {isPromoterWithoutOrganization && (
+        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-blue-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                <strong>Você ainda não foi convidado para ser promoter de nenhum evento.</strong> Aguarde receber o convite!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
