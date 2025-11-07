@@ -29,6 +29,11 @@ export interface RegisterRequest {
   // Dados específicos para promoter (cadastro via invite)
   organizationId?: string
   userType?: 'promoter' | 'admin' | 'organizer'
+  
+  // Dados OAuth (opcional - usado quando usuário se cadastra via OAuth)
+  oauthProvider?: string // "Google", "Instagram", etc.
+  oauthId?: string // ID do usuário no provedor OAuth
+  oauthEmail?: string // Email do provedor OAuth
 }
 
 export interface UserOrganizationInfo {
@@ -53,6 +58,23 @@ export interface ChangePasswordRequest {
 
 export interface ChangePasswordResponse {
   message: string
+}
+
+export interface GoogleOAuthRequest {
+  idToken?: string
+  accessToken?: string
+  email?: string
+  name?: string
+  picture?: string
+  givenName?: string
+  familyName?: string
+}
+
+export interface InstagramOAuthRequest {
+  accessToken: string
+  userId: string
+  username?: string
+  accountType?: string
 }
 
 export interface ApiError {
@@ -150,6 +172,71 @@ export class AuthService {
       return response
     } catch (error: any) {
       console.error('❌ AuthService: Erro ao alterar senha:', error)
+      const errorMessage = this.getErrorMessage(error)
+      throw new Error(errorMessage)
+    }
+  }
+
+  /**
+   * Realiza login usando Google OAuth
+   */
+  static async loginWithGoogle(oauthData: GoogleOAuthRequest): Promise<AuthResponse> {
+    try {
+      console.log('🔐 AuthService: Tentando fazer login com Google OAuth...')
+      const response = await apiClient.post<AuthResponse>('/auth/oauth/google', oauthData)
+      console.log('✅ AuthService: Login com Google OAuth bem-sucedido!')
+      return response
+    } catch (error: any) {
+      console.error('❌ AuthService: Erro no login com Google OAuth:', error)
+      const errorMessage = this.getErrorMessage(error)
+      throw new Error(errorMessage)
+    }
+  }
+
+  /**
+   * Realiza login usando Instagram OAuth
+   */
+  static async loginWithInstagram(oauthData: InstagramOAuthRequest): Promise<AuthResponse> {
+    try {
+      console.log('🔐 AuthService: Tentando fazer login com Instagram OAuth...')
+      const response = await apiClient.post<AuthResponse>('/auth/oauth/instagram', oauthData)
+      console.log('✅ AuthService: Login com Instagram OAuth bem-sucedido!')
+      return response
+    } catch (error: any) {
+      console.error('❌ AuthService: Erro no login com Instagram OAuth:', error)
+      const errorMessage = this.getErrorMessage(error)
+      throw new Error(errorMessage)
+    }
+  }
+
+  /**
+   * Valida dados OAuth do Google (sem fazer login)
+   * Retorna dados do usuário para preencher o cadastro
+   */
+  static async validateGoogleOAuth(oauthData: GoogleOAuthRequest): Promise<{
+    email: string
+    firstName: string
+    lastName: string
+    picture?: string
+    oauthProvider: string
+    oauthId: string
+    userExists: boolean
+  }> {
+    try {
+      console.log('🔐 AuthService: Validando OAuth do Google...')
+      const response = await apiClient.post<{
+        email: string
+        firstName: string
+        lastName: string
+        picture?: string
+        oauthProvider: string
+        oauthId: string
+        userExists: boolean
+      }>('/auth/oauth/google/validate', oauthData)
+      console.log('✅ AuthService: Validação OAuth bem-sucedida!', response)
+      return response
+    } catch (error: any) {
+      console.error('❌ AuthService: Erro na validação OAuth:', error)
       const errorMessage = this.getErrorMessage(error)
       throw new Error(errorMessage)
     }

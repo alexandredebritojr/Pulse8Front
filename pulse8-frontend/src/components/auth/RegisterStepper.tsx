@@ -12,9 +12,11 @@ interface RegisterStepperProps {
   inviteToken?: string
   inviteData?: ValidateInviteTokenResponse | null
   userType?: string
+  initialUserData?: Partial<UserData> // Dados iniciais do usuário (ex: de OAuth)
+  isOAuth?: boolean // Indica se é cadastro via OAuth
 }
 
-export function RegisterStepper({ onComplete, inviteToken, inviteData, userType }: RegisterStepperProps) {
+export function RegisterStepper({ onComplete, inviteToken, inviteData, userType, initialUserData, isOAuth = false }: RegisterStepperProps) {
   const isPromoterRegistration = (!!inviteToken && !!inviteData) || userType === 'promoter'
   const maxStep = isPromoterRegistration ? 2 : 3 // Se for promoter, só tem 2 steps (Usuário e Confirmação)
   
@@ -30,14 +32,14 @@ export function RegisterStepper({ onComplete, inviteToken, inviteData, userType 
     email: ''
   })
   const [userData, setUserData] = useState<UserData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: '',
-    document: '',
-    profilePicture: undefined
+    firstName: initialUserData?.firstName || '',
+    lastName: initialUserData?.lastName || '',
+    email: initialUserData?.email || '',
+    password: initialUserData?.password || '',
+    confirmPassword: initialUserData?.confirmPassword || '',
+    phone: initialUserData?.phone || '',
+    document: initialUserData?.document || '',
+    profilePicture: initialUserData?.profilePicture
   })
   
   // Se for promoter, usar dados da organização do invite e pré-preencher email se disponível
@@ -69,6 +71,19 @@ export function RegisterStepper({ onComplete, inviteToken, inviteData, userType 
       }
     }
   }, [isPromoterRegistration, inviteData?.organizationName, inviteData?.invitedEmail])
+
+  // Atualizar dados do usuário quando initialUserData mudar (ex: quando OAuth é usado)
+  useEffect(() => {
+    if (initialUserData) {
+      setUserData(prev => ({
+        ...prev,
+        ...initialUserData,
+        // Manter password vazio se não vier do OAuth (usuário precisa criar senha)
+        password: initialUserData.password !== undefined ? initialUserData.password : prev.password,
+        confirmPassword: initialUserData.confirmPassword !== undefined ? initialUserData.confirmPassword : prev.confirmPassword,
+      }))
+    }
+  }, [initialUserData])
   
   const steps = isPromoterRegistration
     ? [
@@ -138,6 +153,7 @@ export function RegisterStepper({ onComplete, inviteToken, inviteData, userType 
             onChange={setUserData}
             onNext={handleNext}
             isPromoterRegistration={isPromoterRegistration}
+            isOAuth={isOAuth}
           />
         )}
         {!isPromoterRegistration && currentStep === 2 && (

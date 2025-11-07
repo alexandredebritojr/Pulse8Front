@@ -9,6 +9,7 @@ import { OrganizationData, UserData } from '@/types/register'
 import { unformatPhone, unformatCEP } from '@/lib/utils/masks'
 import { unformatCPFOrCNPJ } from '@/lib/utils'
 import { EventInvitesService, ValidateInviteTokenResponse } from '@/lib/api/invites'
+import { OAuthButtons } from '@/components/auth/OAuthButtons'
 
 function RegisterContent() {
   const [isLoading, setIsLoading] = useState(false)
@@ -18,9 +19,45 @@ function RegisterContent() {
   const { register } = useAuth()
   const inviteToken = searchParams.get('inviteToken')
   const userType = searchParams.get('userType') // 'promoter' quando vem do login
+  const oauthParam = searchParams.get('oauth') // 'google' quando vem do login OAuth
   
   const [inviteData, setInviteData] = useState<ValidateInviteTokenResponse | null>(null)
   const [isLoadingInvite, setIsLoadingInvite] = useState(false)
+  const [oauthUserData, setOauthUserData] = useState<Partial<UserData> | null>(null)
+  const [oauthInfo, setOauthInfo] = useState<{ provider: string; oauthId: string } | null>(null)
+
+  // Carregar dados OAuth do sessionStorage se disponível
+  useEffect(() => {
+    if (typeof window !== 'undefined' && oauthParam) {
+      const oauthDataStr = sessionStorage.getItem('oauth-data')
+      if (oauthDataStr) {
+        try {
+          const oauthData = JSON.parse(oauthDataStr)
+          console.log('📦 Dados OAuth carregados do sessionStorage:', oauthData)
+          
+          setOauthUserData({
+            firstName: oauthData.firstName || '',
+            lastName: oauthData.lastName || '',
+            email: oauthData.email || '',
+            profilePicture: oauthData.picture,
+            // Senha não é necessária para OAuth
+            password: '',
+            confirmPassword: '',
+          })
+          
+          setOauthInfo({
+            provider: oauthData.oauthProvider || 'Google',
+            oauthId: oauthData.oauthId || '',
+          })
+          
+          // Limpar dados do sessionStorage após usar
+          sessionStorage.removeItem('oauth-data')
+        } catch (err) {
+          console.error('❌ Erro ao carregar dados OAuth:', err)
+        }
+      }
+    }
+  }, [oauthParam])
 
   // Buscar dados do invite se houver token
   useEffect(() => {
@@ -56,15 +93,18 @@ function RegisterContent() {
       const isPromoterRegistration = isPromoterWithInvite || isPromoterDirect
       
       // Preparar dados para o backend (remover formatações)
+      // Se tiver dados OAuth, usar senha vazia (OAuth não requer senha)
+      const finalPassword = oauthInfo ? '' : data.user.password
+      
       await register({
         // Dados do usuário
         firstName: data.user.firstName,
         lastName: data.user.lastName,
         userEmail: data.user.email,
-        password: data.user.password,
+        password: finalPassword, // Vazio se for OAuth
         userPhone: unformatPhone(data.user.phone),
         document: unformatCPFOrCNPJ(data.user.document),
-        profilePicture: data.user.profilePicture,
+        profilePicture: data.user.profilePicture || oauthUserData?.profilePicture,
         
         // Dados da organização (só se não for promoter)
         organizationName: isPromoterRegistration ? '' : data.organization.name,
@@ -78,7 +118,12 @@ function RegisterContent() {
         
         // Dados específicos para promoter
         organizationId: isPromoterWithInvite ? inviteData!.organizationId : undefined,
-        userType: isPromoterRegistration ? 'promoter' : undefined
+        userType: isPromoterRegistration ? 'promoter' : undefined,
+        
+        // Dados OAuth (se disponíveis)
+        oauthProvider: oauthInfo?.provider,
+        oauthId: oauthInfo?.oauthId,
+        oauthEmail: oauthInfo ? data.user.email : undefined
       })
       
       console.log('✅ Registro realizado com sucesso!')
@@ -142,6 +187,42 @@ function RegisterContent() {
           </div>
         )}
 
+        {/* OAuth Buttons - apenas se não tiver invite e não tiver dados OAuth ainda */}
+        {!inviteToken && !oauthUserData && (
+          <div className="mb-6 max-w-md mx-auto">
+            <OAuthButtons
+              mode="register"
+              onOAuthData={(data) => {
+                console.log('✅ OAuthButtons: Dados OAuth recebidos para cadastro:', data)
+                setOauthUserData({
+                  firstName: data.firstName,
+                  lastName: data.lastName,
+                  email: data.email,
+                  profilePicture: data.picture,
+                  password: '',
+                  confirmPassword: '',
+                })
+                setOauthInfo({
+                  provider: data.oauthProvider,
+                  oauthId: data.oauthId,
+                })
+              }}
+              onError={(error) => {
+                setError(error)
+              }}
+            />
+          </div>
+        )}
+
+        {/* Mensagem se dados OAuth foram preenchidos */}
+        {oauthUserData && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-600 text-center">
+              ✅ Dados do {oauthInfo?.provider || 'Google'} carregados! Complete os campos restantes.
+            </p>
+          </div>
+        )}
+
         {isLoadingInvite ? (
           <div className="text-center py-8">
             <p className="text-gray-600">Carregando dados do convite...</p>
@@ -152,6 +233,8 @@ function RegisterContent() {
             inviteToken={inviteToken || undefined}
             inviteData={inviteData}
             userType={userType || undefined}
+            initialUserData={oauthUserData || undefined}
+            isOAuth={!!oauthInfo}
           />
         )}
       </div>

@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button'
 import { User, Briefcase, Building2 } from 'lucide-react'
 import { UserOrganizationInfo } from '@/lib/api/auth'
+import { OAuthButtons } from '@/components/auth/OAuthButtons'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -21,6 +22,9 @@ export default function LoginPage() {
   const [userOrganizations, setUserOrganizations] = useState<UserOrganizationInfo[]>([])
   const [selectedOrganization, setSelectedOrganization] = useState<string>('')
   const [isSelectingOrganization, setIsSelectingOrganization] = useState(false)
+  const [oauthLoginResult, setOauthLoginResult] = useState<{ userOrganizations?: UserOrganizationInfo[] } | null>(null)
+  const [showOAuthRedirectMessage, setShowOAuthRedirectMessage] = useState(false)
+  const [isOAuthRegistration, setIsOAuthRegistration] = useState(false) // Indica se é cadastro via OAuth
   const router = useRouter()
   
   console.log('🔍 LoginPage: Componente renderizado')
@@ -98,6 +102,37 @@ export default function LoginPage() {
       setShouldRedirect(false) // Resetar o flag
     }
   }, [shouldRedirect, user, redirectUser])
+
+  // Redirecionar após login OAuth bem-sucedido
+  useEffect(() => {
+    if (oauthLoginResult && user) {
+      console.log('🔄 LoginPage: Processando resultado do OAuth login', { 
+        userOrganizations: oauthLoginResult.userOrganizations?.length,
+        user: user.email 
+      })
+      
+      // Verificar se o usuário tem múltiplas organizações
+      if (oauthLoginResult.userOrganizations && oauthLoginResult.userOrganizations.length > 1) {
+        // Mostrar modal de seleção de organização
+        console.log('📋 Mostrando modal de seleção de organização (OAuth)')
+        setUserOrganizations(oauthLoginResult.userOrganizations)
+        setShowOrganizationModal(true)
+        setOauthLoginResult(null) // Limpar resultado
+      } else {
+        // Usuário sem organizações ou com apenas uma - redirecionar
+        console.log('✅ Usuário sem múltiplas organizações - redirecionando (OAuth)')
+        const orgId = oauthLoginResult.userOrganizations && oauthLoginResult.userOrganizations.length === 1 
+          ? oauthLoginResult.userOrganizations[0].organizationId 
+          : user.organizationId
+        const userOrgType = oauthLoginResult.userOrganizations && oauthLoginResult.userOrganizations.length === 1
+          ? oauthLoginResult.userOrganizations[0].userOrganizationType
+          : user.userOrganizationType
+        
+        redirectUser(orgId, userOrgType)
+        setOauthLoginResult(null) // Limpar resultado
+      }
+    }
+  }, [oauthLoginResult, user, redirectUser])
 
   // Handler para seleção de organização
   const handleOrganizationSelect = async () => {
@@ -301,23 +336,117 @@ export default function LoginPage() {
               {isLoading ? 'Entrando...' : 'Entrar'}
             </button>
           </div>
+
+          {/* OAuth Buttons */}
+          <OAuthButtons 
+            onSuccess={(userOrganizations) => {
+              console.log('✅ OAuthButtons: Login bem-sucedido!')
+              console.log('🏢 Organizações recebidas no callback:', userOrganizations?.length || 0)
+              
+              // Armazenar o resultado do OAuth login
+              // O useEffect vai processar quando o user for atualizado no contexto
+              setOauthLoginResult({ userOrganizations })
+            }}
+            onError={(error) => {
+              // Só mostrar erro se não for o caso de usuário não encontrado
+              // (que é tratado pelo onUserNotFound)
+              if (!error.includes('USER_NOT_FOUND') && !error.includes('não encontrado') && !error.includes('Usuário não encontrado')) {
+                console.log('❌ LoginPage: Erro OAuth:', error)
+                setError(error)
+                setShowOAuthRedirectMessage(false)
+              }
+            }}
+            onUserNotFound={(oauthData) => {
+              console.log('📞 LoginPage: onUserNotFound chamado com dados:', oauthData)
+              
+              // Limpar qualquer erro anterior
+              setError('')
+              
+              // Mostrar mensagem informativa
+              setShowOAuthRedirectMessage(true)
+              
+              // Marcar que é cadastro via OAuth e abrir modal de seleção de tipo
+              setIsOAuthRegistration(true)
+              setShowRegisterTypeModal(true)
+            }}
+          />
+          
+          {/* Mensagem informativa OAuth - só mostra se o modal não estiver aberto */}
+          {showOAuthRedirectMessage && !showRegisterTypeModal && (
+            <div className="mt-4 p-4 bg-blue-50 border-2 border-blue-400 rounded-lg shadow-xl animate-fade-in">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="ml-3 flex-1">
+                  <h3 className="text-base font-bold text-blue-900 mb-2">
+                    ⚠️ Conta não encontrada
+                  </h3>
+                  <p className="text-sm text-blue-800 leading-relaxed">
+                    Este email do Google ainda não está cadastrado no sistema. 
+                    Por favor, escolha o tipo de cadastro no modal acima.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Estilo para animação de fade-in */}
+          <style jsx>{`
+            @keyframes fade-in {
+              from {
+                opacity: 0;
+                transform: translateY(-10px);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+            .animate-fade-in {
+              animation: fade-in 0.3s ease-out;
+            }
+          `}</style>
         </form>
       </div>
 
       {/* Modal de Seleção de Tipo de Cadastro */}
-      <Dialog open={showRegisterTypeModal} onOpenChange={setShowRegisterTypeModal}>
+      <Dialog open={showRegisterTypeModal} onOpenChange={(open) => {
+        setShowRegisterTypeModal(open)
+        // Se fechar o modal e for OAuth registration, limpar estados
+        if (!open && isOAuthRegistration) {
+          setIsOAuthRegistration(false)
+          setShowOAuthRedirectMessage(false)
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Escolha o tipo de cadastro</DialogTitle>
+            <DialogTitle>
+              {isOAuthRegistration ? 'Conta não encontrada - Escolha o tipo de cadastro' : 'Escolha o tipo de cadastro'}
+            </DialogTitle>
             <DialogDescription>
-              Selecione se você é um Promoter ou um Produtor de Eventos
+              {isOAuthRegistration 
+                ? 'Este email do Google ainda não está cadastrado. Selecione se você é um Promoter ou um Produtor de Eventos para continuar.'
+                : 'Selecione se você é um Promoter ou um Produtor de Eventos'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4 px-6">
             <button
               onClick={() => {
+                const isOAuth = isOAuthRegistration
                 setShowRegisterTypeModal(false)
-                router.push('/register?userType=promoter')
+                setIsOAuthRegistration(false)
+                setShowOAuthRedirectMessage(false)
+                
+                // Redirecionar para cadastro com tipo promoter
+                // Se for OAuth, incluir parâmetro oauth=google para carregar dados do Google
+                if (isOAuth) {
+                  router.push('/register?userType=promoter&oauth=google')
+                } else {
+                  router.push('/register?userType=promoter')
+                }
               }}
               className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all cursor-pointer"
             >
@@ -329,8 +458,18 @@ export default function LoginPage() {
             </button>
             <button
               onClick={() => {
+                const isOAuth = isOAuthRegistration
                 setShowRegisterTypeModal(false)
-                router.push('/register')
+                setIsOAuthRegistration(false)
+                setShowOAuthRedirectMessage(false)
+                
+                // Redirecionar para cadastro com tipo produtor
+                // Se for OAuth, incluir parâmetro oauth=google para carregar dados do Google
+                if (isOAuth) {
+                  router.push('/register?oauth=google')
+                } else {
+                  router.push('/register')
+                }
               }}
               className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all cursor-pointer"
             >
@@ -342,7 +481,14 @@ export default function LoginPage() {
             </button>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRegisterTypeModal(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowRegisterTypeModal(false)
+                setIsOAuthRegistration(false)
+                setShowOAuthRedirectMessage(false)
+              }}
+            >
               Cancelar
             </Button>
           </DialogFooter>

@@ -12,9 +12,10 @@ interface UserStepProps {
   onChange: (data: UserData) => void
   onNext: () => void
   isPromoterRegistration?: boolean
+  isOAuth?: boolean // Indica se é cadastro via OAuth (senha não é obrigatória)
 }
 
-export function UserStep({ data, onChange, onNext, isPromoterRegistration = false }: UserStepProps) {
+export function UserStep({ data, onChange, onNext, isPromoterRegistration = false, isOAuth = false }: UserStepProps) {
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleChange = (field: keyof UserData, value: string) => {
@@ -57,19 +58,32 @@ export function UserStep({ data, onChange, onNext, isPromoterRegistration = fals
       newErrors.email = 'Email inválido'
     }
 
-    // Validar senha
-    if (!data.password) {
-      newErrors.password = 'Senha é obrigatória'
-    } else {
-      const strength = validatePasswordStrength(data.password)
-      if (!strength.isValid) {
-        newErrors.password = 'Senha não atende aos requisitos mínimos'
+    // Validar senha (não obrigatória se for OAuth)
+    if (!isOAuth) {
+      if (!data.password) {
+        newErrors.password = 'Senha é obrigatória'
+      } else {
+        const strength = validatePasswordStrength(data.password)
+        if (!strength.isValid) {
+          newErrors.password = 'Senha não atende aos requisitos mínimos'
+        }
       }
-    }
 
-    // Validar confirmação de senha
-    if (data.password !== data.confirmPassword) {
-      newErrors.confirmPassword = 'As senhas não coincidem'
+      // Validar confirmação de senha
+      if (data.password !== data.confirmPassword) {
+        newErrors.confirmPassword = 'As senhas não coincidem'
+      }
+    } else {
+      // Para OAuth, senha é opcional, mas se for preenchida, deve ser válida
+      if (data.password) {
+        const strength = validatePasswordStrength(data.password)
+        if (!strength.isValid) {
+          newErrors.password = 'Senha não atende aos requisitos mínimos'
+        }
+        if (data.password !== data.confirmPassword) {
+          newErrors.confirmPassword = 'As senhas não coincidem'
+        }
+      }
     }
 
     // Validar telefone
@@ -193,46 +207,59 @@ export function UserStep({ data, onChange, onNext, isPromoterRegistration = fals
         )}
       </div>
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-          Senha <span className="text-red-500">*</span>
-        </label>
-        <input
-          id="password"
-          type="password"
-          required
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.password ? 'border-red-500' : 'border-gray-300'
-          }`}
-          placeholder="Mínimo 8 caracteres"
-          value={data.password}
-          onChange={(e) => handleChange('password', e.target.value)}
-        />
-        <PasswordStrengthIndicator password={data.password} />
-        {errors.password && (
-          <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-        )}
-      </div>
+      {!isOAuth && (
+        <>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Senha <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="password"
+              type="password"
+              required
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                errors.password ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Mínimo 8 caracteres"
+              value={data.password}
+              onChange={(e) => handleChange('password', e.target.value)}
+            />
+            <PasswordStrengthIndicator password={data.password} />
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+            )}
+          </div>
 
-      <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-          Confirmar Senha <span className="text-red-500">*</span>
-        </label>
-        <input
-          id="confirmPassword"
-          type="password"
-          required
-          className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-            errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-          }`}
-          placeholder="Confirme sua senha"
-          value={data.confirmPassword}
-          onChange={(e) => handleChange('confirmPassword', e.target.value)}
-        />
-        {errors.confirmPassword && (
-          <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-        )}
-      </div>
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              Confirmar Senha <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              required
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+              }`}
+              placeholder="Confirme sua senha"
+              value={data.confirmPassword}
+              onChange={(e) => handleChange('confirmPassword', e.target.value)}
+            />
+            {errors.confirmPassword && (
+              <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+            )}
+          </div>
+        </>
+      )}
+      
+      {isOAuth && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-sm text-blue-600">
+            ℹ️ Cadastro via {data.email.includes('@gmail.com') || data.email.includes('@googlemail.com') ? 'Google' : 'OAuth'}. 
+            A senha não é necessária - você poderá fazer login usando sua conta OAuth.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>

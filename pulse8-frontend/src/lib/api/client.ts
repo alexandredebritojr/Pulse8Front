@@ -63,8 +63,14 @@ class ApiClient {
         errorMessage
       })
       
-      // Só redireciona para login se for erro de token expirado (401) e não for endpoint de login
-      if (response.status === 401 && !response.url.includes('/auth/login')) {
+      // Só redireciona para login se for erro de token expirado (401) e não for endpoint de login/oauth
+      // Não redirecionar se for erro USER_NOT_FOUND (usuário não encontrado no OAuth)
+      if (response.status === 401 && 
+          !response.url.includes('/auth/login') && 
+          !response.url.includes('/auth/oauth') &&
+          !errorMessage.includes('USER_NOT_FOUND') &&
+          !errorMessage.includes('não encontrado') &&
+          !errorMessage.includes('Usuário não encontrado')) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth-token')
           window.location.href = '/login'
