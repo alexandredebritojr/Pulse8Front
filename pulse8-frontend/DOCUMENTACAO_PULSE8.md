@@ -33,15 +33,9 @@ src/
 
 ## 🔐 Sistema de Autenticação
 
-### **Credenciais de Acesso:**
+### **Test account configuration:**
 
-| **Email** | **Senha** | **Função** | **Permissões** |
-|-----------|-----------|------------|----------------|
-| `ana@email.com` | `123456` | Administrador | Todas as permissões |
-| `carlos@email.com` | `123456` | Gerente | Eventos, Convidados, Relatórios |
-| `maria@email.com` | `123456` | Coordenadora | Eventos, Convidados |
-| `joao@email.com` | `123456` | Operador | Convidados |
-| `fernanda@email.com` | `123456` | Visualizador | Relatórios |
+Do not store access credentials in this repository. Automated checks and screenshot captures receive non-production accounts through `E2E_*` environment variables; see `.env.example` for the variable names.
 
 ### **Fluxo de Autenticação:**
 1. **Login:** `/login` - Página de autenticação
@@ -337,12 +331,12 @@ npm run dev
 
 O **Pulse8** é uma solução completa para gestão de eventos, oferecendo:
 
-✅ **Interface moderna e intuitiva**  
-✅ **Funcionalidades abrangentes**  
-✅ **Sistema de permissões robusto**  
-✅ **Relatórios detalhados**  
-✅ **Responsividade total**  
-✅ **Arquitetura escalável**  
+✅ **Interface moderna e intuitiva**
+✅ **Funcionalidades abrangentes**
+✅ **Sistema de permissões robusto**
+✅ **Relatórios detalhados**
+✅ **Responsividade total**
+✅ **Arquitetura escalável**
 
 O sistema está pronto para uso em produção e pode ser facilmente customizado para atender às necessidades específicas de cada organização.
 

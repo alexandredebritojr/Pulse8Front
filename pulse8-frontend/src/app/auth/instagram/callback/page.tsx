@@ -20,27 +20,33 @@ function InstagramCallbackPageContent() {
 
         if (errorParam) {
           // Decodificar descrição do erro se necessário
-          const decodedError = errorDescription 
+          const decodedError = errorDescription
             ? decodeURIComponent(errorDescription.replace(/\+/g, ' '))
             : null
-          
+
           // Verificar se é o erro "Invalid platform app"
-          const isInvalidPlatformApp = errorParam === 'invalid_platform_app' || 
+          const isInvalidPlatformApp = errorParam === 'invalid_platform_app' ||
             decodedError?.includes('Invalid platform app') ||
             decodedError?.includes('Invalid platform') ||
             decodedError?.includes('Solicitação inválida')
-          
+
           if (isInvalidPlatformApp) {
-            const appId = typeof window !== 'undefined' 
-              ? sessionStorage.getItem('instagram-oauth-app-id') || '1412398856657814'
-              : '1412398856657814'
+            const appId = typeof window !== 'undefined'
+              ? sessionStorage.getItem('instagram-oauth-app-id')
+              : null
             const redirectUri = typeof window !== 'undefined'
-              ? sessionStorage.getItem('instagram-oauth-redirect-uri') || 'http://localhost:3000/auth/instagram/callback'
-              : 'http://localhost:3000/auth/instagram/callback'
-            
+              ? sessionStorage.getItem('instagram-oauth-redirect-uri')
+              : null
+
+            if (!appId || !redirectUri) {
+              setError('Instagram OAuth configuration is missing. Configure NEXT_PUBLIC_INSTAGRAM_APP_ID and NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI.')
+              setIsLoading(false)
+              return
+            }
+
             const domain = new URL(redirectUri).hostname
             const siteUrl = redirectUri.split('/auth')[0]
-            
+
             const errorMessage = `❌ Erro de configuração: "Invalid platform app"
 
 🔍 Este erro ocorre quando o app do Facebook não está configurado corretamente.
@@ -67,12 +73,12 @@ function InstagramCallbackPageContent() {
 🔄 Tente novamente
 
 Detalhes: ${decodedError || errorDescription}`
-            
+
             setError(errorMessage)
             setIsLoading(false)
             return
           }
-          
+
           setError(decodedError || errorDescription || 'Erro ao autorizar com Instagram')
           setIsLoading(false)
           return
@@ -84,7 +90,7 @@ Detalhes: ${decodedError || errorDescription}`
           return
         }
 
-        const redirectUri = typeof window !== 'undefined' 
+        const redirectUri = typeof window !== 'undefined'
           ? `${window.location.origin}/auth/instagram/callback`
           : ''
 
@@ -92,7 +98,7 @@ Detalhes: ${decodedError || errorDescription}`
         // O backend faz a troca do código por token (mais seguro, pois o secret fica no backend)
         const { AuthService } = await import('@/lib/api/auth')
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost:5001'
-        
+
         const response = await fetch(`${backendUrl}/api/auth/oauth/instagram/exchange`, {
           method: 'POST',
           headers: {
@@ -112,7 +118,7 @@ Detalhes: ${decodedError || errorDescription}`
         const data = await response.json()
 
         // Obter modo (login ou register) do sessionStorage
-        const mode = typeof window !== 'undefined' 
+        const mode = typeof window !== 'undefined'
           ? sessionStorage.getItem('instagram-oauth-mode') || 'login'
           : 'login'
 
@@ -187,10 +193,10 @@ Detalhes: ${decodedError || errorDescription}`
 
   if (error) {
     const isConfigError = error.includes('Invalid platform app') || error.includes('configuração')
-    const appId = typeof window !== 'undefined' 
-      ? sessionStorage.getItem('instagram-oauth-app-id') || '1412398856657814'
-      : '1412398856657814'
-    
+    const appId = typeof window !== 'undefined'
+      ? sessionStorage.getItem('instagram-oauth-app-id')
+      : null
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className={`max-w-3xl w-full bg-white shadow-lg rounded-lg p-6 ${isConfigError ? 'border-2 border-yellow-400' : ''}`}>
@@ -199,28 +205,28 @@ Detalhes: ${decodedError || errorDescription}`
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
               {isConfigError ? 'Erro de Configuração do Instagram OAuth' : 'Erro na Autorização'}
             </h2>
-            
+
             {isConfigError && (
               <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4 text-left">
                 <h3 className="font-bold text-red-800 mb-2">🔴 Ação Necessária:</h3>
                 <p className="text-red-700 text-sm mb-3">
-                  O erro &quot;Invalid platform app&quot; indica que o app do Facebook não está configurado corretamente. 
+                  O erro &quot;Invalid platform app&quot; indica que o app do Facebook não está configurado corretamente.
                   Siga os passos abaixo para resolver.
                 </p>
               </div>
             )}
-            
+
             <div className={`text-left mb-6 ${isConfigError ? 'bg-yellow-50 border border-yellow-200 rounded p-4' : 'bg-gray-50 border border-gray-200 rounded p-4'}`}>
               <pre className="whitespace-pre-wrap text-sm font-mono max-h-96 overflow-y-auto">{error}</pre>
             </div>
-            
+
             {isConfigError && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
                 <h3 className="font-bold text-blue-800 mb-3">📋 Passos para Resolver (Clique nos links):</h3>
                 <div className="space-y-3 text-sm">
                   <div className="bg-white rounded p-3 border border-blue-200">
                     <p className="font-semibold text-blue-700 mb-1">1️⃣ Configurar Redirect URI (CRÍTICO!):</p>
-                    <a 
+                    <a
                       href={`https://developers.facebook.com/apps/${appId}/instagram-basic-display/basic-display/`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -234,7 +240,7 @@ Detalhes: ${decodedError || errorDescription}`
                   </div>
                   <div className="bg-white rounded p-3 border border-blue-200">
                     <p className="font-semibold text-blue-700 mb-1">2️⃣ Configurar Plataforma Website:</p>
-                    <a 
+                    <a
                       href={`https://developers.facebook.com/apps/${appId}/settings/basic/`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -248,7 +254,7 @@ Detalhes: ${decodedError || errorDescription}`
                   </div>
                   <div className="bg-white rounded p-3 border border-blue-200">
                     <p className="font-semibold text-blue-700 mb-1">3️⃣ Adicionar Usuário de Teste:</p>
-                    <a 
+                    <a
                       href={`https://developers.facebook.com/apps/${appId}/roles/roles/`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -268,7 +274,7 @@ Detalhes: ${decodedError || errorDescription}`
                 </div>
               </div>
             )}
-            
+
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={() => router.push('/login')}

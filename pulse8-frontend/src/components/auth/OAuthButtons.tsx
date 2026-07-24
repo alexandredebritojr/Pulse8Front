@@ -20,10 +20,10 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
   const [googleOAuthError, setGoogleOAuthError] = useState<string | null>(null)
   const { loginWithGoogle, loginWithInstagram } = useAuth()
   const router = useRouter()
-  
+
   // Controlar exibição do botão Instagram (desabilitado temporariamente)
   const ENABLE_INSTAGRAM_OAUTH = false
-  
+
   // Interceptar erros do console relacionados ao Google OAuth
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -36,7 +36,7 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
         }
         originalError.apply(console, args)
       }
-      
+
       return () => {
         console.error = originalError
       }
@@ -46,7 +46,7 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     setIsLoading(true)
     let credential = credentialResponse.credential // Guardar credential para uso no catch
-    
+
     try {
       if (!credential) {
         throw new Error('Credencial do Google não recebida')
@@ -54,11 +54,11 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
 
       // Decodificar o ID token do Google para obter informações do usuário
       const payload = JSON.parse(atob(credential.split('.')[1]))
-      
+
       if (mode === 'register') {
         // Modo cadastro: validar OAuth e retornar dados para preencher o formulário
         console.log('🔐 OAuthButtons: Validando OAuth do Google para cadastro...')
-        
+
         const { AuthService } = await import('@/lib/api/auth')
         const oauthData = await AuthService.validateGoogleOAuth({
           idToken: credential,
@@ -91,7 +91,7 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
       } else {
         // Modo login: fazer login normalmente
         console.log('🔐 OAuthButtons: Fazendo login com Google OAuth...')
-        
+
         try {
           // Usar a função do contexto de autenticação para manter consistência
           const result = await loginWithGoogle({
@@ -112,11 +112,11 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
         } catch (loginError: any) {
           const errorMessage = loginError.message || 'Erro ao fazer login com Google'
           console.log('🔍 OAuthButtons: Erro capturado:', errorMessage)
-          
+
           // Verificar se é erro de usuário não encontrado
           if (errorMessage.includes('USER_NOT_FOUND') || errorMessage.includes('não encontrado') || errorMessage.includes('Usuário não encontrado')) {
             console.log('✅ OAuthButtons: Usuário não encontrado - preparando redirecionamento para cadastro')
-            
+
             // Preparar dados OAuth
             if (typeof window !== 'undefined' && credential) {
               try {
@@ -128,12 +128,12 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
                   oauthProvider: 'Google',
                   oauthId: payload.sub || payload.email,
                 }
-                
+
                 console.log('💾 OAuthButtons: Salvando dados OAuth no sessionStorage:', oauthData)
-                
+
                 // Salvar dados OAuth no sessionStorage
                 sessionStorage.setItem('oauth-data', JSON.stringify(oauthData))
-                
+
                 // Chamar callback se disponível (para mostrar mensagem antes de redirecionar)
                 if (onUserNotFound) {
                   console.log('📞 OAuthButtons: Chamando callback onUserNotFound')
@@ -144,7 +144,7 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
                   // Se não tiver callback, mostrar erro e redirecionar após delay
                   console.log('⚠️ OAuthButtons: onUserNotFound não disponível, usando fallback')
                   onError?.('Usuário não encontrado. Redirecionando para cadastro...')
-                  
+
                   // Redirecionar após um pequeno delay para o usuário ver a mensagem
                   setTimeout(() => {
                     console.log('🔄 OAuthButtons: Redirecionando para /register?oauth=google')
@@ -163,7 +163,7 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
               return
             }
           }
-          
+
           // Se não for erro de usuário não encontrado, propagar o erro
           console.error('❌ OAuthButtons: Erro não tratado:', loginError)
           throw loginError
@@ -186,32 +186,31 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
 
   const handleInstagramClick = async () => {
     setIsLoading(true)
-    
+
     try {
-      // App ID do Instagram (pode vir de variável de ambiente ou usar o padrão)
-      const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID || '1412398856657814'
-      
+      const appId = process.env.NEXT_PUBLIC_INSTAGRAM_APP_ID
+
       // Determinar redirect URI
       let redirectUri = process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI
       if (!redirectUri && typeof window !== 'undefined') {
         redirectUri = `${window.location.origin}/auth/instagram/callback`
       }
-      
+
       if (!appId) {
         onError?.('Instagram OAuth não configurado. Configure NEXT_PUBLIC_INSTAGRAM_APP_ID nas variáveis de ambiente.')
         setIsLoading(false)
         return
       }
-      
+
       if (!redirectUri) {
         onError?.('Redirect URI do Instagram não configurado.')
         setIsLoading(false)
         return
       }
-      
+
       // Remover barra final do redirect URI (pode causar problemas)
       redirectUri = redirectUri.replace(/\/$/, '')
-      
+
       // Validar URL antes de redirecionar
       try {
         new URL(redirectUri)
@@ -221,12 +220,12 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
         setIsLoading(false)
         return
       }
-      
+
       // Construir URL de autorização do Instagram
       // IMPORTANTE: O Instagram Basic Display usa a API do Facebook
       // IMPORTANTE: O redirect_uri deve estar EXATAMENTE igual ao configurado no Facebook Developers
       const instagramAuthUrl = `https://api.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user_profile,user_media&response_type=code`
-      
+
       console.log('🔗 Redirecionando para Instagram OAuth:', {
         appId,
         redirectUri,
@@ -235,7 +234,7 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
         origin: typeof window !== 'undefined' ? window.location.origin : 'N/A',
         currentUrl: typeof window !== 'undefined' ? window.location.href : 'N/A'
       })
-      
+
       // Mostrar instruções de configuração detalhadas
       const domain = new URL(redirectUri).hostname
       const siteUrl = redirectUri.split('/auth')[0]
@@ -255,7 +254,7 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
    3. Clique em "Add URI" ou "Adicionar URI"
    4. Digite exatamente: ${redirectUri}
    5. Salve as alterações
-   
+
    ⚠️ IMPORTANTE: Este passo é ESSENCIAL quando o usuário já está logado no Instagram!
 
 ✅ PASSO 3: Adicionar Usuário de Teste (se app em modo de desenvolvimento)
@@ -269,7 +268,7 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
 
 📖 Documentação completa: Veja RESOLVER_ERRO_INSTAGRAM_OAUTH.md
       `)
-      
+
       if (typeof window !== 'undefined') {
         // Salvar modo (login ou register) no sessionStorage para usar no callback
         sessionStorage.setItem('instagram-oauth-mode', mode)
@@ -280,20 +279,18 @@ export function OAuthButtons({ onSuccess, onError, mode = 'login', onOAuthData, 
     } catch (error: any) {
       console.error('❌ Erro ao iniciar OAuth do Instagram:', error)
       const errorMessage = error.message || 'Erro ao iniciar autenticação com Instagram.'
-      
+
       // Mensagem mais útil para o erro "Invalid platform app"
       const helpfulMessage = errorMessage.includes('Invalid platform app') || errorMessage.includes('Invalid platform')
         ? `Erro de configuração do Instagram OAuth. Verifique se a plataforma "Website" está configurada no Facebook Developers. Veja o console para instruções detalhadas.`
         : errorMessage
-      
+
       onError?.(helpfulMessage)
       setIsLoading(false)
     }
   }
 
-  // Obter Client ID do Google (pode vir de variável de ambiente ou usar o padrão)
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 
-    '88439458045-aludq7rco9n42tc23pqvhpopki5bgbvm.apps.googleusercontent.com'
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 
   if (!googleClientId) {
     console.warn('⚠️ Google Client ID não configurado. Configure NEXT_PUBLIC_GOOGLE_CLIENT_ID nas variáveis de ambiente.')

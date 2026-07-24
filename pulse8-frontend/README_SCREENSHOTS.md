@@ -62,13 +62,13 @@ screenshots/
 
 ## 👥 Tipos de Usuário Capturados
 
-| **Tipo** | **Email** | **Permissões** | **Screenshots** |
-|----------|-----------|----------------|-----------------|
-| **Admin** | ana@email.com | Todas | ✅ Todas as páginas |
-| **Manager** | carlos@email.com | Eventos, Convidados, Relatórios | ✅ Páginas permitidas |
-| **Coordinator** | maria@email.com | Eventos, Convidados | ✅ Páginas permitidas |
-| **Operator** | joao@email.com | Convidados | ✅ Páginas permitidas |
-| **Viewer** | fernanda@email.com | Relatórios | ✅ Páginas permitidas |
+| **Role** | **Credentials** | **Screenshots** |
+|----------|-----------------|-----------------|
+| **Admin** | `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` | ✅ All pages |
+| **Manager** | `E2E_MANAGER_EMAIL` / `E2E_MANAGER_PASSWORD` | ✅ Permitted pages |
+| **Coordinator** | `E2E_COORDINATOR_EMAIL` / `E2E_COORDINATOR_PASSWORD` | ✅ Permitted pages |
+| **Operator** | `E2E_OPERATOR_EMAIL` / `E2E_OPERATOR_PASSWORD` | ✅ Permitted pages |
+| **Viewer** | `E2E_VIEWER_EMAIL` / `E2E_VIEWER_PASSWORD` | ✅ Permitted pages |
 
 ---
 
