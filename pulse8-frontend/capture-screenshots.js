@@ -7,13 +7,21 @@ const BASE_URL = 'http://localhost:3000';
 const SCREENSHOTS_DIR = './screenshots';
 const VIEWPORT = { width: 1920, height: 1080 };
 
-// Credenciais de teste
+function requireE2EEnv(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+// Test credentials are supplied by the execution environment.
 const CREDENTIALS = {
-  admin: { email: 'ana@email.com', password: '123456', role: 'Admin' },
-  manager: { email: 'carlos@email.com', password: '123456', role: 'Manager' },
-  coordinator: { email: 'maria@email.com', password: '123456', role: 'Coordinator' },
-  operator: { email: 'joao@email.com', password: '123456', role: 'Operator' },
-  viewer: { email: 'fernanda@email.com', password: '123456', role: 'Viewer' }
+  admin: { email: requireE2EEnv('E2E_ADMIN_EMAIL'), password: requireE2EEnv('E2E_ADMIN_PASSWORD'), role: 'Admin' },
+  manager: { email: requireE2EEnv('E2E_MANAGER_EMAIL'), password: requireE2EEnv('E2E_MANAGER_PASSWORD'), role: 'Manager' },
+  coordinator: { email: requireE2EEnv('E2E_COORDINATOR_EMAIL'), password: requireE2EEnv('E2E_COORDINATOR_PASSWORD'), role: 'Coordinator' },
+  operator: { email: requireE2EEnv('E2E_OPERATOR_EMAIL'), password: requireE2EEnv('E2E_OPERATOR_PASSWORD'), role: 'Operator' },
+  viewer: { email: requireE2EEnv('E2E_VIEWER_EMAIL'), password: requireE2EEnv('E2E_VIEWER_PASSWORD'), role: 'Viewer' }
 };
 
 // Lista de páginas para capturar
@@ -22,16 +30,16 @@ const PAGES = [
   { path: '/login', name: 'login', auth: false },
   { path: '/register', name: 'register', auth: false },
   { path: '/forgot-password', name: 'forgot-password', auth: false },
-  
+
   // Dashboard
   { path: '/dashboard', name: 'dashboard', auth: true },
-  
+
   // Eventos
   { path: '/events', name: 'events-list', auth: true },
   { path: '/events/create', name: 'events-create', auth: true },
   { path: '/events/1', name: 'events-detail', auth: true },
   { path: '/events/1/edit', name: 'events-edit', auth: true },
-  
+
   // Convidados
   { path: '/guests', name: 'guests-list', auth: true },
   { path: '/guests/create', name: 'guests-create', auth: true },
@@ -39,7 +47,7 @@ const PAGES = [
   { path: '/guests/checkin/create', name: 'guests-checkin-create', auth: true },
   { path: '/guests/1', name: 'guests-detail', auth: true },
   { path: '/guests/1/edit', name: 'guests-edit', auth: true },
-  
+
   // Financeiro
   { path: '/finance', name: 'finance-dashboard', auth: true },
   { path: '/finance/budget', name: 'finance-budget', auth: true },
@@ -47,13 +55,13 @@ const PAGES = [
   { path: '/finance/expenses/create', name: 'finance-expenses-create', auth: true },
   { path: '/finance/revenue', name: 'finance-revenue', auth: true },
   { path: '/finance/revenue/create', name: 'finance-revenue-create', auth: true },
-  
+
   // Calendário
   { path: '/calendar', name: 'calendar', auth: true },
   { path: '/calendar/schedules', name: 'calendar-schedules', auth: true },
   { path: '/calendar/schedules/create', name: 'calendar-schedules-create', auth: true },
   { path: '/calendar/timeline', name: 'calendar-timeline', auth: true },
-  
+
   // Marketing
   { path: '/marketing', name: 'marketing-dashboard', auth: true },
   { path: '/marketing/assets', name: 'marketing-assets', auth: true },
@@ -62,7 +70,7 @@ const PAGES = [
   { path: '/marketing/schedules/create', name: 'marketing-schedules-create', auth: true },
   { path: '/marketing/campaigns', name: 'marketing-campaigns', auth: true },
   { path: '/marketing/campaigns/create', name: 'marketing-campaigns-create', auth: true },
-  
+
   // Equipe
   { path: '/team', name: 'team-list', auth: true },
   { path: '/team/create', name: 'team-create', auth: true },
@@ -70,7 +78,7 @@ const PAGES = [
   { path: '/team/1/edit', name: 'team-edit', auth: true },
   { path: '/team/roles', name: 'team-roles', auth: true },
   { path: '/team/roles/create', name: 'team-roles-create', auth: true },
-  
+
   // Promoters
   { path: '/promoters', name: 'promoters-list', auth: true },
   { path: '/promoters/create', name: 'promoters-create', auth: true },
@@ -78,13 +86,13 @@ const PAGES = [
   { path: '/promoters/1/edit', name: 'promoters-edit', auth: true },
   { path: '/promoters/campaigns', name: 'promoters-campaigns', auth: true },
   { path: '/promoters/campaigns/create', name: 'promoters-campaigns-create', auth: true },
-  
+
   // Fornecedores
   { path: '/suppliers', name: 'suppliers-list', auth: true },
   { path: '/suppliers/create', name: 'suppliers-create', auth: true },
   { path: '/suppliers/1', name: 'suppliers-detail', auth: true },
   { path: '/suppliers/1/edit', name: 'suppliers-edit', auth: true },
-  
+
   // Relatórios
   { path: '/reports', name: 'reports-dashboard', auth: true },
   { path: '/reports/events', name: 'reports-events', auth: true },
@@ -92,13 +100,13 @@ const PAGES = [
   { path: '/reports/guests', name: 'reports-guests', auth: true },
   { path: '/reports/performance', name: 'reports-performance', auth: true },
   { path: '/reports/custom', name: 'reports-custom', auth: true },
-  
+
   // Configurações
   { path: '/settings', name: 'settings-dashboard', auth: true },
   { path: '/settings/security', name: 'settings-security', auth: true },
   { path: '/settings/integrations', name: 'settings-integrations', auth: true },
   { path: '/settings/backup', name: 'settings-backup', auth: true },
-  
+
   // Administração
   { path: '/admin', name: 'admin-dashboard', auth: true },
   { path: '/admin/users', name: 'admin-users', auth: true },
@@ -113,14 +121,14 @@ async function createDirectories() {
   if (!fs.existsSync(SCREENSHOTS_DIR)) {
     fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
   }
-  
+
   // Criar subdiretórios por módulo
   const modules = [
-    'auth', 'dashboard', 'events', 'guests', 'finance', 
-    'calendar', 'marketing', 'team', 'promoters', 
+    'auth', 'dashboard', 'events', 'guests', 'finance',
+    'calendar', 'marketing', 'team', 'promoters',
     'suppliers', 'reports', 'settings', 'admin'
   ];
-  
+
   modules.forEach(module => {
     const dir = path.join(SCREENSHOTS_DIR, module);
     if (!fs.existsSync(dir)) {
@@ -131,23 +139,23 @@ async function createDirectories() {
 
 async function login(page, credentials) {
   console.log(`🔐 Fazendo login como ${credentials.role}...`);
-  
+
   await page.goto(`${BASE_URL}/login`);
   await page.waitForLoadState('networkidle');
-  
+
   // Aguardar um pouco para garantir que a página carregou
   await page.waitForTimeout(2000);
-  
+
   // Preencher formulário de login
   await page.fill('input[name="email"]', credentials.email);
   await page.fill('input[name="password"]', credentials.password);
-  
+
   // Aguardar um pouco antes de clicar
   await page.waitForTimeout(1000);
-  
+
   // Clicar no botão de login
   await page.click('button[type="submit"]');
-  
+
   // Aguardar redirecionamento para dashboard
   try {
     await page.waitForURL('**/dashboard**', { timeout: 15000 });
@@ -162,22 +170,22 @@ async function login(page, credentials) {
 
 async function capturePage(page, pageInfo, credentials) {
   const { path: pagePath, name, auth } = pageInfo;
-  
+
   try {
     console.log(`📸 Capturando: ${pagePath}`);
-    
+
     if (auth) {
       // Navegar para a página autenticada
       await page.goto(`${BASE_URL}${pagePath}`);
       await page.waitForLoadState('networkidle');
-      
+
       // Verificar se não foi redirecionado para login
       const currentUrl = page.url();
       if (currentUrl.includes('/login')) {
         console.log(`❌ Redirecionado para login ao acessar ${pagePath}`);
         return;
       }
-      
+
       // Aguardar um pouco para garantir que a página carregou completamente
       await page.waitForTimeout(3000);
     } else {
@@ -186,7 +194,7 @@ async function capturePage(page, pageInfo, credentials) {
       await page.waitForLoadState('networkidle');
       await page.waitForTimeout(1000);
     }
-    
+
     // Determinar o diretório baseado no nome da página
     let moduleDir = 'auth';
     if (name.includes('dashboard')) moduleDir = 'dashboard';
@@ -201,21 +209,21 @@ async function capturePage(page, pageInfo, credentials) {
     else if (name.includes('reports')) moduleDir = 'reports';
     else if (name.includes('settings')) moduleDir = 'settings';
     else if (name.includes('admin')) moduleDir = 'admin';
-    
+
     // Nome do arquivo com timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const filename = `${name}_${credentials.role.toLowerCase()}_${timestamp}.png`;
     const filepath = path.join(SCREENSHOTS_DIR, moduleDir, filename);
-    
+
     // Capturar screenshot
-    await page.screenshot({ 
-      path: filepath, 
+    await page.screenshot({
+      path: filepath,
       fullPage: true,
       animations: 'disabled'
     });
-    
+
     console.log(`✅ Capturado: ${filepath}`);
-    
+
   } catch (error) {
     console.error(`❌ Erro ao capturar ${pagePath}:`, error.message);
   }
@@ -223,55 +231,55 @@ async function capturePage(page, pageInfo, credentials) {
 
 async function captureAllScreenshots() {
   console.log('🚀 Iniciando captura de screenshots do Pulse8...');
-  
+
   // Criar diretórios
   await createDirectories();
-  
-  const browser = await chromium.launch({ 
+
+  const browser = await chromium.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
-  
+
   try {
     // Capturar páginas públicas primeiro
     console.log('\n📱 Capturando páginas públicas...');
     const publicPages = PAGES.filter(page => !page.auth);
-    
+
     for (const pageInfo of publicPages) {
       const context = await browser.newContext({ viewport: VIEWPORT });
       const page = await context.newPage();
-      
+
       await capturePage(page, pageInfo, { role: 'Public' });
       await context.close();
     }
-    
+
     // Capturar páginas autenticadas para cada tipo de usuário
     for (const [userType, credentials] of Object.entries(CREDENTIALS)) {
       console.log(`\n👤 Capturando páginas para ${credentials.role}...`);
-      
+
       const context = await browser.newContext({ viewport: VIEWPORT });
       const page = await context.newPage();
-      
+
       // Fazer login
       const loginSuccess = await login(page, credentials);
-      
+
       if (loginSuccess) {
         // Capturar páginas autenticadas
         const authPages = PAGES.filter(page => page.auth);
-        
+
         for (const pageInfo of authPages) {
           await capturePage(page, pageInfo, credentials);
         }
       } else {
         console.log(`❌ Pulando captura para ${credentials.role} - login falhou`);
       }
-      
+
       await context.close();
     }
-    
+
     console.log('\n🎉 Captura de screenshots concluída!');
     console.log(`📁 Screenshots salvos em: ${SCREENSHOTS_DIR}`);
-    
+
   } catch (error) {
     console.error('❌ Erro durante a captura:', error);
   } finally {
@@ -292,14 +300,14 @@ async function checkServer() {
 // Função principal
 async function main() {
   console.log('🔍 Verificando se o servidor está rodando...');
-  
+
   const serverRunning = await checkServer();
   if (!serverRunning) {
     console.error('❌ Servidor não está rodando!');
     console.log('💡 Execute: npm run dev');
     process.exit(1);
   }
-  
+
   console.log('✅ Servidor está rodando!');
   await captureAllScreenshots();
 }

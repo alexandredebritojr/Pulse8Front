@@ -21,14 +21,18 @@ npm run dev
 
 ## 🔐 Processo de Login
 
-### **Credenciais de Teste:**
-| **Email** | **Senha** | **Função** | **Permissões** |
-|-----------|-----------|------------|----------------|
-| `ana@email.com` | `123456` | Administrador | Todas |
-| `carlos@email.com` | `123456` | Gerente | Eventos, Convidados, Relatórios |
-| `maria@email.com` | `123456` | Coordenadora | Eventos, Convidados |
-| `joao@email.com` | `123456` | Operador | Convidados |
-| `fernanda@email.com` | `123456` | Visualizador | Relatórios |
+### **Test accounts**
+Provide non-production accounts through environment variables before using capture scripts:
+
+| Role | Required variables |
+|------|--------------------|
+| Administrator | `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD` |
+| Manager | `E2E_MANAGER_EMAIL`, `E2E_MANAGER_PASSWORD` |
+| Coordinator | `E2E_COORDINATOR_EMAIL`, `E2E_COORDINATOR_PASSWORD` |
+| Operator | `E2E_OPERATOR_EMAIL`, `E2E_OPERATOR_PASSWORD` |
+| Viewer | `E2E_VIEWER_EMAIL`, `E2E_VIEWER_PASSWORD` |
+
+Copy `.env.example` for reference, then inject the values through your local shell or CI secret store. Never use production accounts for captures.
 
 ---
 

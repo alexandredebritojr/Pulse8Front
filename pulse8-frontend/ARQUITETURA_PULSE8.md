@@ -69,29 +69,29 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                    USER ROLES & PERMISSIONS                    │
 ├─────────────────────────────────────────────────────────────────┤
-│  👑 ADMIN (ana@email.com)                                      │
+│  👑 ADMIN                                                       │
 │  ├── All Permissions                                           │
 │  ├── User Management                                           │
 │  ├── System Settings                                           │
 │  └── Audit Access                                              │
 ├─────────────────────────────────────────────────────────────────┤
-│  👨‍💼 MANAGER (carlos@email.com)                               │
+│  👨‍💼 MANAGER                                                    │
 │  ├── Events Management                                         │
 │  ├── Guests Management                                         │
 │  ├── Reports Access                                            │
 │  └── Team Coordination                                         │
 ├─────────────────────────────────────────────────────────────────┤
-│  👩‍💼 COORDINATOR (maria@email.com)                            │
+│  👩‍💼 COORDINATOR                                                │
 │  ├── Events Coordination                                       │
 │  ├── Guests Management                                         │
 │  └── Marketing Tools                                           │
 ├─────────────────────────────────────────────────────────────────┤
-│  👷 OPERATOR (joao@email.com)                                  │
+│  👷 OPERATOR                                                     │
 │  ├── Guest Check-in                                            │
 │  ├── Basic Operations                                          │
 │  └── Event Support                                             │
 ├─────────────────────────────────────────────────────────────────┤
-│  👁️ VIEWER (fernanda@email.com)                                │
+│  👁️ VIEWER                                                       │
 │  ├── Reports Only                                              │
 │  ├── Read-only Access                                          │
 │  └── Analytics View                                            │
