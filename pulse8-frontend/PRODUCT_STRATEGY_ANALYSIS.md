@@ -1,308 +1,308 @@
-# Pulse8 — Product Strategy Analysis
+# Pulse8 — Análise de Estratégia de Produto
 
-**Document type:** Reverse-engineered product analysis (not a code review)  
-**Sources:** `pulse8` (.NET 8 backend), `pulse8front` (Next.js frontend)  
-**Date:** 2026-07-30  
-**Method:** Evidence from entities, APIs, screens, navigation, docs, and SQL leftovers. Inferences are labeled explicitly.
+**Tipo de documento:** Análise de produto reverse-engineered (não é code review)  
+**Fontes:** `pulse8` (backend .NET 8), `pulse8front` (frontend Next.js)  
+**Data:** 2026-07-30  
+**Método:** Evidências a partir de entidades, APIs, telas, navegação, documentação e resíduos SQL. Inferências são rotuladas explicitamente.
 
 ---
 
-## Evidence Map (quick reference)
+## Mapa de Evidências (referência rápida)
 
-| Area | Primary evidence |
-|------|------------------|
-| Product positioning | `pulse8/README.md`, `pulse8front/README.md`, `src/app/page.tsx`, `RESUMO_EXECUTIVO.md` |
-| Domain model | `Pulse8.Domain/Entities/*` (17 entities) |
+| Área | Evidência principal |
+|------|---------------------|
+| Posicionamento do produto | `pulse8/README.md`, `pulse8front/README.md`, `src/app/page.tsx`, `RESUMO_EXECUTIVO.md` |
+| Modelo de domínio | `Pulse8.Domain/Entities/*` (17 entidades) |
 | APIs | `Pulse8.API/Controllers/*` |
-| Roles | `UserOrganizationType` (Admin/Manager/Employee/Promoter), `sidebar.tsx` |
-| Brazilian market | `Organization.Cnpj`, CEP/UF validators, PIX keys, PT-BR UI |
-| SaaS pricing (marketing only) | Landing pricing cards in `src/app/page.tsx` — no Subscription entity/API |
-| Planned but missing | `create_missing_tables_v2.sql` comments; FE calls to `/roles`, `/access`, `/guests/{id}/qr-code` with no BE controllers |
+| Papéis | `UserOrganizationType` (Admin/Manager/Employee/Promoter), `sidebar.tsx` |
+| Mercado brasileiro | `Organization.Cnpj`, validadores de CEP/UF, chaves PIX, UI em PT-BR |
+| Preços SaaS (apenas marketing) | Cards de preço na landing em `src/app/page.tsx` — sem entidade/API de Subscription |
+| Planejado, mas ausente | Comentários em `create_missing_tables_v2.sql`; chamadas FE para `/roles`, `/access`, `/guests/{id}/qr-code` sem controllers no BE |
 
 ---
 
-# PHASE 1 — Understand the Product
+# FASE 1 — Entender o Produto
 
-## Product Summary
+## Resumo do Produto
 
-Pulse8 is a **B2B event-production operations platform** for Brazilian organizers. It lets a production company (Organization with CNPJ) manage events end-to-end inside one authenticated console: create events, assign crew (People), invite promoters, manage guests/check-in, track budgets/expenses/revenues, schedule agenda items, register suppliers, and run basic marketing campaigns/posts/assets.
+O Pulse8 é uma **plataforma B2B de operações de produção de eventos** para organizadores brasileiros. Permite que uma empresa de produção (Organization com CNPJ) gerencie eventos de ponta a ponta em um único console autenticado: criar eventos, alocar equipe (People), convidar promoters, gerenciar convidados/check-in, acompanhar orçamentos/despesas/receitas, agendar itens de agenda, cadastrar fornecedores e operar campanhas/posts/assets básicos de marketing.
 
-It is **not** a consumer ticket marketplace, not a public RSVP storefront, and not a supplier marketplace. The public surface is thin: marketing landing (`/`), auth, and promoter invite links (`/invite/[token]`).
+**Não é** um marketplace de ingressos para o consumidor final, nem um portal público de RSVP, nem um marketplace de fornecedores. A superfície pública é fina: landing de marketing (`/`), autenticação e links de convite para promoters (`/invite/[token]`).
 
-## Main Purpose
+## Propósito Principal
 
-Centralize day-to-day **event ops** for a producing organization:
+Centralizar as **operações diárias de eventos** de uma organização produtora:
 
-1. Plan and run events (status lifecycle Draft → Planning → Active → Completed/Cancelled)
-2. Coordinate people around those events (team, promoters, guests, suppliers)
-3. Track money (org budgets + event expenses/revenues)
-4. Support promotion (campaigns, posts, promoter codes/UTM/commissions)
+1. Planejar e executar eventos (ciclo de status Draft → Planning → Active → Completed/Cancelled)
+2. Coordenar pessoas em torno desses eventos (equipe, promoters, convidados, fornecedores)
+3. Controlar dinheiro (orçamentos da org + despesas/receitas do evento)
+4. Apoiar promoção (campanhas, posts, códigos de promoter/UTM/comissões)
 
-## Target Users (as implemented)
+## Usuários-Alvo (conforme implementado)
 
-Primary: **Event-producing companies in Brazil** (register with CNPJ, CEP, UF).
+Primário: **Empresas produtoras de eventos no Brasil** (cadastro com CNPJ, CEP, UF).
 
-Secondary: **Promoters** invited to specific events (restricted UI: events + change password).
+Secundário: **Promoters** convidados para eventos específicos (UI restrita: eventos + alterar senha).
 
-Tertiary (weak/partial): internal staff via membership types Manager/Employee — defined in domain, barely differentiated in product behavior.
+Terciário (fraco/parcial): equipe interna via tipos de membership Manager/Employee — definidos no domínio, quase sem diferenciação no comportamento do produto.
 
-## Core Value Proposition
+## Proposta de Valor Central
 
-> “One Portuguese-language console where a Brazilian event producer manages events, guests, crew, suppliers, promoter network, marketing artifacts, and event P&L — without juggling spreadsheets and WhatsApp.”
+> “Um console em português onde um produtor brasileiro de eventos gerencia eventos, convidados, equipe, fornecedores, rede de promoters, artefatos de marketing e P&L do evento — sem depender de planilhas e WhatsApp.”
 
-**Investor pitch (evidence-based):**
+**Pitch para investidor (baseado em evidências):**
 
-Pulse8 targets the fragmented Brazilian event production stack. Organizers today coordinate guests, promoters, suppliers, and cashflow across spreadsheets, Instagram DMs, and WhatsApp. Pulse8’s distinctive wedge is the **promoter invite + commission/UTM model** layered onto classic event ops (finance, guests, schedules, suppliers). The product already ships a broad UI surface (~96 pages) and a Clean Architecture .NET API covering the core aggregates. Monetization intent is visible on the landing page (Starter R$99 / Professional R$299 / Enterprise Custom), but **billing is not implemented in the backend** — this is inferred because no Subscription/Plan/Payment entities or controllers exist, while pricing only appears in `src/app/page.tsx`.
+O Pulse8 mira a fragmentação da stack de produção de eventos no Brasil. Organizadores hoje coordenam convidados, promoters, fornecedores e fluxo de caixa entre planilhas, DMs do Instagram e WhatsApp. O diferencial do Pulse8 é o **modelo de convite de promoter + comissão/UTM** sobre operações clássicas de evento (financeiro, convidados, agendas, fornecedores). O produto já entrega uma superfície ampla de UI (~96 páginas) e uma API .NET em Clean Architecture cobrindo os agregados centrais. A intenção de monetização aparece na landing (Starter R$99 / Professional R$299 / Enterprise Custom), mas **a cobrança não está implementada no backend** — isso é inferido porque não existem entidades/controllers de Subscription/Plan/Payment, enquanto os preços só aparecem em `src/app/page.tsx`.
 
 ---
 
-# PHASE 2 — Identify the Users
+# FASE 2 — Identificar os Usuários
 
-Legend for “how Pulse8 helps”: based on actual modules. “Missing” means no entity/API/screen evidence, or UI exists without backend.
+Legenda para “como o Pulse8 ajuda”: baseado nos módulos reais. “Ausente” significa sem evidência de entidade/API/tela, ou UI existe sem backend.
 
-## 1. Event Producer / Production Company Admin
+## 1. Produtor de Eventos / Admin da Empresa de Produção
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Goals** | Run profitable events; control guests, money, team, suppliers |
-| **Pains** | Fragmented tools; promoter chaos; weak financial visibility |
-| **How Pulse8 helps** | Full sidebar access: Events, Finance, Calendar, Marketing, Team, Promoters, Guests, Suppliers, Reports, Admin (`sidebar.tsx`) |
-| **Missing** | Contracts, proposals, CRM clients, ticketing checkout, approvals, real RBAC beyond Admin/Promoter |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Objetivos** | Rodar eventos lucrativos; controlar convidados, dinheiro, equipe, fornecedores |
+| **Dores** | Ferramentas fragmentadas; caos com promoters; pouca visibilidade financeira |
+| **Como o Pulse8 ajuda** | Acesso completo à sidebar: Eventos, Financeiro, Calendário, Marketing, Equipe, Promoters, Convidados, Fornecedores, Relatórios, Admin (`sidebar.tsx`) |
+| **Ausente** | Contratos, propostas, CRM de clientes, checkout de ingressos, aprovações, RBAC real além de Admin/Promoter |
 
 ## 2. Promoter
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Goals** | Sell/promote events; track commissions; get invites easily |
-| **Pains** | Opaque attribution; manual commission tracking |
-| **How Pulse8 helps** | Invite token flow (`EventInvite`, `/invite/[token]`); `Promoter` with PromoterCode, UTMCode, CommissionRate, TotalSales, TotalCommission; restricted nav |
-| **Missing** | Self-serve sales dashboard with real sales ingestion; payout/PIX settlement; public share landing with conversion tracking; promoter mobile app |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Objetivos** | Vender/promover eventos; acompanhar comissões; receber convites com facilidade |
+| **Dores** | Atribuição opaca; controle manual de comissões |
+| **Como o Pulse8 ajuda** | Fluxo de token de convite (`EventInvite`, `/invite/[token]`); `Promoter` com PromoterCode, UTMCode, CommissionRate, TotalSales, TotalCommission; navegação restrita |
+| **Ausente** | Dashboard self-serve com ingestão real de vendas; liquidação/PIX de payout; landing pública com tracking de conversão; app mobile do promoter |
 
-## 3. Production Team / Employee / Manager
+## 3. Equipe de Produção / Funcionário / Gerente
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Goals** | Execute schedules, manage guests, update expenses |
-| **Pains** | Unclear permissions; overlapping tools |
-| **How Pulse8 helps** | Membership types Manager/Employee exist (`UserOrganizationType`); team via `Person`/`/people` |
-| **Missing** | Role-differentiated menus for Manager vs Employee (only Promoter is filtered in `sidebar.tsx`). This is inferred because FE docs claim 5 roles while BE has 4 membership types with thin enforcement. |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Objetivos** | Executar cronogramas, gerenciar convidados, atualizar despesas |
+| **Dores** | Permissões pouco claras; ferramentas sobrepostas |
+| **Como o Pulse8 ajuda** | Tipos Manager/Employee existem (`UserOrganizationType`); equipe via `Person`/`/people` |
+| **Ausente** | Menus diferenciados por papel entre Manager e Employee (só Promoter é filtrado em `sidebar.tsx`). Isso é inferido porque a documentação do FE fala em 5 papéis, enquanto o BE tem 4 tipos de membership com enforcement fraco. |
 
-## 4. Guest / Attendee
+## 4. Convidado / Participante
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Goals** | Receive invite, check in |
-| **Pains** | No self-service |
-| **How Pulse8 helps** | Staff-managed `Guest` records + `CheckInDate` |
-| **Missing** | Guest portal, RSVP, e-ticket purchase, QR backend (`guests.ts` calls `/guests/{id}/qr-code` but no Guests QR endpoint in BE controllers). Guest types VIP/Press/etc. appear in FE types/docs but not on BE `Guest` entity. |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Objetivos** | Receber convite, fazer check-in |
+| **Dores** | Sem self-service |
+| **Como o Pulse8 ajuda** | Registros `Guest` geridos pela staff + `CheckInDate` |
+| **Ausente** | Portal do convidado, RSVP, compra de e-ticket, backend de QR (`guests.ts` chama `/guests/{id}/qr-code`, mas não há endpoint QR nos controllers do BE). Tipos VIP/Press/etc. aparecem em types/docs do FE, mas não na entidade `Guest` do BE. |
 
-## 5. Supplier / Vendor
+## 5. Fornecedor / Vendor
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Goals** | Be hired, get paid |
-| **Pains** | No portal; no proposals |
-| **How Pulse8 helps** | Org-scoped supplier CRM-lite (`Supplier` with PIX/bank) linked to expenses |
-| **Missing** | Supplier portal, RFPs/proposals (`SupplierProposals` only in SQL comments), inventory, availability calendar |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Objetivos** | Ser contratado, receber pagamento |
+| **Dores** | Sem portal; sem propostas |
+| **Como o Pulse8 ajuda** | CRM-lite de fornecedores por org (`Supplier` com PIX/banco) ligado a despesas |
+| **Ausente** | Portal do fornecedor, RFPs/propostas (`SupplierProposals` só em comentários SQL), inventário, calendário de disponibilidade |
 
-## 6. Venue
+## 6. Venue / Casa de Eventos
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Supported?** | Partially as event location fields + ExpenseType.Venue |
-| **Missing** | Venue as actor/tenant; room inventory; booking engine |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Suportado?** | Parcialmente como campos de localização do evento + ExpenseType.Venue |
+| **Ausente** | Venue como ator/tenant; inventário de salas; motor de booking |
 
-## 7. DJ / Artist / Artist Manager
+## 7. DJ / Artista / Manager de Artista
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Supported?** | Weak — can be modeled as `Person.Role` free text or Guest type in FE |
-| **Missing** | Rider management, performance schedule contracts, artist CRM, fee settlements |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Suportado?** | Fraco — pode ser modelado como `Person.Role` (texto livre) ou tipo de Guest no FE |
+| **Ausente** | Rider, contratos de cache, CRM de artistas, acertos financeiros |
 
-## 8. Sound / Lighting / Stage / Security / Bar / Catering Companies
+## 8. Empresas de Som / Luz / Palco / Segurança / Bar / Catering
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Supported?** | As `Supplier` + expense categories (`ExpenseType`) |
-| **Missing** | Vertical workflows, equipment inventory, crew call sheets, SLAs |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Suportado?** | Como `Supplier` + categorias de despesa (`ExpenseType`) |
+| **Ausente** | Fluxos verticais, inventário de equipamento, call sheets, SLAs |
 
-## 9. Photographer / Videographer / Decorator
+## 9. Fotógrafo / Videógrafo / Decorador
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Supported?** | Supplier or Person only |
-| **Missing** | Asset delivery workflows, shot lists, rights management (MarketingAsset is org/event file metadata, not creative production workflow) |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Suportado?** | Apenas como Supplier ou Person |
+| **Ausente** | Fluxos de entrega de assets, shot lists, gestão de direitos (MarketingAsset é metadado de arquivo org/evento, não workflow criativo) |
 
-## 10. Wedding Planner / Corporate Planner / Festival Organizer
+## 10. Wedding Planner / Planejador Corporativo / Organizador de Festival
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Supported?** | Generic Event ops can partially fit |
-| **Missing** | Wedding-specific (vendors packages, seating), corporate (registration, badge printing, sessions), festival (multi-stage, artist lineup, accreditation) |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Suportado?** | Ops genéricas de Event podem servir parcialmente |
+| **Ausente** | Específicos de casamento (pacotes, seating), corporativo (credenciamento, badges, sessões), festival (multi-palco, lineup, credenciais) |
 
-## 11. Sponsor / Financial Manager
+## 11. Patrocinador / Gestor Financeiro
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Supported?** | Revenue source free text (e.g. “Patrocínio” placeholder in FE); Budget/Expense/Revenue modules |
-| **Missing** | Sponsor packages, deliverables, invoice issuance (only `InvoiceNumber` on Expense), accounting integrations, multi-currency |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Suportado?** | Fonte de receita em texto livre (ex.: placeholder “Patrocínio” no FE); módulos Budget/Expense/Revenue |
+| **Ausente** | Pacotes de patrocínio, entregáveis, emissão de NF/fatura (só `InvoiceNumber` em Expense), integrações contábeis, multi-moeda |
 
-## 12. Freelancer / Solo Professional
+## 12. Freelancer / Profissional Solo
 
-| Dimension | Assessment |
-|-----------|------------|
-| **Supported?** | Can register org (heavy for solo) or join as promoter/person |
-| **Missing** | Lightweight solo plan enforcement, personal brand site, client invoicing |
-
----
-
-# PHASE 3 — Feature Catalog by Domain
-
-Status key: **Real** = BE entity + API + FE screen; **UI-heavy** = FE exists, BE partial/missing; **Marketing-only** = claimed on landing/docs without runtime enforcement.
-
-## Domain: Identity & Tenancy
-
-| Feature | Purpose | Who | Business value | Dependencies | Screens | APIs |
-|---------|---------|-----|----------------|--------------|---------|------|
-| Register org + admin | Bootstrap tenant | Producer | Acquisition | Org uniqueness (CNPJ) | `/register` | `POST /api/auth/register` |
-| Login / JWT | Session | All users | Access control | User + UserOrganization | `/login` | `POST /api/auth/login`, `GET /me` |
-| Google/Instagram OAuth | Frictionless auth | All | Conversion | OAuth config | login/register/IG callback | `/api/auth/oauth/*` |
-| Multi-org membership | User in many orgs | Power users | Flexibility | UserOrganization | login org picker | `/api/userorganizations` |
-| Forgot/change password | Account recovery | All | Support | Email (SendGrid/SMTP) | `/forgot-password`, `/admin/change-password` | forgot/change-password |
-
-## Domain: Events
-
-| Feature | Purpose | Who | Value | Deps | Screens | APIs |
-|---------|---------|-----|-------|------|---------|------|
-| Event CRUD | Core aggregate | Admin/staff | Core | Organization | `/events/*` | `/api/events` |
-| Status lifecycle | Ops stages | Producer | Process control | EventStatus enum | event form/detail | create/update event |
-| TicketPrice field | Price reference | Producer | Pricing intent | Event | event form | Event DTO |
-| Capacity / location | Planning | Producer | Logistics | Event | event form | Event DTO |
-| Promoter event filter | Scope visibility | Promoter | Security/UX | Promoter join | `/events` | GetEventsQueryHandler |
-
-## Domain: Promoters & Invites
-
-| Feature | Purpose | Who | Value | Deps | Screens | APIs |
-|---------|---------|-----|-------|------|---------|------|
-| Create invite (email or shareable) | Recruit promoters | Admin | Growth network | EventInvite, email | event detail invites | `/api/events/{id}/invites` |
-| Validate/accept/register via token | Onboard promoters | Promoter | Viral acquisition | InvitesController | `/invite/[token]` | `/api/invites/*` |
-| Promoter codes / UTM / commission | Attribution | Producer/Promoter | Performance marketing | Promoter entity | `/promoters/*` | `/api/promoters` |
-
-## Domain: Guests & Check-in
-
-| Feature | Purpose | Who | Value | Deps | Screens | APIs |
-|---------|---------|-----|-------|------|---------|------|
-| Guest CRUD | Attendance list | Staff | Door control | Guest | `/guests/*` | `/api/guests` |
-| Check-in via CheckInDate | Door ops | Staff | Day-of execution | Guest | `/guests/checkin/*` | guest update/list counts |
-| QR codes | Fast check-in | Staff | UX | **Missing BE** | guest detail | FE `POST /guests/{id}/qr-code` — **no BE controller** |
-| Guest types (VIP/Press…) | Segmentation | Staff | Hospitality | **FE-only types** | guests UI | not on BE Guest |
-
-## Domain: Team (People)
-
-| Feature | Purpose | Who | Value | Deps | Screens | APIs |
-|---------|---------|-----|-------|------|---------|------|
-| People CRUD | Crew roster | Producer | Staffing | Person (Role free text, PIX) | `/team/*` | `/api/people` |
-| Team roles/cargos pages | Job titles | Producer | Structure | **Likely FE-only** | `/team/roles/*` | FE `/roles` — **no RolesController in BE** |
-
-## Domain: Suppliers
-
-| Feature | Purpose | Who | Value | Deps | Screens | APIs |
-|---------|---------|-----|-------|------|---------|------|
-| Supplier CRM-lite | Vendor registry | Producer | Procurement | Supplier + PIX/bank | `/suppliers/*` | `/api/suppliers` |
-| Link supplier to expense | Cost attribution | Finance | Traceability | Expense.SupplierId | expense forms | `/api/finance/expenses` |
-
-## Domain: Calendar / Schedules
-
-| Feature | Purpose | Who | Value | Deps | Screens | APIs |
-|---------|---------|-----|-------|------|---------|------|
-| Schedule CRUD | Event agenda | Staff | Production timeline | Schedule | `/calendar/schedules/*` | `/api/schedule` |
-| Calendar / Timeline views | Visualization | Staff | Planning UX | schedules (+ mock calendar events) | `/calendar`, `/calendar/timeline` | schedule APIs + FE mock helpers |
-
-## Domain: Financial
-
-| Feature | Purpose | Who | Value | Deps | Screens | APIs |
-|---------|---------|-----|-------|------|---------|------|
-| Org budgets | Planned spend | Producer/Finance | Control | Budget | `/finance/budget/*` | `/api/budget` |
-| Event expenses | Cost tracking | Finance | P&L | Expense + types | `/finance/expenses/*` | `/api/finance/expenses` |
-| Event revenues | Income tracking | Finance | P&L | Revenue | `/finance/revenue/*` | `/api/finance/revenue` |
-| Expense invoice number | Reference | Finance | Audit trail lite | Expense.InvoiceNumber | expense forms | expense DTOs |
-| Ticket sales as revenue | Manual recording | Finance | Close books | free-text Source | revenue create placeholders | revenue APIs |
-
-## Domain: Marketing
-
-| Feature | Purpose | Who | Value | Deps | Screens | APIs |
-|---------|---------|-----|-------|------|---------|------|
-| Campaigns | Promo planning | Marketing | Demand gen | MarketingCampaign | `/marketing/campaigns/*` | `/api/marketing` |
-| Posts | Content calendar | Marketing | Execution | MarketingPost | `/marketing/posts/*`, schedules | `/api/marketing/posts` |
-| Assets | Creative library | Marketing | Reuse | MarketingAsset (path metadata) | `/marketing/assets/*` | `/api/marketing/assets` |
-| Social publishing | Auto-post | Marketing | Efficiency | **Not integrated** — status enum only; no Meta/TikTok publish API |
-
-## Domain: Reports & Analytics
-
-| Feature | Purpose | Who | Value | Status |
-|---------|---------|-----|-------|--------|
-| Reports hub pages | Insights | Producer | Decision support | **UI-heavy** — pages under `/reports/*`; no dedicated ReportsController in BE |
-| Dashboard KPIs | Overview | Admin | At-a-glance | FE dashboard; promoter redirected to `/events` |
-
-## Domain: Admin / Security / Settings
-
-| Feature | Purpose | Who | Status |
-|---------|---------|-----|--------|
-| Users CRUD | Staff accounts | Admin | Real-ish via `/api/users` |
-| Roles & permissions UI | Fine-grained RBAC | Admin | **UI/mock** — docs claim 5 roles; BE has membership enum; FE `/roles` & `/access` have **no BE controllers** |
-| Integrations page | Stripe, Mailchimp, etc. | Admin | **Marketing/mock UI** in settings |
-| Backup page | Ops | Admin | **UI-only** (no BE backup API found) |
-| SaaS plan limits | Monetization | Platform | **Marketing-only** on landing |
-
-## Domain: Communication
-
-| Feature | Purpose | Status |
-|---------|---------|--------|
-| Invite emails | Promoter onboarding | Real (SendGrid/SMTP) |
-| Password recovery email | Auth | Real |
-| In-app notifications | Ops alerts | Header notifications commented out |
-| WhatsApp / SMS | Channel | Listed on integrations UI only |
+| Dimensão | Avaliação |
+|----------|-----------|
+| **Suportado?** | Pode cadastrar org (pesado para solo) ou entrar como promoter/person |
+| **Ausente** | Plano leve para solo, site pessoal, faturamento de cliente |
 
 ---
 
-# PHASE 4 — Complete Workflows
+# FASE 3 — Catálogo de Features por Domínio
 
-## 4.1 Organization Onboarding
+Chave de status: **Real** = entidade BE + API + tela FE; **UI-pesado** = FE existe, BE parcial/ausente; **Apenas marketing** = prometido na landing/docs sem enforcement em runtime.
+
+## Domínio: Identidade e Tenancy
+
+| Feature | Propósito | Quem | Valor de negócio | Dependências | Telas | APIs |
+|---------|-----------|------|------------------|--------------|-------|------|
+| Cadastro org + admin | Bootstrap do tenant | Produtor | Aquisição | Unicidade de CNPJ | `/register` | `POST /api/auth/register` |
+| Login / JWT | Sessão | Todos | Controle de acesso | User + UserOrganization | `/login` | `POST /api/auth/login`, `GET /me` |
+| OAuth Google/Instagram | Auth com menos fricção | Todos | Conversão | Config OAuth | login/register/callback IG | `/api/auth/oauth/*` |
+| Membership multi-org | Usuário em várias orgs | Power users | Flexibilidade | UserOrganization | seletor de org no login | `/api/userorganizations` |
+| Esqueci/alterar senha | Recuperação de conta | Todos | Suporte | Email (SendGrid/SMTP) | `/forgot-password`, `/admin/change-password` | forgot/change-password |
+
+## Domínio: Eventos
+
+| Feature | Propósito | Quem | Valor | Deps | Telas | APIs |
+|---------|-----------|------|-------|------|-------|------|
+| CRUD de Evento | Agregado central | Admin/staff | Core | Organization | `/events/*` | `/api/events` |
+| Ciclo de status | Etapas operacionais | Produtor | Controle de processo | Enum EventStatus | formulário/detalhe | create/update event |
+| Campo TicketPrice | Referência de preço | Produtor | Intenção de pricing | Event | formulário | DTO de Event |
+| Capacidade / local | Planejamento | Produtor | Logística | Event | formulário | DTO de Event |
+| Filtro de eventos do promoter | Escopo de visibilidade | Promoter | Segurança/UX | Join Promoter | `/events` | GetEventsQueryHandler |
+
+## Domínio: Promoters e Convites
+
+| Feature | Propósito | Quem | Valor | Deps | Telas | APIs |
+|---------|-----------|------|-------|------|-------|------|
+| Criar convite (email ou compartilhável) | Recrutar promoters | Admin | Rede de crescimento | EventInvite, email | convites no detalhe do evento | `/api/events/{id}/invites` |
+| Validar/aceitar/registrar via token | Onboarding de promoters | Promoter | Aquisição viral | InvitesController | `/invite/[token]` | `/api/invites/*` |
+| Códigos / UTM / comissão | Atribuição | Produtor/Promoter | Performance marketing | Entidade Promoter | `/promoters/*` | `/api/promoters` |
+
+## Domínio: Convidados e Check-in
+
+| Feature | Propósito | Quem | Valor | Deps | Telas | APIs |
+|---------|-----------|------|-------|------|-------|------|
+| CRUD de Guest | Lista de presença | Staff | Controle de porta | Guest | `/guests/*` | `/api/guests` |
+| Check-in via CheckInDate | Operação no dia | Staff | Execução | Guest | `/guests/checkin/*` | update/listagens com contagens |
+| QR codes | Check-in rápido | Staff | UX | **BE ausente** | detalhe do convidado | FE `POST /guests/{id}/qr-code` — **sem controller no BE** |
+| Tipos de convidado (VIP/Press…) | Segmentação | Staff | Hospitalidade | **Tipos só no FE** | UI de convidados | não está no Guest do BE |
+
+## Domínio: Equipe (People)
+
+| Feature | Propósito | Quem | Valor | Deps | Telas | APIs |
+|---------|-----------|------|-------|------|-------|------|
+| CRUD de People | Roster da equipe | Produtor | Staffing | Person (Role texto livre, PIX) | `/team/*` | `/api/people` |
+| Páginas de cargos/roles | Títulos de função | Produtor | Estrutura | **Provavelmente só FE** | `/team/roles/*` | FE `/roles` — **sem RolesController no BE** |
+
+## Domínio: Fornecedores
+
+| Feature | Propósito | Quem | Valor | Deps | Telas | APIs |
+|---------|-----------|------|-------|------|-------|------|
+| CRM-lite de fornecedores | Cadastro de vendors | Produtor | Procurement | Supplier + PIX/banco | `/suppliers/*` | `/api/suppliers` |
+| Ligar fornecedor à despesa | Atribuição de custo | Financeiro | Rastreabilidade | Expense.SupplierId | formulários de despesa | `/api/finance/expenses` |
+
+## Domínio: Calendário / Cronogramas
+
+| Feature | Propósito | Quem | Valor | Deps | Telas | APIs |
+|---------|-----------|------|-------|------|-------|------|
+| CRUD de Schedule | Agenda do evento | Staff | Timeline de produção | Schedule | `/calendar/schedules/*` | `/api/schedule` |
+| Views Calendário / Timeline | Visualização | Staff | UX de planejamento | schedules (+ mocks de calendário) | `/calendar`, `/calendar/timeline` | APIs de schedule + helpers mock no FE |
+
+## Domínio: Financeiro
+
+| Feature | Propósito | Quem | Valor | Deps | Telas | APIs |
+|---------|-----------|------|-------|------|-------|------|
+| Orçamentos da org | Gasto planejado | Produtor/Financeiro | Controle | Budget | `/finance/budget/*` | `/api/budget` |
+| Despesas do evento | Tracking de custo | Financeiro | P&L | Expense + tipos | `/finance/expenses/*` | `/api/finance/expenses` |
+| Receitas do evento | Tracking de receita | Financeiro | P&L | Revenue | `/finance/revenue/*` | `/api/finance/revenue` |
+| Número de invoice na despesa | Referência | Financeiro | Trilha de auditoria leve | Expense.InvoiceNumber | formulários | DTOs de expense |
+| Venda de ingressos como receita | Lançamento manual | Financeiro | Fechamento | Source em texto livre | placeholders no create de revenue | APIs de revenue |
+
+## Domínio: Marketing
+
+| Feature | Propósito | Quem | Valor | Deps | Telas | APIs |
+|---------|-----------|------|-------|------|-------|------|
+| Campanhas | Planejamento promocional | Marketing | Geração de demanda | MarketingCampaign | `/marketing/campaigns/*` | `/api/marketing` |
+| Posts | Calendário de conteúdo | Marketing | Execução | MarketingPost | `/marketing/posts/*`, schedules | `/api/marketing/posts` |
+| Assets | Biblioteca criativa | Marketing | Reuso | MarketingAsset (metadado de path) | `/marketing/assets/*` | `/api/marketing/assets` |
+| Publicação social | Auto-post | Marketing | Eficiência | **Não integrado** — só enum de status; sem API Meta/TikTok |
+
+## Domínio: Relatórios e Analytics
+
+| Feature | Propósito | Quem | Valor | Status |
+|---------|-----------|------|-------|--------|
+| Hub de relatórios | Insights | Produtor | Apoio à decisão | **UI-pesado** — páginas em `/reports/*`; sem ReportsController no BE |
+| KPIs do Dashboard | Visão geral | Admin | Snapshot | Dashboard FE; promoter redirecionado para `/events` |
+
+## Domínio: Admin / Segurança / Configurações
+
+| Feature | Propósito | Quem | Status |
+|---------|-----------|------|--------|
+| CRUD de usuários | Contas da staff | Admin | Parcialmente real via `/api/users` |
+| UI de papéis e permissões | RBAC fino | Admin | **UI/mock** — docs falam em 5 papéis; BE tem enum de membership; FE `/roles` e `/access` **sem controllers no BE** |
+| Página de integrações | Stripe, Mailchimp, etc. | Admin | **UI de marketing/mock** em settings |
+| Página de backup | Ops | Admin | **Só UI** (API de backup não encontrada no BE) |
+| Limites de plano SaaS | Monetização | Plataforma | **Apenas marketing** na landing |
+
+## Domínio: Comunicação
+
+| Feature | Propósito | Status |
+|---------|-----------|--------|
+| Emails de convite | Onboarding de promoter | Real (SendGrid/SMTP) |
+| Email de recuperação de senha | Auth | Real |
+| Notificações in-app | Alertas operacionais | Notificações do header comentadas |
+| WhatsApp / SMS | Canal | Só listados na UI de integrações |
+
+---
+
+# FASE 4 — Workflows Completos
+
+## 4.1 Onboarding da Organização
 
 ```mermaid
 flowchart LR
-  A[Landing /] --> B[Register]
-  B --> C[Create User]
-  C --> D[Create Organization CNPJ]
+  A[Landing /] --> B[Cadastro]
+  B --> C[Criar User]
+  C --> D[Criar Organization CNPJ]
   D --> E[UserOrganization Admin]
-  E --> F[JWT with organization_id]
+  E --> F[JWT com organization_id]
   F --> G[Dashboard]
 ```
 
-Evidence: `RegisterCommandHandler`, `/register` stepper.
+Evidência: `RegisterCommandHandler`, stepper de `/register`.
 
-## 4.2 Event Production Lifecycle (as supported today)
+## 4.2 Ciclo de Produção do Evento (como suportado hoje)
 
 ```mermaid
 flowchart TD
-  A[Create Event Draft] --> B[Planning]
-  B --> C[Add Schedules]
-  B --> D[Add People / Crew]
-  B --> E[Register Suppliers]
-  B --> F[Set Budget / Expenses / Revenue]
-  B --> G[Marketing Campaigns / Assets / Posts]
-  B --> H[Invite Promoters]
-  B --> I[Add Guests]
-  I --> J[Check-in on event day]
+  A[Criar Evento Draft] --> B[Planning]
+  B --> C[Adicionar Schedules]
+  B --> D[Adicionar People / Equipe]
+  B --> E[Cadastrar Fornecedores]
+  B --> F[Definir Orçamento / Despesas / Receitas]
+  B --> G[Campanhas / Assets / Posts de Marketing]
+  B --> H[Convidar Promoters]
+  B --> I[Adicionar Convidados]
+  I --> J[Check-in no dia do evento]
   B --> K[Status Active]
   K --> L[Completed]
-  L --> M[Reports UI]
+  L --> M[UI de Relatórios]
   K --> N[Cancelled]
 ```
 
-**Gaps in classic industry flow:** Lead → Client → Proposal → Contract → Ticket Sales checkout → Automated closing are **missing** (no Client/Contract/Proposal/TicketOrder entities).
+**Lacunas no fluxo clássico da indústria:** Lead → Cliente → Proposta → Contrato → Checkout de ingressos → Fechamento automatizado estão **ausentes** (sem entidades Client/Contract/Proposal/TicketOrder).
 
-## 4.3 Promoter Invite Journey (strongest distinctive workflow)
+## 4.3 Jornada de Convite do Promoter (workflow mais distintivo)
 
 ```mermaid
 sequenceDiagram
@@ -311,408 +311,408 @@ sequenceDiagram
   participant Email
   participant Promoter
   Admin->>API: POST /events/{id}/invites
-  API->>Email: Optional invite email
+  API->>Email: Email de convite opcional
   Promoter->>API: GET /invites/validate/{token}
-  alt New user
+  alt Novo usuário
     Promoter->>API: POST /invites/register
-  else Existing user
+  else Usuário existente
     Promoter->>API: Login + POST /invites/accept
   end
-  API-->>Promoter: Promoter membership + Promoter Pending/Active
-  Promoter->>API: GET /events (filtered)
+  API-->>Promoter: Membership Promoter + Promoter Pending/Active
+  Promoter->>API: GET /events (filtrado)
 ```
 
-## 4.4 Finance Loop
+## 4.4 Loop Financeiro
 
 ```mermaid
 flowchart LR
-  B[Org Budget] --> E[Event Expenses]
-  S[Suppliers] --> E
-  E --> P[Event TotalCost]
-  R[Event Revenues] --> T[P&L view in FE]
-  TP[TicketPrice field] -.manual.-> R
+  B[Orçamento da Org] --> E[Despesas do Evento]
+  S[Fornecedores] --> E
+  E --> P[TotalCost do Evento]
+  R[Receitas do Evento] --> T[Visão de P&L no FE]
+  TP[Campo TicketPrice] -.manual.-> R
 ```
 
-Ticket sales are **manual revenue entries**, not a sales engine. This is inferred because `TicketPrice` is a scalar on Event and Revenue.Source is free text; there is no Order/Payment entity.
+Venda de ingressos é **lançamento manual de receita**, não um motor de vendas. Isso é inferido porque `TicketPrice` é um escalar em Event e Revenue.Source é texto livre; não há entidade Order/Payment.
 
-## 4.5 Guest Check-in
+## 4.5 Check-in de Convidados
 
 ```mermaid
 flowchart LR
-  A[Create Guest] --> B[Guest list]
-  B --> C[Set CheckInDate]
-  C --> D[Checked-in vs pending counts]
-  B -.FE aspirational.-> Q[QR code endpoint]
+  A[Criar Guest] --> B[Lista de convidados]
+  B --> C[Definir CheckInDate]
+  C --> D[Contagens checked-in vs pending]
+  B -.aspiracional no FE.-> Q[Endpoint de QR code]
 ```
 
-## 4.6 Missing aspirational CRM→Contract flow
+## 4.6 Fluxo aspiracional CRM→Contrato (ausente)
 
 ```mermaid
 flowchart LR
-  L[Lead] --> C[Client] --> P[Proposal] --> K[Contract] --> E[Event Planning]
+  L[Lead] --> C[Cliente] --> P[Proposta] --> K[Contrato] --> E[Planejamento do Evento]
   style L fill:#f99
   style C fill:#f99
   style P fill:#f99
   style K fill:#f99
 ```
 
-Red nodes have **no domain entities** — believed missing because grep/entity scan found none; SQL comments mention SupplierProposals/Permissions but not Client/Contract modules.
+Nós em vermelho **não têm entidades de domínio** — considerados ausentes porque scan de entidades/grep não encontrou nada; comentários SQL mencionam SupplierProposals/Permissions, mas não módulos Client/Contract.
 
 ---
 
-# PHASE 5 — Business Model
+# FASE 5 — Modelo de Negócio
 
-## Problem being solved
+## Problema que está sendo resolvido
 
-Brazilian event producers lack a localized ops system that combines **event execution + promoter networks + PIX-friendly vendor/crew data + PT-BR UX**. Tools are either generic PM (Monday/ClickUp), foreign event suites (Cvent), or consumer ticketing (Eventbrite/Sympla) that don’t run backstage ops.
+Produtores brasileiros de eventos não têm um sistema localizado de ops que combine **execução de evento + redes de promoters + dados de fornecedores/equipe amigáveis a PIX + UX em PT-BR**. As ferramentas são PM genérico (Monday/ClickUp), suites estrangeiras (Cvent) ou ticketing consumer (Eventbrite/Sympla) que não operam o backstage.
 
-## Why someone would pay
+## Por que alguém pagaria
 
-1. Replace spreadsheets for guests, expenses, suppliers
-2. Coordinate promoters with invite links and commission fields
-3. Keep event P&L in one place
-4. Portuguese + CNPJ/PIX-native data model
+1. Substituir planilhas de convidados, despesas e fornecedores
+2. Coordenar promoters com links de convite e campos de comissão
+3. Manter P&L do evento em um só lugar
+4. Modelo de dados nativo em português + CNPJ/PIX
 
-**Willingness-to-pay is asserted by landing pricing** (R$99 / R$299 / Custom) but **not enforced by metering** — inferred because no plan limits exist in API/handlers.
+**Willingness-to-pay é afirmada pelos preços da landing** (R$99 / R$299 / Custom), mas **não é enforced por metering** — inferido porque não há limites de plano nas APIs/handlers.
 
-## Competitive advantages (current)
+## Vantagens competitivas (atuais)
 
-| Advantage | Evidence |
-|-----------|----------|
-| Promoter invite network | EventInvite + Promoter commissions/UTM |
-| Brazil-first data model | CNPJ, CEP, UF, PIX keys, PT-BR UI |
-| Broad ops surface in one app | 12 module areas in sidebar |
-| Event-scoped multi-sided users | Organizer vs Promoter experiences |
+| Vantagem | Evidência |
+|----------|-----------|
+| Rede de convites de promoters | EventInvite + comissões/UTM de Promoter |
+| Modelo Brazil-first | CNPJ, CEP, UF, chaves PIX, UI PT-BR |
+| Superfície ampla de ops em um app | 12 áreas de módulo na sidebar |
+| Usuários multi-lado com escopo por evento | Experiências Organizer vs Promoter |
 
-## Weak points
+## Pontos fracos
 
-| Weak point | Why we believe it |
-|------------|-------------------|
-| Commercial engine absent | No subscriptions, payments, entitlements |
-| Frontend ahead of backend | Roles, access logs, QR, many reports/integrations mocked |
-| Thin authorization | README admits inconsistent org isolation; most controllers lack `[Authorize]` |
-| No ticketing / registration product | TicketPrice only; no checkout |
-| No contracts/CRM | No Client/Contract entities |
-| Marketing automation incomplete | Posts have statuses; no social APIs |
-| Docs overclaim maturity | `RESUMO_EXECUTIVO.md` says 5 permission levels & complete modules; runtime contradicts |
-
----
-
-# PHASE 6 — Market Fit by Segment
-
-| Segment | Support | Required features | Priority (1–10) |
-|---------|---------|-------------------|-----------------|
-| **Event Producers (BR parties/shows)** | **Supported today** (core ICP) | Harden auth, reports, promoter sales truth | 10 |
-| **Event Agencies** | **Partial** | Multi-client CRM, proposals, contracts, multi-brand | 9 |
-| **DJs / Solo entertainers** | **Partial / weak** | Lightweight workspace, gig calendar, contracts, payouts | 6 |
-| **Wedding Planners** | **Partial** | Vendor packages, seating, client portal, checklists | 7 |
-| **Concert Producers** | **Partial** | Artist lineup, riders, settlements, accreditation | 8 |
-| **Music Festivals** | **Missing / thin** | Multi-stage, zones, artist mgmt, volunteer, cashless | 5 |
-| **Corporate Events** | **Partial** | Registration, badges, sessions, compliance, SSO | 7 |
-| **Venues** | **Missing as persona** | Space inventory, holds, BEOs, venue portal | 6 |
-| **Equipment Rental** | **Missing** | Inventory, availability, damage, delivery | 5 |
-| **Sound / Lighting / Stage Cos** | **Partial as Supplier** | Job sheets, crew, gear lists | 6 |
-| **Security Companies** | **Partial as Supplier** | Post orders, incident logs | 4 |
-| **Catering / Bar** | **Partial as Supplier + ExpenseType** | Menus, headcount F&B, inventory | 5 |
-| **Photographers / Videographers** | **Partial as Supplier** | Shot lists, galleries, rights | 4 |
-| **Decorators** | **Partial as Supplier** | Moodboards, install schedules | 3 |
-| **Freelancers** | **Partial** | Solo UX, invoicing | 6 |
-| **Small Teams** | **Supported today** | Reliability, mobile check-in | 9 |
-| **Large Enterprises** | **Missing** | SSO, audit, RBAC, SLA, multi-entity finance | 4 |
-| **Sponsors** | **Missing** | Packages, ROI reporting | 3 |
+| Ponto fraco | Por que acreditamos nisso |
+|-------------|---------------------------|
+| Motor comercial ausente | Sem subscriptions, payments, entitlements |
+| Frontend à frente do backend | Roles, access logs, QR, vários reports/integrações mockados |
+| Autorização fraca | README admite isolamento de org inconsistente; a maioria dos controllers não tem `[Authorize]` |
+| Sem produto de ticketing / registration | Só TicketPrice; sem checkout |
+| Sem contratos/CRM | Sem entidades Client/Contract |
+| Automação de marketing incompleta | Posts têm status; sem APIs sociais |
+| Docs superestimam maturidade | `RESUMO_EXECUTIVO.md` fala em 5 níveis de permissão e módulos completos; runtime contradiz |
 
 ---
 
-# PHASE 7 — Competitive Capability Gap
+# FASE 6 — Market Fit por Segmento
 
-Comparison is **capability**, not UI.
+| Segmento | Suporte | Features necessárias | Prioridade (1–10) |
+|----------|---------|----------------------|-------------------|
+| **Produtores de eventos (festas/shows BR)** | **Suportado hoje** (ICP core) | Endurecer auth, reports, verdade das vendas do promoter | 10 |
+| **Agências de eventos** | **Parcial** | CRM multi-cliente, propostas, contratos, multi-marca | 9 |
+| **DJs / Entretenimento solo** | **Parcial / fraco** | Workspace leve, calendário de gigs, contratos, payouts | 6 |
+| **Wedding Planners** | **Parcial** | Pacotes de vendors, seating, portal do cliente, checklists | 7 |
+| **Produtores de shows** | **Parcial** | Lineup de artistas, riders, acertos, credenciamento | 8 |
+| **Festivais de música** | **Ausente / fino** | Multi-palco, zonas, gestão de artistas, voluntários, cashless | 5 |
+| **Eventos corporativos** | **Parcial** | Registration, badges, sessões, compliance, SSO | 7 |
+| **Venues** | **Ausente como persona** | Inventário de espaços, holds, BEOs, portal da casa | 6 |
+| **Locação de equipamentos** | **Ausente** | Inventário, disponibilidade, danos, entrega | 5 |
+| **Empresas de som / luz / palco** | **Parcial como Supplier** | Job sheets, equipe, listas de gear | 6 |
+| **Empresas de segurança** | **Parcial como Supplier** | Post orders, logs de incidentes | 4 |
+| **Catering / Bar** | **Parcial como Supplier + ExpenseType** | Cardápios, headcount F&B, inventário | 5 |
+| **Fotógrafos / Videógrafos** | **Parcial como Supplier** | Shot lists, galerias, direitos | 4 |
+| **Decoradores** | **Parcial como Supplier** | Moodboards, cronogramas de montagem | 3 |
+| **Freelancers** | **Parcial** | UX solo, faturamento | 6 |
+| **Times pequenos** | **Suportado hoje** | Confiabilidade, check-in mobile | 9 |
+| **Grandes empresas** | **Ausente** | SSO, auditoria, RBAC, SLA, financeiro multi-entidade | 4 |
+| **Patrocinadores** | **Ausente** | Pacotes, reporting de ROI | 3 |
 
-| Capability | Pulse8 | Monday/Asana/ClickUp | Eventbrite | Cvent/Bizzabo/Whova | Notion/Airtable |
+---
+
+# FASE 7 — Gap Competitivo de Capacidades
+
+Comparação é de **capacidade**, não de UI.
+
+| Capacidade | Pulse8 | Monday/Asana/ClickUp | Eventbrite | Cvent/Bizzabo/Whova | Notion/Airtable |
 |------------|--------|----------------------|------------|---------------------|-----------------|
-| Generic PM/tasks | Weak/Missing | Strong | Weak | Medium | Strong |
-| Event object model | Strong | Weak | Strong | Strong | DIY |
-| Guest registration | Partial (staff list) | No | Strong | Strong | DIY |
-| Ticketing/payments | Missing | No | Strong | Strong | No |
-| Promoter/affiliate network | **Strong niche** | No | Partial | Partial | DIY |
-| Event finance P&L | Medium | Weak | Partial | Medium | DIY |
-| Supplier CRM | Basic | Weak | No | Medium | DIY |
-| Marketing campaigns | Basic CRUD | Weak | Medium | Medium | DIY |
-| Contracts | Missing | Weak | No | Medium | DIY |
-| Mobile check-in | Partial (web) | No | Strong | Strong | No |
-| Enterprise RBAC/SSO | Missing | Strong | Medium | Strong | Medium |
-| Brazil PIX/CNPJ native | **Strong** | Weak | Partial (local players differ) | Weak | Weak |
-| Workflow engine | Missing | Medium | Weak | Medium | DIY |
-| Marketplace | Missing | No | Weak | No | No |
+| PM/tarefas genéricas | Fraco/Ausente | Forte | Fraco | Médio | Forte |
+| Modelo de objeto Evento | Forte | Fraco | Forte | Forte | DIY |
+| Registration de convidados | Parcial (lista da staff) | Não | Forte | Forte | DIY |
+| Ticketing/pagamentos | Ausente | Não | Forte | Forte | Não |
+| Rede promoter/afiliado | **Nicho forte** | Não | Parcial | Parcial | DIY |
+| P&L financeiro do evento | Médio | Fraco | Parcial | Médio | DIY |
+| CRM de fornecedores | Básico | Fraco | Não | Médio | DIY |
+| Campanhas de marketing | CRUD básico | Fraco | Médio | Médio | DIY |
+| Contratos | Ausente | Fraco | Não | Médio | DIY |
+| Check-in mobile | Parcial (web) | Não | Forte | Forte | Não |
+| RBAC/SSO enterprise | Ausente | Forte | Médio | Forte | Médio |
+| Nativo Brasil PIX/CNPJ | **Forte** | Fraco | Parcial (players locais diferem) | Fraco | Fraco |
+| Workflow engine | Ausente | Médio | Fraco | Médio | DIY |
+| Marketplace | Ausente | Não | Fraco | Não | Não |
 
-### Strong modules
-- Events core
-- Promoter invites + attribution fields
-- Org tenancy skeleton
-- Expense/Revenue/Budget basics
-- Brazil-oriented onboarding
+### Módulos fortes
+- Core de Eventos
+- Convites de promoters + campos de atribuição
+- Esqueleto de tenancy por Organization
+- Bases de Expense/Revenue/Budget
+- Onboarding orientado ao Brasil
 
-### Weak modules
-- Reports/analytics (pages without analytics API)
-- Admin RBAC (mock/docs vs reality)
-- Marketing automation (no publish integrations)
-- Calendar (visualizations over thin Schedule model)
-- Settings/integrations (catalog UI)
+### Módulos fracos
+- Relatórios/analytics (páginas sem API analítica)
+- Admin RBAC (mock/docs vs realidade)
+- Automação de marketing (sem integrações de publish)
+- Calendário (visualizações sobre modelo Schedule fino)
+- Settings/integrações (catálogo UI)
 
-### Missing modules
-- Ticketing & payments
-- CRM (Leads/Clients)
-- Contracts & e-sign
-- Tasks/approvals/workflow engine
-- Inventory/equipment
-- Vendor marketplace
-- Client/guest portals
-- SaaS billing & entitlements
-- Mobile apps
-- AI/automation agents
+### Módulos ausentes
+- Ticketing e pagamentos
+- CRM (Leads/Clientes)
+- Contratos e e-sign
+- Tarefas/aprovações/workflow engine
+- Inventário/equipamentos
+- Marketplace de vendors
+- Portais de cliente/convidado
+- Billing SaaS e entitlements
+- Apps mobile
+- Agentes de IA/automação
 
-### Competitive advantages to double down on
-1. **Promoter OS for Brazilian nightlife/events**
-2. **Ops + money in one PT-BR product**
-3. **Invite-led multi-sided network effects**
+### Vantagens competitivas para dobrar a aposta
+1. **OS de Promoters para nightlife/eventos BR**
+2. **Ops + dinheiro em um produto PT-BR**
+3. **Network effects via convites multi-lado**
 
 ---
 
-# PHASE 8 — Product Strategy Roadmap
+# FASE 8 — Roadmap de Estratégia de Produto
 
-## MVP (stabilize the wedge)
+## MVP (estabilizar o wedge)
 
-**Scope:** Make the producer + promoter loop production-reliable.
+**Escopo:** Tornar confiável o loop produtor + promoter.
 
-- Enforce auth + org isolation on every API
-- Finish guest check-in (including real QR)
-- Promoter dashboard with editable commission truth and basic sales entry
-- Event finance summary that is trustworthy
-- Kill or clearly label mock admin/integrations/reports
-- Implement actual Starter metering OR remove fake plan limits from marketing until real
+- Enforce de auth + isolamento de org em toda API
+- Completar check-in de convidados (incluindo QR real)
+- Dashboard do promoter com verdade editável de comissão e lançamento básico de vendas
+- Resumo financeiro do evento confiável
+- Remover ou rotular claramente admin/integrações/relatórios mock
+- Implementar metering real do Starter **ou** remover limites falsos do marketing até existir de verdade
 
-**Why:** Trust before expansion. Today UI breadth > backend truth.  
-**Impact:** Convertable pilots with BR producers.  
-**Complexity:** Medium (security + gap closure).  
-**Business value:** Unlocks paid pilots.
+**Por quê:** Confiança antes de expansão. Hoje a amplitude da UI > a verdade do backend.  
+**Impacto:** Pilotos conversíveis com produtores BR.  
+**Complexidade:** Média (segurança + fechamento de gaps).  
+**Valor de negócio:** Destrava pilotos pagos.
 
-## Version 1.0 (sellable SaaS for producers)
+## Versão 1.0 (SaaS vendável para produtores)
 
-- Subscription billing (Stripe/Pagar.me) + plan entitlements
-- Real RBAC (Admin/Manager/Employee/Promoter policies)
-- Reports API (event, financial, guest, promoter performance)
-- Mobile-friendly check-in PWA
-- Email/WhatsApp notify for invites
-- File storage for assets (S3-compatible)
-- Audit log (SQL already envisioned)
+- Billing de subscription (Stripe/Pagar.me) + entitlements de plano
+- RBAC real (policies Admin/Manager/Employee/Promoter)
+- API de relatórios (evento, financeiro, convidados, performance de promoters)
+- Check-in PWA mobile-friendly
+- Notificação email/WhatsApp para convites
+- Storage de arquivos para assets (S3-compatible)
+- Audit log (já previsto em SQL)
 
-**Why:** Commercial readiness.  
-**Impact:** Recurring revenue.  
-**Complexity:** High.  
-**Business value:** High — matches landing promise.
+**Por quê:** Prontidão comercial.  
+**Impacto:** Receita recorrente.  
+**Complexidade:** Alta.  
+**Valor de negócio:** Alto — cumpre a promessa da landing.
 
-## Version 2.0 (category expansion)
+## Versão 2.0 (expansão de categoria)
 
-- Client CRM + proposals
-- Contracts / e-sign
-- Ticketing or deep Sympla/Eventbrite sync
-- Supplier portal + proposals
-- Tasking & production checklists
-- Marketing publish integrations (Meta/IG)
+- CRM de clientes + propostas
+- Contratos / e-sign
+- Ticketing ou sync profundo com Sympla/Eventbrite
+- Portal do fornecedor + propostas
+- Tasking e checklists de produção
+- Integrações de publish de marketing (Meta/IG)
 
-**Why:** Move from “ops notebook” to “agency OS”.  
-**Impact:** Larger ACV (agencies).  
-**Complexity:** Very high.  
-**Business value:** Expands ICP beyond parties/promoters.
+**Por quê:** Sair do “caderno de ops” e virar “OS de agência”.  
+**Impacto:** ACV maior (agências).  
+**Complexidade:** Muito alta.  
+**Valor de negócio:** Amplia ICP além de festas/promoters.
 
-## Version 3.0 (ecosystem / OS ambitions)
+## Versão 3.0 (ambições de ecossistema / OS)
 
-- Vendor marketplace
-- Partner API platform
-- White-label venue/agency
-- AI agents (budget advisor, promoter scoring, schedule builder)
+- Marketplace de vendors
+- Plataforma de API para parceiros
+- White-label para venue/agência
+- Agentes de IA (advisor de orçamento, scoring de promoter, builder de agenda)
 - Workflow engine
-- Multi-vertical templates (wedding, corporate, festival)
+- Templates multi-verticais (casamento, corporativo, festival)
 
-**Why:** Platform compounding.  
-**Impact:** Network effects.  
-**Complexity:** Extreme.  
-**Business value:** Venture-scale — only after V1 retention is proven.
-
----
-
-# PHASE 9 — Product Vision & Positioning
-
-## What it is today
-
-A combination of:
-
-- **Event operations tool** (primary)
-- **Light financial tracker**
-- **Light CRM** (people/guests/suppliers)
-- **Promoter affiliate module**
-- **Marketing asset/campaign notebook**
-
-It is **not yet** an ERP, marketplace, full CRM, or industry OS.
-
-## Recommended positioning
-
-> **“The operating system for Brazilian event producers and their promoter networks.”**
-
-Do **not** position as “Cvent for everything” yet. Win one wedge:
-
-1. Nightlife / shows / club events producers + promoters  
-2. Then agencies  
-3. Then vertical templates  
-
-Avoid spreading into venue ERP + ticketing + marketplace simultaneously before V1 monetization.
+**Por quê:** Compounding de plataforma.  
+**Impacto:** Network effects.  
+**Complexidade:** Extrema.  
+**Valor de negócio:** Escala venture — só depois de retenção comprovada no V1.
 
 ---
 
-# PHASE 10 — SaaS Scalability Assessment
+# FASE 9 — Visão de Produto e Posicionamento
 
-| Capability | Status | Evidence / inference |
-|------------|--------|----------------------|
-| Multi-tenancy | **Partial** | Organization as tenant + JWT `organization_id`; README warns isolation inconsistent |
-| Subscription plans | **Missing (marketing only)** | Landing prices; no Plan entity |
-| White Label | **Missing** | No branding/tenant theme engine beyond basic theme toggle |
-| Large companies | **Weak** | No SSO, weak RBAC, no audit productization |
-| Small businesses | **Good fit** | Org register + broad simple CRUD |
-| Solo professionals | **Awkward** | Forced into Organization/CNPJ model |
-| Marketplace | **Missing** | No listings/transactions between orgs |
-| Partner ecosystem | **Missing** | No public partner API program |
-| API Platform | **Early** | REST + Swagger exist; not productized for 3rd parties |
-| Mobile App | **Missing** | Responsive web only |
-| AI Agents | **Missing** | No AI features found |
-| Automation | **Missing** | No rules engine; post scheduling statuses only |
-| Workflow Engine | **Missing** | Status enums only, not configurable workflows |
+## O que é hoje
 
----
+Uma combinação de:
 
-# PHASE 11 — Product Scores (1–10)
+- **Ferramenta de operações de eventos** (primário)
+- **Tracker financeiro leve**
+- **CRM leve** (people/guests/suppliers)
+- **Módulo de afiliados/promoters**
+- **Caderno de assets/campanhas de marketing**
 
-| Dimension | Score | Explanation |
-|-----------|------:|-------------|
-| **Product Vision** | **6** | Clear event-ops vision in README/landing; OS ambition implied but not operationalized. |
-| **Market Fit** | **5** | Strong conceptual fit for BR producers/promoters; many segments unsupported; billing/ticketing gaps hurt fit. |
-| **Feature Completeness** | **4** | Wide FE surface; several modules mock/partial; core CRUD exists; industry workflows incomplete. |
-| **Usability** | **6** | Coherent PT-BR nav and forms; promoter-restricted UX shows product thinking; dead-end mock screens hurt trust. |
-| **Scalability** | **4** | Org tenancy skeleton OK; auth/isolation/billing/tests/migrations gaps (README production-readiness section). |
-| **Business Potential** | **7** | Large BR/LATAM event market + promoter wedge could work if focused; monetization path visible. |
-| **Competitive Position** | **4** | Differentiated on promoter+Brazil niche; loses to specialists on ticketing/enterprise/PM depth. |
-| **Technical Foundation** | **6** | Clean Architecture .NET 8 + Next.js is a solid base; incomplete security/tests reduce score. |
-| **Overall Product** | **5** | Promising early-stage ops platform with a real wedge; not yet a coherent commercially ready product. |
+**Ainda não é** ERP, marketplace, CRM completo ou OS da indústria.
+
+## Posicionamento recomendado
+
+> **“O sistema operacional para produtores brasileiros de eventos e suas redes de promoters.”**
+
+Não posicionar ainda como “Cvent para tudo”. Vencer um wedge:
+
+1. Nightlife / shows / club events + promoters  
+2. Depois agências  
+3. Depois templates verticais  
+
+Evitar espalhar para venue ERP + ticketing + marketplace ao mesmo tempo antes da monetização do V1.
 
 ---
 
-# PHASE 12 — Executive Report
+# FASE 10 — Avaliação de Escalabilidade SaaS
 
-## Executive Summary
+| Capacidade | Status | Evidência / inferência |
+|------------|--------|------------------------|
+| Multi-tenancy | **Parcial** | Organization como tenant + JWT `organization_id`; README alerta isolamento inconsistente |
+| Planos de subscription | **Ausente (só marketing)** | Preços na landing; sem entidade Plan |
+| White Label | **Ausente** | Sem engine de branding/tema por tenant além do toggle básico de tema |
+| Grandes empresas | **Fraco** | Sem SSO, RBAC fraco, auditoria não productizada |
+| Pequenas empresas | **Bom fit** | Cadastro de org + CRUD amplo e simples |
+| Profissionais solo | **Desajeitado** | Forçado ao modelo Organization/CNPJ |
+| Marketplace | **Ausente** | Sem listings/transações entre orgs |
+| Ecossistema de parceiros | **Ausente** | Sem programa público de partner API |
+| API Platform | **Cedo** | REST + Swagger existem; não productizado para terceiros |
+| App Mobile | **Ausente** | Só web responsivo |
+| Agentes de IA | **Ausente** | Nenhum feature de IA encontrado |
+| Automação | **Ausente** | Sem rules engine; só status de scheduling de posts |
+| Workflow Engine | **Ausente** | Só enums de status, não workflows configuráveis |
 
-Pulse8 is an early-stage **event production operations SaaS** aimed at Brazilian organizers, with a distinctive **promoter invitation and commission** workflow. The frontend presents a full suite (12 modules, ~96 routes); the backend implements solid CRUD for core aggregates (Organization, Event, Guest, Person, Supplier, Schedule, Budget, Expense, Revenue, Marketing*, Promoter, Invite) but **does not yet support** subscriptions, contracts, ticketing, marketplace, fine-grained RBAC, or several APIs the frontend already calls. The product deserves investment **only if** it narrows to the producer–promoter wedge, closes trust gaps, and ships real billing — not if it continues expanding UI toward an “everything OS” narrative.
+---
 
-## Product Description
+# FASE 11 — Score do Produto (1–10)
 
-Authenticated multi-tenant web app where an Organization manages Events and related operational data, and can invite Promoters into event-scoped participation. Public pages cover marketing, auth, and invite acceptance.
+| Dimensão | Score | Explicação |
+|----------|------:|------------|
+| **Visão de Produto** | **6** | Visão clara de event-ops em README/landing; ambição de OS implícita, mas não operacionalizada. |
+| **Market Fit** | **5** | Fit conceitual forte para produtores/promoters BR; muitos segmentos sem suporte; gaps de billing/ticketing prejudicam o fit. |
+| **Completude de Features** | **4** | Superfície FE ampla; vários módulos mock/parciais; CRUD core existe; workflows da indústria incompletos. |
+| **Usabilidade** | **6** | Nav e forms coerentes em PT-BR; UX restrita do promoter mostra pensamento de produto; telas mock sem saída real prejudicam confiança. |
+| **Escalabilidade** | **4** | Esqueleto de tenancy OK; gaps de auth/isolamento/billing/testes/migrations (seção de production-readiness do README). |
+| **Potencial de Negócio** | **7** | Mercado grande de eventos BR/LATAM + wedge de promoters pode funcionar se focado; path de monetização visível. |
+| **Posição Competitiva** | **4** | Diferenciado no nicho promoter+Brasil; perde para especialistas em ticketing/enterprise/profundidade de PM. |
+| **Fundação Técnica** | **6** | Clean Architecture .NET 8 + Next.js é base sólida; segurança/testes incompletos reduzem o score. |
+| **Produto Overall** | **5** | Plataforma promissora em estágio inicial com wedge real; ainda não é um produto comercialmente coerente e pronto. |
 
-## Target Market
+---
 
-Primary: Brazilian event production companies (CNPJ) running parties, shows, and mid-size events that rely on promoter networks.
+# FASE 12 — Relatório Executivo
+
+## Sumário Executivo
+
+O Pulse8 é um **SaaS early-stage de operações de produção de eventos** voltado a organizadores brasileiros, com um workflow distintivo de **convite e comissão de promoters**. O frontend apresenta uma suíte completa (12 módulos, ~96 rotas); o backend implementa CRUD sólido dos agregados centrais (Organization, Event, Guest, Person, Supplier, Schedule, Budget, Expense, Revenue, Marketing*, Promoter, Invite), mas **ainda não suporta** subscriptions, contratos, ticketing, marketplace, RBAC fino, nem várias APIs que o frontend já chama. O produto merece investimento **somente se** estreitar para o wedge produtor–promoter, fechar gaps de confiança e entregar billing real — não se continuar expandindo UI rumo a uma narrativa de “OS de tudo”.
+
+## Descrição do Produto
+
+App web autenticado multi-tenant em que uma Organization gerencia Events e dados operacionais relacionados, e pode convidar Promoters para participação com escopo por evento. Páginas públicas cobrem marketing, auth e aceite de convite.
+
+## Mercado-Alvo
+
+Primário: empresas brasileiras de produção de eventos (CNPJ) que fazem festas, shows e eventos de médio porte e dependem de redes de promoters.
 
 ## Ideal Customer Profile (ICP)
 
-- 3–30 person production company in Brazil  
-- Runs recurring ticketed or invite events  
-- Uses promoters heavily  
-- Needs guest list + basic P&L + supplier contacts  
-- Currently lives in Sheets + WhatsApp + Instagram  
+- Empresa de produção com 3–30 pessoas no Brasil  
+- Roda eventos recorrentes com ingresso ou lista  
+- Usa promoters intensamente  
+- Precisa de lista de convidados + P&L básico + contatos de fornecedores  
+- Hoje vive em Sheets + WhatsApp + Instagram  
 
-## Current Capabilities
+## Capacidades Atuais
 
-- Org/user auth including Google/Instagram OAuth  
-- Event lifecycle management  
-- Guests + check-in field  
-- Team (People), Suppliers  
-- Budgets, Expenses, Revenues  
-- Schedules  
-- Marketing campaigns/posts/assets (CRUD)  
-- Promoter invites + commission/UTM fields  
-- Promoter-restricted UX  
+- Auth de org/usuário incluindo OAuth Google/Instagram  
+- Gestão de ciclo de vida do evento  
+- Convidados + campo de check-in  
+- Equipe (People), Fornecedores  
+- Orçamentos, Despesas, Receitas  
+- Cronogramas  
+- Campanhas/posts/assets de marketing (CRUD)  
+- Convites de promoters + campos de comissão/UTM  
+- UX restrita para promoter  
 
-## Missing Opportunities
+## Oportunidades Ausentes
 
-1. True promoter performance / sales capture  
-2. Ticketing or Sympla/Eventbrite integration  
-3. CRM → Proposal → Contract  
-4. SaaS billing aligned with landing plans  
-5. Mobile check-in that works offline  
-6. WhatsApp-native workflows (Brazil channel reality)
+1. Performance real de promoters / captura de vendas  
+2. Ticketing ou integração Sympla/Eventbrite  
+3. CRM → Proposta → Contrato  
+4. Billing SaaS alinhado aos planos da landing  
+5. Check-in mobile que funcione offline  
+6. Workflows nativos de WhatsApp (realidade do canal no Brasil)
 
-## Recommended Roadmap
+## Roadmap Recomendado
 
-MVP → V1.0 → V2.0 → V3.0 as in Phase 8. Near-term mantra: **narrow, harden, monetize**.
+MVP → V1.0 → V2.0 → V3.0 como na Fase 8. Mantra de curto prazo: **estreitar, endurecer, monetizar**.
 
-## Biggest Risks
+## Maiores Riscos
 
-1. **Trust gap** between marketed completeness and runtime reality  
-2. **Security/tenancy debt** blocking real customers (README acknowledges)  
-3. **Unfocused roadmap** chasing all event verticals  
-4. **No payment rail** for SaaS or tickets  
-5. **Competing with Sympla/Eventbrite** on ticketing before owning ops niche  
+1. **Gap de confiança** entre completude marketed e realidade de runtime  
+2. **Dívida de segurança/tenancy** bloqueando clientes reais (README reconhece)  
+3. **Roadmap sem foco** perseguindo todas as verticais de eventos  
+4. **Sem trilho de pagamento** para SaaS ou ingressos  
+5. **Competir com Sympla/Eventbrite** em ticketing antes de dominar o nicho de ops  
 
-## Biggest Opportunities
+## Maiores Oportunidades
 
-1. Become the **Promoter Network OS** for Brazil  
-2. Own backstage finance + guest ops adjacent to Sympla (integrate, don’t replace first)  
-3. Template packs for agencies after V1 retention  
-4. PIX-native supplier/crew payouts later  
+1. Tornar-se o **OS de Rede de Promoters** do Brasil  
+2. Dominar backstage finance + guest ops adjacente ao Sympla (integrar, não substituir primeiro)  
+3. Packs de templates para agências após retenção do V1  
+4. Payouts PIX-nativos para fornecedores/equipe depois  
 
-## Strategic Recommendations
+## Recomendações Estratégicas
 
-1. Reposition messaging from “plataforma completa” to “produção + promoters”.  
-2. Create a public capability matrix: Real / Beta / Preview — stop mock screens silently failing.  
-3. Instrument one beachhead vertical (nightlife/shows) with 10 design partners.  
-4. Ship billing + entitlements before Enterprise claims.  
-5. Treat promoter invite graph as the strategic moat.  
+1. Reposicionar a mensagem de “plataforma completa” para “produção + promoters”.  
+2. Criar matriz pública de capacidades: Real / Beta / Preview — parar de deixar telas mock falharem em silêncio.  
+3. Instrumentar uma vertical beachhead (nightlife/shows) com 10 design partners.  
+4. Entregar billing + entitlements antes de claims Enterprise.  
+5. Tratar o grafo de convites de promoters como o fosso estratégico.  
 
-## Estimated Product Maturity
+## Maturidade Estimada do Produto
 
-**Late prototype / early MVP** — breadth of screens suggests demo-ready; depth/security/monetization suggest not production-ready (aligned with backend README “not production-ready”).
+**Protótipo avançado / MVP inicial** — amplitude de telas sugere pronto para demo; profundidade/segurança/monetização sugerem não production-ready (alinhado ao README do backend “not production-ready”).
 
-## Commercial Readiness
+## Prontidão Comercial
 
-**Low–Medium.** Landing CTA and price points exist; no metering, checkout, invoices, or customer lifecycle automation for the SaaS itself.
+**Baixa–Média.** CTA e price points existem na landing; sem metering, checkout, faturas ou automação de ciclo de vida do cliente SaaS.
 
-## Investment Readiness
+## Prontidão para Investimento
 
-**Conditional.** Investable as a **focused BR event-ops + promoters** thesis with a tight MVP plan. Not investable yet as “the all-in-one OS for the entire events industry” without multi-year platform build and clear wedge traction.
+**Condicional.** Investível como tese **focada em event-ops BR + promoters** com plano MVP apertado. Ainda não investível como “o OS all-in-one de toda a indústria de eventos” sem estratégia de plataforma de longo prazo e tração clara no wedge.
 
 ---
 
-# Final Section — Could Pulse8 realistically become the all-in-one OS for the events industry?
+# Seção Final — O Pulse8 pode realisticamente se tornar o sistema operacional all-in-one da indústria de eventos?
 
-**Honest founder answer: not with the current product shape, and not by continuing to widen the UI.**
+**Resposta honesta de founder: não com o formato atual do produto, e não continuando a alargar a UI.**
 
-### What is real today
-Pulse8 is a credible seed of an **event operations console** with a smart local wedge (Brazilian orgs + promoter invites). That is enough to matter in a large market — if executed ruthlessly.
+### O que é real hoje
+O Pulse8 é uma semente credível de um **console de operações de eventos** com um wedge local inteligente (orgs brasileiras + convites de promoters). Isso basta para importar em um mercado grande — se executado com disciplina.
 
-### What “OS for the events industry” actually requires
-Ticketing or deep integrations, CRM, contracts, vendor marketplace, inventory, enterprise identity, workflow automation, vertical solutions (wedding/corporate/festival/venue), mobile, payments, and ecosystem APIs. Most of that is **absent** (believed missing due to no entities/controllers and FE mocks). Building all of it is a multi-product company, not a feature sprint.
+### O que “OS da indústria de eventos” realmente exige
+Ticketing ou integrações profundas, CRM, contratos, marketplace de vendors, inventário, identidade enterprise, automação de workflows, soluções verticais (casamento/corporativo/festival/venue), mobile, pagamentos e APIs de ecossistema. A maior parte disso está **ausente** (considerado ausente por falta de entidades/controllers e presença de mocks no FE). Construir tudo isso é empresa multi-produto, não uma sprint de features.
 
-### Decision framework
-| Path | Verdict |
-|------|---------|
-| Expand horizontally to “OS for everyone” now | **No — high burn, low credibility** |
-| Dominate BR producer + promoter ops, integrate ticketing, then expand modules | **Yes — plausible platform path** |
-| Compete head-on with Cvent/Eventbrite globally | **No — wrong stage and scope** |
+### Framework de decisão
+| Caminho | Veredito |
+|---------|----------|
+| Expandir horizontalmente para “OS para todo mundo” agora | **Não — alto burn, baixa credibilidade** |
+| Dominar ops de produtor + promoter BR, integrar ticketing, depois expandir módulos | **Sim — path de plataforma plausível** |
+| Competir de frente com Cvent/Eventbrite globalmente | **Não — estágio e escopo errados** |
 
-### Investment stance
-**Further investment is justified** if the company commits to:
+### Postura de investimento
+**Investimento adicional se justifica** se a empresa se comprometer a:
 
-1. Beachhead ICP (BR producers using promoters)  
-2. Closing backend/FE truth gaps and security  
-3. Monetization in V1  
-4. Saying “no” to marketplace/ERP fantasies until retention is proven  
+1. ICP beachhead (produtores BR que usam promoters)  
+2. Fechar gaps de verdade FE/BE e segurança  
+3. Monetização no V1  
+4. Dizer “não” a fantasias de marketplace/ERP até provar retenção  
 
-Otherwise, the product risks becoming a wide demo with shallow workflows — impressive in screenshots (`RESUMO_EXECUTIVO.md` style claims), fragile in production.
+Caso contrário, o produto corre o risco de virar um demo amplo com workflows rasos — impressionante em screenshots (claims no estilo `RESUMO_EXECUTIVO.md`), frágil em produção.
 
-**Bottom line:** Pulse8 can become *an* operating system for a **defined slice** of the events industry (Brazilian production teams and their promoter networks). Becoming *the* all-in-one OS for every segment listed in Phase 6 is not realistic from the current codebase without a decade-scale platform strategy and extreme focus discipline along the way.
+**Conclusão:** O Pulse8 pode se tornar *um* sistema operacional para uma **fatia definida** da indústria de eventos (times de produção brasileiros e suas redes de promoters). Tornar-se *o* OS all-in-one de todos os segmentos listados na Fase 6 não é realista a partir do codebase atual sem uma estratégia de plataforma de longo prazo e disciplina extrema de foco no caminho.
